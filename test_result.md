@@ -261,13 +261,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Authentication Flow - Login Screen"
-    - "Authentication Flow - Signup Screen"
-    - "Auth Context & State Management"
-    - "Navigation Setup"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+    - "Backend API is already deployed and working"
+  stuck_tasks: 
+    - "Backend API is already deployed and working"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "main"
