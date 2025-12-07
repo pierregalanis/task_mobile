@@ -61,36 +61,19 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{i18n.t('home.categories')}</Text>
           <View style={styles.categoriesGrid}>
-            <CategoryCard
-              icon="hammer"
-              title={i18n.locale === 'fr' ? 'Réparation' : 'Handyman'}
-              color="#3b82f6"
-            />
-            <CategoryCard
-              icon="brush"
-              title={i18n.locale === 'fr' ? 'Peinture' : 'Painting'}
-              color="#f59e0b"
-            />
-            <CategoryCard
-              icon="flash"
-              title={i18n.locale === 'fr' ? 'Électricien' : 'Electrician'}
-              color="#f59e0b"
-            />
-            <CategoryCard
-              icon="water"
-              title={i18n.locale === 'fr' ? 'Plomberie' : 'Plumbing'}
-              color="#06b6d4"
-            />
-            <CategoryCard
-              icon="home"
-              title={i18n.locale === 'fr' ? 'Nettoyage' : 'Cleaning'}
-              color="#10b981"
-            />
-            <CategoryCard
-              icon="car"
-              title={i18n.locale === 'fr' ? 'Déménagement' : 'Moving'}
-              color="#8b5cf6"
-            />
+            {CATEGORIES.map((category) => (
+              <TouchableOpacity key={category.id} style={styles.categoryCard} activeOpacity={0.7}>
+                <View style={styles.categoryIconContainer}>
+                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                </View>
+                <Text style={styles.categoryTitle}>
+                  {getCategoryName(category, i18n.locale)}
+                </Text>
+                <Text style={styles.categorySubcount}>
+                  {category.subcategories.length} {i18n.locale === 'fr' ? 'services' : 'services'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
