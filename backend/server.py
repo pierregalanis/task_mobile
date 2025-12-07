@@ -296,6 +296,139 @@ async def seed_test_data():
             tasker_user = UserInDB(**tasker_dict, hashed_password=hashed_password)
             await db.users.insert_one(tasker_user.dict())
             logger.info("Test tasker user created")
+        
+        # Create sample taskers with diverse profiles
+        sample_taskers = [
+            {
+                "email": "marie.cleaning@demo.com",
+                "full_name": "Marie Kouassi",
+                "phone": "+225 0701234567",
+                "country": "Ivory Coast",
+                "city": "Abidjan",
+                "role": "tasker",
+                "latitude": 5.35,
+                "longitude": -3.98,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "cleaning", "hourly_rate": 2500, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "john.plumber@demo.com",
+                "full_name": "John Mensah",
+                "phone": "+233 0501234567",
+                "country": "Ghana",
+                "city": "Accra",
+                "role": "tasker",
+                "latitude": 5.60,
+                "longitude": -0.19,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "plumbing", "hourly_rate": 3500, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "fatou.gardening@demo.com",
+                "full_name": "Fatou Diop",
+                "phone": "+221 0771234567",
+                "country": "Senegal",
+                "city": "Dakar",
+                "role": "tasker",
+                "latitude": 14.69,
+                "longitude": -17.44,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "gardening", "hourly_rate": 2000, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "kwame.electrical@demo.com",
+                "full_name": "Kwame Nkrumah",
+                "phone": "+233 0241234567",
+                "country": "Ghana",
+                "city": "Kumasi",
+                "role": "tasker",
+                "latitude": 6.69,
+                "longitude": -1.62,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "electrical", "hourly_rate": 4000, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "aisha.tutoring@demo.com",
+                "full_name": "Aisha Bello",
+                "phone": "+234 0801234567",
+                "country": "Nigeria",
+                "city": "Lagos",
+                "role": "tasker",
+                "latitude": 6.52,
+                "longitude": 3.37,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "tutoring", "hourly_rate": 5000, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "pierre.painting@demo.com",
+                "full_name": "Pierre Kamara",
+                "phone": "+225 0721234567",
+                "country": "Ivory Coast",
+                "city": "Yamoussoukro",
+                "role": "tasker",
+                "latitude": 6.82,
+                "longitude": -5.27,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "painting", "fixed_price": 25000, "pricing_type": "fixed"}
+                    ]
+                }
+            },
+            {
+                "email": "amara.delivery@demo.com",
+                "full_name": "Amara Toure",
+                "phone": "+221 0781234567",
+                "country": "Senegal",
+                "city": "Thies",
+                "role": "tasker",
+                "latitude": 14.79,
+                "longitude": -16.93,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "delivery", "hourly_rate": 1500, "pricing_type": "hourly"}
+                    ]
+                }
+            },
+            {
+                "email": "yaw.carpentry@demo.com",
+                "full_name": "Yaw Asante",
+                "phone": "+233 0551234567",
+                "country": "Ghana",
+                "city": "Accra",
+                "role": "tasker",
+                "latitude": 5.61,
+                "longitude": -0.21,
+                "tasker_profile": {
+                    "services": [
+                        {"category": "carpentry", "hourly_rate": 3000, "pricing_type": "hourly"}
+                    ]
+                }
+            }
+        ]
+        
+        # Insert sample taskers if they don't exist
+        for tasker_data in sample_taskers:
+            existing = await get_user_by_email(tasker_data["email"])
+            if not existing:
+                hashed_password = get_password_hash("test123")
+                user_in_db = {**tasker_data, "hashed_password": hashed_password, "id": str(uuid.uuid4()), "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()}
+                await db.users.insert_one(user_in_db)
+                logger.info(f"Sample tasker created: {tasker_data['full_name']}")
             
     except Exception as e:
         logger.error(f"Error seeding test data: {e}")
