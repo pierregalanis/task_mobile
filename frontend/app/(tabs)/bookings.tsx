@@ -230,8 +230,36 @@ export default function BookingsScreen() {
                   </TouchableOpacity>
                 )}
 
+                {/* En Route Button for Tasker */}
+                {user?.role === 'tasker' && task.status === 'accepted' && (
+                  <TouchableOpacity
+                    style={styles.enRouteButton}
+                    onPress={() => router.push(`/tracking/${task.id}?mode=tasker`)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="navigate" size={18} color={Colors.dark.background} />
+                    <Text style={styles.enRouteButtonText}>
+                      {i18n.locale === 'fr' ? 'En route' : 'En Route'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Track Route Button for Client */}
+                {user?.role === 'client' && task.status === 'en_route' && (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={() => router.push(`/tracking/${task.id}?mode=client`)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="location" size={18} color={Colors.dark.background} />
+                    <Text style={styles.trackButtonText}>
+                      {i18n.locale === 'fr' ? 'Suivre le trajet' : 'Track Route'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {/* Action Buttons for In Progress */}
-                {task.status === 'in_progress' && (
+                {user?.role === 'tasker' && task.status === 'in_progress' && (
                   <TouchableOpacity
                     style={styles.completeButton}
                     onPress={() => handleStatusUpdate(task.id, 'completed')}
