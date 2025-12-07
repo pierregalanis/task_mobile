@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { taskerAPI } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { CATEGORIES, getCategoryName } from '../../constants/Categories';
+import { CATEGORIES, getCategoryName, getCategoryById } from '../../constants/Categories';
 
 export default function TaskersScreen() {
   const router = useRouter();
