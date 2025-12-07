@@ -39,12 +39,8 @@ export default function ProfileScreen() {
     const newLocale = i18n.locale === 'en' ? 'fr' : 'en';
     i18n.locale = newLocale;
     await storage.saveLanguage(newLocale);
-    Alert.alert(
-      i18n.locale === 'fr' ? 'Langue changée' : 'Language Changed',
-      i18n.locale === 'fr'
-        ? 'Veuillez redémarrer l\'application pour voir les changements'
-        : 'Please restart the app to see changes'
-    );
+    // Force a re-render by using router
+    router.replace('/profile');
   };
 
   return (
