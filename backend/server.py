@@ -439,6 +439,157 @@ async def update_task_status(task_id: str, status_update: TaskStatusUpdate, curr
     updated_task = await db.tasks.find_one({"id": task_id})
     return updated_task
 
+# ==================== GPS TRACKING ENDPOINTS ====================
+
+@api_router.post("/tasks/{task_id}/start-journey")
+async def start_journey(task_id: str, location: LocationUpdate, current_user: User = Depends(get_current_user)):
+    """Tasker starts journey to client location"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can start journey"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if task["status"] != "accepted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task must be in accepted status"
+        )
+    
+    update_data = {
+        "status": "en_route",
+        "en_route_at": datetime.utcnow(),
+        "current_latitude": location.latitude,
+        "current_longitude": location.longitude,
+        "location_updated_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+@api_router.put("/tasks/{task_id}/location")
+async def update_location(task_id: str, location: LocationUpdate, current_user: User = Depends(get_current_user)):
+    """Update tasker's current location while en route"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can update location"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if task["status"] != "en_route":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task must be in en_route status"
+        )
+    
+    update_data = {
+        "current_latitude": location.latitude,
+        "current_longitude": location.longitude,
+        "location_updated_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    return {"success": True, "latitude": location.latitude, "longitude": location.longitude}
+
+@api_router.get("/tasks/{task_id}/location")
+async def get_task_location(task_id: str, current_user: User = Depends(get_current_user)):
+    """Get current location of tasker (for client to track)"""
+    task = await db.tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    # Check if user is part of this task
+    if current_user.id not in [task["client_id"], task["tasker_id"]]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    if task["status"] != "en_route":
+        return {
+            "status": task["status"],
+            "en_route": False,
+            "message": "Tasker is not en route yet"
+        }
+    
+    # Calculate distance and ETA (simple calculation)
+    tasker_lat = task.get("current_latitude")
+    tasker_lng = task.get("current_longitude")
+    client_lat = task.get("latitude")
+    client_lng = task.get("longitude")
+    
+    distance_km = None
+    eta_minutes = None
+    
+    if tasker_lat and tasker_lng and client_lat and client_lng:
+        # Haversine formula for distance
+        from math import radians, cos, sin, asin, sqrt
+        
+        lon1, lat1, lon2, lat2 = map(radians, [tasker_lng, tasker_lat, client_lng, client_lat])
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        distance_km = 6371 * c  # Radius of earth in kilometers
+        
+        # Estimate ETA (assuming avg speed of 30 km/h in city)
+        eta_minutes = int((distance_km / 30) * 60)
+    
+    return {
+        "status": "en_route",
+        "en_route": True,
+        "tasker_location": {
+            "latitude": tasker_lat,
+            "longitude": tasker_lng
+        },
+        "client_location": {
+            "latitude": client_lat,
+            "longitude": client_lng
+        },
+        "distance_km": round(distance_km, 2) if distance_km else None,
+        "eta_minutes": eta_minutes,
+        "last_updated": task.get("location_updated_at"),
+        "en_route_since": task.get("en_route_at")
+    }
+
+@api_router.post("/tasks/{task_id}/arrive")
+async def mark_arrival(task_id: str, current_user: User = Depends(get_current_user)):
+    """Tasker marks arrival at client location"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can mark arrival"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if task["status"] != "en_route":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task must be in en_route status"
+        )
+    
+    update_data = {
+        "status": "in_progress",
+        "arrived_at": datetime.utcnow(),
+        "started_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
 # ==================== REVIEW ENDPOINTS ====================
 
 @api_router.get("/reviews/tasker/{tasker_id}")
