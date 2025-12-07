@@ -189,16 +189,6 @@ async def login(user_credentials: UserLogin):
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
-@api_router.get("/users/{user_id}", response_model=User)
-async def get_user(user_id: str):
-    user = await get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    return user
-
 @api_router.get("/users/taskers")
 async def get_taskers(
     category: Optional[str] = None,
@@ -214,6 +204,16 @@ async def get_taskers(
     
     taskers = await db.users.find(query).to_list(100)
     return [User(**{k: v for k, v in tasker.items() if k != 'hashed_password'}).dict() for tasker in taskers]
+
+@api_router.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: str):
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
 
 # ==================== BASIC ENDPOINTS ====================
 
