@@ -250,52 +250,83 @@ export default function TrackingScreen() {
         </View>
       </View>
 
-      {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={initialRegion}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-      >
-        {/* Client Location Marker */}
-        {trackingData?.client_location && (
-          <Marker
-            coordinate={trackingData.client_location}
-            title={i18n.locale === 'fr' ? 'Destination' : 'Destination'}
-            description={i18n.locale === 'fr' ? 'Emplacement du client' : 'Client location'}
-            pinColor={Colors.dark.primary}
-          >
-            <View style={styles.clientMarker}>
-              <Ionicons name="location" size={32} color={Colors.dark.primary} />
+      {/* Map or Web Fallback */}
+      {Platform.OS === 'web' ? (
+        <View style={styles.webFallback}>
+          <Ionicons name="map" size={64} color={Colors.dark.textSecondary} />
+          <Text style={styles.webFallbackTitle}>
+            {i18n.locale === 'fr' ? 'Carte GPS' : 'GPS Map'}
+          </Text>
+          <Text style={styles.webFallbackText}>
+            {i18n.locale === 'fr' 
+              ? 'Le suivi GPS en temps réel est disponible uniquement sur mobile. Scannez le code QR avec Expo Go pour tester cette fonctionnalité.'
+              : 'Real-time GPS tracking is only available on mobile. Scan the QR code with Expo Go to test this feature.'}
+          </Text>
+          {trackingData?.en_route && (
+            <View style={styles.webTrackingInfo}>
+              <Text style={styles.webTrackingLabel}>
+                {i18n.locale === 'fr' ? 'Distance' : 'Distance'}: {trackingData.distance_km ? `${trackingData.distance_km} km` : '--'}
+              </Text>
+              <Text style={styles.webTrackingLabel}>
+                {i18n.locale === 'fr' ? 'Temps estimé' : 'ETA'}: {trackingData.eta_minutes ? `${trackingData.eta_minutes} min` : '--'}
+              </Text>
             </View>
-          </Marker>
-        )}
+          )}
+        </View>
+      ) : MapView ? (
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={initialRegion}
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+        >
+          {/* Client Location Marker */}
+          {trackingData?.client_location && (
+            <Marker
+              coordinate={trackingData.client_location}
+              title={i18n.locale === 'fr' ? 'Destination' : 'Destination'}
+              description={i18n.locale === 'fr' ? 'Emplacement du client' : 'Client location'}
+              pinColor={Colors.dark.primary}
+            >
+              <View style={styles.clientMarker}>
+                <Ionicons name="location" size={32} color={Colors.dark.primary} />
+              </View>
+            </Marker>
+          )}
 
-        {/* Tasker Location Marker */}
-        {trackingData?.en_route && trackingData?.tasker_location && (
-          <Marker
-            coordinate={trackingData.tasker_location}
-            title={i18n.locale === 'fr' ? 'Tâcheron' : 'Tasker'}
-            description={i18n.locale === 'fr' ? 'Emplacement actuel' : 'Current location'}
-          >
-            <View style={styles.taskerMarker}>
-              <Ionicons name="person" size={24} color="#fff" />
-            </View>
-          </Marker>
-        )}
+          {/* Tasker Location Marker */}
+          {trackingData?.en_route && trackingData?.tasker_location && (
+            <Marker
+              coordinate={trackingData.tasker_location}
+              title={i18n.locale === 'fr' ? 'Tâcheron' : 'Tasker'}
+              description={i18n.locale === 'fr' ? 'Emplacement actuel' : 'Current location'}
+            >
+              <View style={styles.taskerMarker}>
+                <Ionicons name="person" size={24} color="#fff" />
+              </View>
+            </Marker>
+          )}
 
-        {/* Route Line */}
-        {trackingData?.en_route && trackingData?.tasker_location && trackingData?.client_location && (
-          <Polyline
-            coordinates={[trackingData.tasker_location, trackingData.client_location]}
-            strokeColor={Colors.dark.primary}
-            strokeWidth={4}
-            lineDashPattern={[10, 5]}
-          />
-        )}
-      </MapView>
+          {/* Route Line */}
+          {trackingData?.en_route && trackingData?.tasker_location && trackingData?.client_location && (
+            <Polyline
+              coordinates={[trackingData.tasker_location, trackingData.client_location]}
+              strokeColor={Colors.dark.primary}
+              strokeWidth={4}
+              lineDashPattern={[10, 5]}
+            />
+          )}
+        </MapView>
+      ) : (
+        <View style={styles.webFallback}>
+          <ActivityIndicator size="large" color={Colors.dark.primary} />
+          <Text style={styles.webFallbackText}>
+            {i18n.locale === 'fr' ? 'Chargement de la carte...' : 'Loading map...'}
+          </Text>
+        </View>
+      )}
 
       {/* Info Card */}
       {trackingData?.en_route && (
