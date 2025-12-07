@@ -83,6 +83,7 @@ export default function BookingsScreen() {
       switch (status) {
         case 'pending': return 'En attente';
         case 'accepted': return 'Acceptée';
+        case 'en_route': return 'En route';
         case 'in_progress': return 'En cours';
         case 'completed': return 'Terminée';
         case 'cancelled': return 'Annulée';
@@ -92,7 +93,7 @@ export default function BookingsScreen() {
     return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   };
 
-  const activeTasks = tasks.filter(t => ['pending', 'accepted', 'in_progress'].includes(t.status));
+  const activeTasks = tasks.filter(t => ['pending', 'accepted', 'en_route', 'in_progress'].includes(t.status));
   const completedTasks = tasks.filter(t => ['completed', 'cancelled'].includes(t.status));
   const displayTasks = activeTab === 'active' ? activeTasks : completedTasks;
 
