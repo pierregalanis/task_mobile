@@ -52,6 +52,9 @@ const i18n = new I18n({
       categories: 'Categories',
       featured: 'Featured Taskers',
     },
+    taskers: {
+      title: 'Taskers',
+    },
     bookings: {
       title: 'My Bookings',
       active: 'Active',
