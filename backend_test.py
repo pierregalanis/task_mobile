@@ -22,9 +22,13 @@ TEST_CREDENTIALS = {
 
 class APITester:
     def __init__(self):
-        self.base_url = BASE_URL
         self.session = requests.Session()
         self.tokens = {}
+        self.test_results = {
+            "external_api": {"accessible": False, "endpoints": {}},
+            "local_api": {"accessible": False, "endpoints": {}},
+            "frontend_configured_api": {"accessible": False, "endpoints": {}}
+        }
         
     def log_test(self, test_name, success, details=""):
         status = "✅ PASS" if success else "❌ FAIL"
