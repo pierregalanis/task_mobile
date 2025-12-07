@@ -108,6 +108,9 @@ const i18n = new I18n({
       categories: 'Catégories',
       featured: 'Tâcherons en vedette',
     },
+    taskers: {
+      title: 'Tâcherons',
+    },
     bookings: {
       title: 'Mes Réservations',
       active: 'Actives',
