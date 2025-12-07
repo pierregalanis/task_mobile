@@ -1,7 +1,13 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
+import Constants from 'expo-constants';
 
-const API_BASE_URL = 'https://taskrabbit-africa.preview.emergentagent.com/api';
+// Use local backend URL from environment
+const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
+  ? `${Constants.expoConfig.extra.EXPO_PUBLIC_BACKEND_URL}/api`
+  : process.env.EXPO_PUBLIC_BACKEND_URL 
+  ? `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`
+  : 'http://localhost:8001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
