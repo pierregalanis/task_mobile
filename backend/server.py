@@ -174,6 +174,18 @@ class Message(MessageCreate):
     is_read: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# ==================== PUSH NOTIFICATION MODELS ====================
+
+class PushTokenCreate(BaseModel):
+    token: str
+    device_type: Optional[str] = None
+
+class PushToken(PushTokenCreate):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 # ==================== AUTH UTILITIES ====================
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
