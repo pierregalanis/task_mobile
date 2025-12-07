@@ -110,7 +110,8 @@ const i18n = new I18n({
   },
 });
 
-i18n.locale = Localization.getLocales()[0].languageCode || 'en';
+const locales = getLocales();
+i18n.locale = locales && locales[0] ? locales[0].languageCode || 'en' : 'en';
 i18n.enableFallback = true;
 
 export default i18n;
