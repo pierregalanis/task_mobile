@@ -55,7 +55,9 @@ export default function SignupScreen() {
         role: selectedRole,
         language: i18n.locale,
       });
-      // Navigation will be handled by the index.tsx redirect logic
+      // Explicitly navigate to home after successful signup
+      console.log('Signup completed, navigating to home...');
+      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
