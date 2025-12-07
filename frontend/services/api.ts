@@ -96,6 +96,11 @@ export const taskerAPI = {
     return response.data;
   },
 
+  async getTasker(userId: string) {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  },
+
   async getTaskerProfile(userId: string) {
     const response = await api.get(`/users/${userId}`);
     return response.data;
