@@ -756,6 +756,84 @@ async def get_unread_count(task_id: str, current_user: User = Depends(get_curren
     })
     return {"unread_count": count}
 
+# ==================== PUSH NOTIFICATION HELPERS ====================
+
+async def send_push_notification(user_id: str, title: str, body: str, data: dict = None):
+    """Send push notification to a user"""
+    try:
+        # Get user's push tokens
+        tokens = await db.push_tokens.find({"user_id": user_id}).to_list(10)
+        
+        if not tokens:
+            logger.info(f"No push tokens found for user {user_id}")
+            return
+        
+        # Prepare Expo push notification payload
+        messages = []
+        for token_doc in tokens:
+            messages.append({
+                "to": token_doc["token"],
+                "sound": "default",
+                "title": title,
+                "body": body,
+                "data": data or {},
+                "priority": "high",
+            })
+        
+        # Send to Expo Push Notification service
+        if messages:
+            import requests
+            response = requests.post(
+                "https://exp.host/--/api/v2/push/send",
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                json=messages,
+            )
+            logger.info(f"Push notification sent to user {user_id}: {response.status_code}")
+            return response.json()
+    except Exception as e:
+        logger.error(f"Error sending push notification: {e}")
+
+# ==================== PUSH NOTIFICATION ENDPOINTS ====================
+
+@api_router.post("/push-tokens")
+async def register_push_token(token_data: PushTokenCreate, current_user: User = Depends(get_current_user)):
+    """Register or update user's push notification token"""
+    # Check if token already exists
+    existing = await db.push_tokens.find_one({
+        "user_id": current_user.id,
+        "token": token_data.token
+    })
+    
+    if existing:
+        # Update timestamp
+        await db.push_tokens.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"updated_at": datetime.utcnow()}}
+        )
+        return {"message": "Token updated"}
+    
+    # Create new token
+    push_token = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user.id,
+        "token": token_data.token,
+        "device_type": token_data.device_type,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.push_tokens.insert_one(push_token)
+    return {"message": "Token registered successfully"}
+
+@api_router.delete("/push-tokens/{token}")
+async def unregister_push_token(token: str, current_user: User = Depends(get_current_user)):
+    """Unregister push notification token"""
+    await db.push_tokens.delete_one({"user_id": current_user.id, "token": token})
+    return {"message": "Token unregistered"}
+
 # ==================== BASIC ENDPOINTS ====================
 
 @api_router.get("/")
