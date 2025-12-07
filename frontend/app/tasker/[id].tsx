@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { taskerAPI, reviewAPI, favoriteAPI } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
+import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
 
 export default function TaskerProfileScreen() {
   const router = useRouter();
