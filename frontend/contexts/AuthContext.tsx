@@ -53,12 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Handle both 'token' and 'access_token' response formats
       const token = response.token || response.access_token;
+      console.log('Token extracted:', token ? 'YES' : 'NO');
       await storage.saveToken(token);
+      console.log('Token saved');
       
       // Get user data after login
+      console.log('Fetching user data...');
       const userData = await authAPI.getCurrentUser();
+      console.log('User data received:', userData);
       await storage.saveUser(userData);
+      console.log('User data saved');
       setUser(userData);
+      console.log('User state updated');
       console.log('Login successful!');
     } catch (error: any) {
       console.error('Login error:', error);
