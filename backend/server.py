@@ -319,10 +319,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 5.35,
                 "longitude": -3.98,
+                "is_available": True,
+                "rating": 4.8,
+                "reviews_count": 42,
+                "completed_tasks": 87,
                 "tasker_profile": {
                     "services": [
                         {"category": "cleaning", "hourly_rate": 2500, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Professional cleaner with 5 years of experience"
                 }
             },
             {
@@ -334,10 +339,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 5.60,
                 "longitude": -0.19,
+                "is_available": True,
+                "rating": 4.9,
+                "reviews_count": 68,
+                "completed_tasks": 134,
                 "tasker_profile": {
                     "services": [
                         {"category": "plumbing", "hourly_rate": 3500, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Licensed plumber, available 24/7 for emergencies"
                 }
             },
             {
@@ -349,10 +359,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 14.69,
                 "longitude": -17.44,
+                "is_available": True,
+                "rating": 4.7,
+                "reviews_count": 35,
+                "completed_tasks": 56,
                 "tasker_profile": {
                     "services": [
                         {"category": "gardening", "hourly_rate": 2000, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Passionate about creating beautiful gardens"
                 }
             },
             {
@@ -364,10 +379,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 6.69,
                 "longitude": -1.62,
+                "is_available": False,
+                "rating": 5.0,
+                "reviews_count": 91,
+                "completed_tasks": 203,
                 "tasker_profile": {
                     "services": [
                         {"category": "electrical", "hourly_rate": 4000, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Certified electrician with 10+ years experience"
                 }
             },
             {
@@ -379,10 +399,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 6.52,
                 "longitude": 3.37,
+                "is_available": True,
+                "rating": 4.9,
+                "reviews_count": 127,
+                "completed_tasks": 234,
                 "tasker_profile": {
                     "services": [
                         {"category": "tutoring", "hourly_rate": 5000, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Math and Science tutor, Masters degree holder"
                 }
             },
             {
@@ -394,10 +419,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 6.82,
                 "longitude": -5.27,
+                "is_available": True,
+                "rating": 4.6,
+                "reviews_count": 28,
+                "completed_tasks": 45,
                 "tasker_profile": {
                     "services": [
                         {"category": "painting", "fixed_price": 25000, "pricing_type": "fixed"}
-                    ]
+                    ],
+                    "bio": "Interior and exterior painting specialist"
                 }
             },
             {
@@ -409,10 +439,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 14.79,
                 "longitude": -16.93,
+                "is_available": True,
+                "rating": 4.5,
+                "reviews_count": 156,
+                "completed_tasks": 312,
                 "tasker_profile": {
                     "services": [
                         {"category": "delivery", "hourly_rate": 1500, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Fast and reliable delivery service"
                 }
             },
             {
@@ -424,10 +459,15 @@ async def seed_test_data():
                 "role": "tasker",
                 "latitude": 5.61,
                 "longitude": -0.21,
+                "is_available": True,
+                "rating": 4.8,
+                "reviews_count": 73,
+                "completed_tasks": 119,
                 "tasker_profile": {
                     "services": [
                         {"category": "carpentry", "hourly_rate": 3000, "pricing_type": "hourly"}
-                    ]
+                    ],
+                    "bio": "Custom furniture and woodwork expert"
                 }
             }
         ]
