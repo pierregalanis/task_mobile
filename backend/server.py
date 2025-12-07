@@ -121,8 +121,17 @@ class Task(TaskCreate):
     completed_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     cancellation_reason: Optional[str] = None
+    en_route_at: Optional[datetime] = None
+    arrived_at: Optional[datetime] = None
+    current_latitude: Optional[float] = None
+    current_longitude: Optional[float] = None
+    location_updated_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class LocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
 
 class TaskStatusUpdate(BaseModel):
     status: Literal["in_progress", "completed", "cancelled"]
