@@ -1,11 +1,12 @@
 import { I18n } from 'i18n-js';
 
-// Get device language
-let deviceLanguage = 'en';
+// Set French as default language
+let deviceLanguage = 'fr';
 try {
   const locales = require('expo-localization').getLocales();
   if (locales && locales[0]) {
-    deviceLanguage = locales[0].languageCode || 'en';
+    // Keep French as default even if device is in another language
+    deviceLanguage = 'fr';
   }
 } catch (e) {
   console.log('Could not load localization:', e);
