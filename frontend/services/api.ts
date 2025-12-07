@@ -72,15 +72,7 @@ export interface User {
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
-
-    const response = await api.post('/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    const response = await api.post('/auth/login', credentials);
     return response.data;
   },
 
