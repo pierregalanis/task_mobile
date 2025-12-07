@@ -74,16 +74,8 @@ export interface User {
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    // The web app backend uses form-urlencoded with 'username' field
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
-    
-    const response = await api.post('/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    // Local backend uses JSON format
+    const response = await api.post('/auth/login', credentials);
     return response.data;
   },
 
