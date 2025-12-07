@@ -19,20 +19,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthContext: Initializing...');
     loadUser();
   }, []);
 
   const loadUser = async () => {
     try {
+      console.log('AuthContext: Loading user...');
       const token = await storage.getToken();
+      console.log('AuthContext: Token exists:', !!token);
       if (token) {
+        console.log('AuthContext: Fetching current user...');
         const userData = await authAPI.getCurrentUser();
+        console.log('AuthContext: User loaded:', userData.email);
         setUser(userData);
+      } else {
+        console.log('AuthContext: No token found');
       }
     } catch (error) {
-      console.error('Error loading user:', error);
+      console.error('AuthContext: Error loading user:', error);
       await storage.clearAll();
     } finally {
+      console.log('AuthContext: Loading complete');
       setIsLoading(false);
     }
   };
