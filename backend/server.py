@@ -413,6 +413,14 @@ async def accept_task(task_id: str, current_user: User = Depends(get_current_use
         {"$set": {"status": "accepted", "accepted_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Tâche acceptée / Task Accepted",
+        body=f"{current_user.full_name} a accepté votre réservation / has accepted your booking",
+        data={"task_id": task_id, "type": "task_accepted"}
+    )
+    
     updated_task = await db.tasks.find_one({"id": task_id})
     return updated_task
 
