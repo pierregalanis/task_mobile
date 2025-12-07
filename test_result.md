@@ -105,20 +105,20 @@
 user_problem_statement: "Build mobile version of AfricaTask (renamed to Soutrali) - Phase 1: Authentication system with login, signup, JWT token management, and bilingual support (EN/FR)"
 
 backend:
-  - task: "Backend API is already deployed and working"
+  - task: "Local FastAPI Backend with Auth and Taskers"
     implemented: true
-    working: false
-    file: "External API at https://taskhub-mobile-1.preview.emergentagent.com/api"
-    stuck_count: 1
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
-        comment: "Backend API tested with curl - login endpoint working with test credentials (testclient@demo.com / test123)"
-      - working: false
-        agent: "testing"
-        comment: "CRITICAL ISSUE: External API at https://taskhub-mobile-1.preview.emergentagent.com/api returns 404 for all endpoints. Authentication endpoints (/auth/login, /auth/register, /users/me) do not exist. Local backend at localhost:8001/api only has basic status endpoints, no authentication. Frontend is configured to call external API that doesn't exist. This is a major integration issue - the mobile app cannot authenticate users."
+        comment: "Local backend implemented with FastAPI, MongoDB, JWT auth. Endpoints: /auth/register, /auth/login, /users/me, /users/taskers (now public endpoint). Routing order fixed - /users/taskers now comes before /users/{user_id} to prevent 404. Added 8 sample taskers with realistic data (ratings, reviews, completed_tasks, availability). All taskers seeded successfully in database."
+      - working: true
+        agent: "user"
+        comment: "User reported 404 error when refreshing taskers tab. This was due to route ordering issue where /users/{user_id} was matching before /users/taskers. Issue now fixed."
 
 frontend:
   - task: "Authentication Flow - Login Screen"
