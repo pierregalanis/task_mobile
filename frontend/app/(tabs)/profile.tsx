@@ -9,6 +9,7 @@ import i18n from '../../utils/i18n';
 import { storage } from '../../utils/storage';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
