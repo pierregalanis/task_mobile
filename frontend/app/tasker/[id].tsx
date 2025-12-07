@@ -160,38 +160,45 @@ export default function TaskerProfileScreen() {
         {tasker.tasker_profile?.services && tasker.tasker_profile.services.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Services' : 'Services'}</Text>
-            {tasker.tasker_profile.services.map((service: any, index: number) => (
-              <View key={index} style={styles.serviceCard}>
-                <View style={styles.serviceHeader}>
-                  <Text style={styles.serviceName}>{service.category}</Text>
-                  {service.subcategory && (
-                    <Text style={styles.serviceSubcategory}>{service.subcategory}</Text>
-                  )}
+            {tasker.tasker_profile.services.map((service: any, index: number) => {
+              const category = getCategoryById(service.category);
+              const subcategory = service.subcategory ? getSubcategoryById(service.category, service.subcategory) : null;
+              const categoryName = category ? getCategoryName(category, i18n.locale) : service.category;
+              const subcategoryName = subcategory ? getSubcategoryName(subcategory, i18n.locale) : service.subcategory;
+              
+              return (
+                <View key={index} style={styles.serviceCard}>
+                  <View style={styles.serviceHeader}>
+                    <Text style={styles.serviceName}>{categoryName}</Text>
+                    {subcategoryName && (
+                      <Text style={styles.serviceSubcategory}>{subcategoryName}</Text>
+                    )}
+                  </View>
+                  {service.bio && <Text style={styles.serviceBio}>{service.bio}</Text>}
+                  <View style={styles.servicePricing}>
+                    {service.pricing_type === 'hourly' ? (
+                      <>
+                        <View style={styles.priceBadge}>
+                          <Text style={styles.priceBadgeText}>
+                            {i18n.locale === 'fr' ? 'Horaire' : 'Hourly'}
+                          </Text>
+                        </View>
+                        <Text style={styles.priceAmount}>{service.hourly_rate} XOF/h</Text>
+                      </>
+                    ) : (
+                      <>
+                        <View style={[styles.priceBadge, styles.priceBadgeFixed]}>
+                          <Text style={styles.priceBadgeText}>
+                            {i18n.locale === 'fr' ? 'Fixe' : 'Fixed'}
+                          </Text>
+                        </View>
+                        <Text style={styles.priceAmount}>{service.fixed_price} XOF</Text>
+                      </>
+                    )}
+                  </View>
                 </View>
-                {service.bio && <Text style={styles.serviceBio}>{service.bio}</Text>}
-                <View style={styles.servicePricing}>
-                  {service.pricing_type === 'hourly' ? (
-                    <>
-                      <View style={styles.priceBadge}>
-                        <Text style={styles.priceBadgeText}>
-                          {i18n.locale === 'fr' ? 'Horaire' : 'Hourly'}
-                        </Text>
-                      </View>
-                      <Text style={styles.priceAmount}>{service.hourly_rate} XOF/h</Text>
-                    </>
-                  ) : (
-                    <>
-                      <View style={[styles.priceBadge, styles.priceBadgeFixed]}>
-                        <Text style={styles.priceBadgeText}>
-                          {i18n.locale === 'fr' ? 'Fixe' : 'Fixed'}
-                        </Text>
-                      </View>
-                      <Text style={styles.priceAmount}>{service.fixed_price} XOF</Text>
-                    </>
-                  )}
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
