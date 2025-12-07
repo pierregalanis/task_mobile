@@ -1,5 +1,15 @@
 import { I18n } from 'i18n-js';
-import { getLocales } from 'expo-localization';
+
+// Get device language
+let deviceLanguage = 'en';
+try {
+  const locales = require('expo-localization').getLocales();
+  if (locales && locales[0]) {
+    deviceLanguage = locales[0].languageCode || 'en';
+  }
+} catch (e) {
+  console.log('Could not load localization:', e);
+}
 
 const i18n = new I18n({
   en: {
