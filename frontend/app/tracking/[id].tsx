@@ -551,4 +551,38 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
+  webFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.card,
+    padding: 32,
+  },
+  webFallbackTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.dark.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  webFallbackText: {
+    fontSize: 16,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  webTrackingInfo: {
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: Colors.dark.background,
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 300,
+  },
+  webTrackingLabel: {
+    fontSize: 16,
+    color: Colors.dark.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
 });
