@@ -490,6 +490,15 @@ async def start_journey(task_id: str, location: LocationUpdate, current_user: Us
     }
     
     await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Tâcheron en route / Tasker On The Way",
+        body=f"{current_user.full_name} est en route vers votre emplacement / is on the way to your location",
+        data={"task_id": task_id, "type": "en_route"}
+    )
+    
     updated_task = await db.tasks.find_one({"id": task_id})
     return updated_task
 
