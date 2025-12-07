@@ -267,11 +267,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Backend API is already deployed and working"
-  stuck_tasks: 
-    - "Backend API is already deployed and working"
+    - "Local FastAPI Backend with Auth and Taskers"
+    - "Bilingual Support (EN/FR)"
+  stuck_tasks: []
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
