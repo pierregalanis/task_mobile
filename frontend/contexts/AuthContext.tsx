@@ -40,12 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (credentials: LoginCredentials) => {
     try {
       const response = await authAPI.login(credentials);
-      await storage.saveToken(response.access_token);
-      
-      // Get user data
-      const userData = await authAPI.getCurrentUser();
-      await storage.saveUser(userData);
-      setUser(userData);
+      await storage.saveToken(response.token);
+      await storage.saveUser(response.user);
+      setUser(response.user);
     } catch (error: any) {
       console.error('Login error:', error);
       throw new Error(error.response?.data?.detail || 'Login failed');
@@ -55,12 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: RegisterData) => {
     try {
       const response = await authAPI.register(data);
-      await storage.saveToken(response.access_token);
-      
-      // Get user data
-      const userData = await authAPI.getCurrentUser();
-      await storage.saveUser(userData);
-      setUser(userData);
+      await storage.saveToken(response.token);
+      await storage.saveUser(response.user);
+      setUser(response.user);
     } catch (error: any) {
       console.error('Register error:', error);
       throw new Error(error.response?.data?.detail || 'Registration failed');
