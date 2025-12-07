@@ -1,16 +1,37 @@
-import { Text, View, StyleSheet, Image } from "react-native";
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useRouter, useSegments } from 'expo-router';
+import { useAuth } from '../contexts/AuthContext';
+import { Loading } from '../components/Loading';
+import { Colors } from '../constants/Colors';
 
 export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inTabsGroup = segments[0] === '(tabs)';
+
+    if (isAuthenticated && !inTabsGroup) {
+      // User is authenticated, redirect to main app
+      router.replace('/(tabs)/home');
+    } else if (!isAuthenticated && !inAuthGroup) {
+      // User is not authenticated, redirect to welcome
+      router.replace('/(auth)/welcome');
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  if (isLoading) {
+    return <Loading message="Loading..." />;
+  }
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <Loading />
     </View>
   );
 }
@@ -18,13 +39,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+    backgroundColor: Colors.dark.background,
   },
 });
