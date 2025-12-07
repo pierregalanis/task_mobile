@@ -288,21 +288,26 @@ export default function TaskerProfileScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {tasker.tasker_profile?.services?.map((service: any, index: number) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.modalServiceCard}
-                  onPress={() => handleServiceSelect(service)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.modalServiceName}>{service.category}</Text>
-                  <Text style={styles.modalServicePrice}>
-                    {service.pricing_type === 'hourly'
-                      ? `${service.hourly_rate} XOF/h`
-                      : `${service.fixed_price} XOF`}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {tasker.tasker_profile?.services?.map((service: any, index: number) => {
+                const category = getCategoryById(service.category);
+                const categoryName = category ? getCategoryName(category, i18n.locale) : service.category;
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.modalServiceCard}
+                    onPress={() => handleServiceSelect(service)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalServiceName}>{categoryName}</Text>
+                    <Text style={styles.modalServicePrice}>
+                      {service.pricing_type === 'hourly'
+                        ? `${service.hourly_rate} XOF/h`
+                        : `${service.fixed_price} XOF`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
