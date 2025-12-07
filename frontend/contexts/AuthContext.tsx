@@ -39,12 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
+      console.log('Attempting login with:', credentials.email);
       const response = await authAPI.login(credentials);
+      console.log('Login response:', response);
       await storage.saveToken(response.token);
       await storage.saveUser(response.user);
       setUser(response.user);
+      console.log('Login successful!');
     } catch (error: any) {
       console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
       throw new Error(error.response?.data?.detail || 'Login failed');
     }
   };
