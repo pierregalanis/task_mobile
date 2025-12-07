@@ -50,9 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Attempting login with:', credentials.email);
       const response = await authAPI.login(credentials);
       console.log('Login response:', response);
-      await storage.saveToken(response.token);
-      await storage.saveUser(response.user);
-      setUser(response.user);
+      
+      // Handle both 'token' and 'access_token' response formats
+      const token = response.token || response.access_token;
+      await storage.saveToken(token);
+      
+      // Get user data after login
+      const userData = await authAPI.getCurrentUser();
+      await storage.saveUser(userData);
+      setUser(userData);
       console.log('Login successful!');
     } catch (error: any) {
       console.error('Login error:', error);
@@ -64,9 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: RegisterData) => {
     try {
       const response = await authAPI.register(data);
-      await storage.saveToken(response.token);
-      await storage.saveUser(response.user);
-      setUser(response.user);
+      
+      // Handle both 'token' and 'access_token' response formats
+      const token = response.token || response.access_token;
+      await storage.saveToken(token);
+      
+      // Get user data after register
+      const userData = await authAPI.getCurrentUser();
+      await storage.saveUser(userData);
+      setUser(userData);
     } catch (error: any) {
       console.error('Register error:', error);
       throw new Error(error.response?.data?.detail || 'Registration failed');
