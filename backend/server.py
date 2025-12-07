@@ -13,47 +13,217 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
-
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Security configurations
+SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-this-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
+# Create the main app
+app = FastAPI(title="Soutrali API", version="1.0.0")
 api_router = APIRouter(prefix="/api")
 
+# ==================== MODELS ====================
 
-# Define Models
-class StatusCheck(BaseModel):
+class UserRole(str):
+    CLIENT = "client"
+    TASKER = "tasker"
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str
+    phone: str
+    country: str
+    city: Optional[str] = "Abidjan"
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    role: Literal["client", "tasker"] = "client"
+    language: Optional[str] = "en"
+
+class UserCreate(UserBase):
+    password: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    profile_photo: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserInDB(User):
+    hashed_password: str
 
-# Add your routes to the router instead of directly to app
+class Token(BaseModel):
+    token: str
+    user: User
+
+class TokenData(BaseModel):
+    user_id: Optional[str] = None
+
+# ==================== AUTH UTILITIES ====================
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_user_by_email(email: str) -> Optional[UserInDB]:
+    user_data = await db.users.find_one({"email": email})
+    if user_data:
+        return UserInDB(**user_data)
+    return None
+
+async def get_user_by_id(user_id: str) -> Optional[User]:
+    user_data = await db.users.find_one({"id": user_id})
+    if user_data:
+        user_data.pop('hashed_password', None)
+        return User(**user_data)
+    return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        token_data = TokenData(user_id=user_id)
+    except JWTError:
+        raise credentials_exception
+    
+    user = await get_user_by_id(token_data.user_id)
+    if user is None:
+        raise credentials_exception
+    return user
+
+# ==================== AUTH ENDPOINTS ====================
+
+@api_router.post("/auth/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+async def register(user_data: UserCreate):
+    # Check if user already exists
+    existing_user = await get_user_by_email(user_data.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    user_dict = user_data.dict()
+    password = user_dict.pop('password')
+    hashed_password = get_password_hash(password)
+    
+    user_in_db = UserInDB(**user_dict, hashed_password=hashed_password)
+    user_dict_db = user_in_db.dict()
+    
+    # Insert into database
+    await db.users.insert_one(user_dict_db)
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_in_db.id}, expires_delta=access_token_expires
+    )
+    
+    # Return user without hashed_password
+    user = User(**{k: v for k, v in user_dict_db.items() if k != 'hashed_password'})
+    
+    return Token(token=access_token, user=user)
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(user_credentials: UserLogin):
+    user = await get_user_by_email(user_credentials.email)
+    if not user or not verify_password(user_credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.id}, expires_delta=access_token_expires
+    )
+    
+    # Return user without hashed_password
+    user_data = user.dict()
+    user_data.pop('hashed_password', None)
+    user_response = User(**user_data)
+    
+    return Token(token=access_token, user=user_response)
+
+# ==================== USER ENDPOINTS ====================
+
+@api_router.get("/users/me", response_model=User)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@api_router.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: str):
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
+@api_router.get("/users/taskers", response_model=List[User])
+async def get_taskers(
+    category: Optional[str] = None,
+    country: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+):
+    query = {"role": "tasker"}
+    if category:
+        query["category"] = category
+    if country:
+        query["country"] = country
+    
+    taskers = await db.users.find(query).to_list(100)
+    return [User(**{k: v for k, v in tasker.items() if k != 'hashed_password'}) for tasker in taskers]
+
+# ==================== BASIC ENDPOINTS ====================
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Soutrali API v1.0.0", "status": "online"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+@api_router.get("/status")
+async def status_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow()}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -76,3 +246,56 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Seed test data on startup
+@app.on_event("startup")
+async def seed_test_data():
+    try:
+        # Check if test users already exist
+        test_client = await get_user_by_email("testclient@demo.com")
+        test_tasker = await get_user_by_email("testtasker@demo.com")
+        
+        if not test_client:
+            # Create test client
+            client_data = UserCreate(
+                email="testclient@demo.com",
+                password="test123",
+                full_name="Test Client",
+                phone="+225 0123456789",
+                country="Ivory Coast",
+                city="Abidjan",
+                role="client",
+                language="en",
+                latitude=5.36,
+                longitude=-4.00
+            )
+            client_dict = client_data.dict()
+            password = client_dict.pop('password')
+            hashed_password = get_password_hash(password)
+            client_user = UserInDB(**client_dict, hashed_password=hashed_password)
+            await db.users.insert_one(client_user.dict())
+            logger.info("Test client user created")
+        
+        if not test_tasker:
+            # Create test tasker
+            tasker_data = UserCreate(
+                email="testtasker@demo.com",
+                password="test123",
+                full_name="Test Tasker",
+                phone="+225 0987654321",
+                country="Ivory Coast",
+                city="Abidjan",
+                role="tasker",
+                language="en",
+                latitude=5.36,
+                longitude=-4.00
+            )
+            tasker_dict = tasker_data.dict()
+            password = tasker_dict.pop('password')
+            hashed_password = get_password_hash(password)
+            tasker_user = UserInDB(**tasker_dict, hashed_password=hashed_password)
+            await db.users.insert_one(tasker_user.dict())
+            logger.info("Test tasker user created")
+            
+    except Exception as e:
+        logger.error(f"Error seeding test data: {e}")
