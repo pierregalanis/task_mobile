@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Integration Tests for Mobile App Authentication
-Testing external API at: https://taskrabbit-africa.preview.emergentagent.com/api
+Testing both external API and local backend endpoints
 """
 
 import requests
@@ -11,7 +11,10 @@ from datetime import datetime
 import time
 
 # API Configuration
-BASE_URL = "https://taskrabbit-africa.preview.emergentagent.com/api"
+EXTERNAL_API_URL = "https://taskrabbit-africa.preview.emergentagent.com/api"
+LOCAL_API_URL = "http://localhost:8001/api"
+FRONTEND_CONFIGURED_URL = "https://taskbuddy-app-5.preview.emergentagent.com/api"
+
 TEST_CREDENTIALS = {
     "client": {"email": "testclient@demo.com", "password": "test123"},
     "tasker": {"email": "testtasker@demo.com", "password": "test123"}
