@@ -85,6 +85,86 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[str] = None
 
+# ==================== TASK MODELS ====================
+
+class TaskStatus(str):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class TaskCreate(BaseModel):
+    title: str
+    description: str
+    category: str
+    subcategory: Optional[str] = None
+    tasker_id: str
+    scheduled_date: datetime
+    duration_hours: Optional[float] = None
+    address: str
+    city: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    special_instructions: Optional[str] = None
+    pricing_type: Literal["hourly", "fixed"]
+    hourly_rate: Optional[float] = None
+    fixed_price: Optional[float] = None
+    estimated_total: float
+
+class Task(TaskCreate):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_id: str
+    status: str = "pending"
+    accepted_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    cancellation_reason: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TaskStatusUpdate(BaseModel):
+    status: Literal["in_progress", "completed", "cancelled"]
+    cancellation_reason: Optional[str] = None
+
+# ==================== REVIEW MODELS ====================
+
+class ReviewCreate(BaseModel):
+    task_id: str
+    tasker_id: str
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = None
+
+class Review(ReviewCreate):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_id: str
+    client_name: str
+    service_name: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# ==================== FAVORITE MODELS ====================
+
+class Favorite(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_id: str
+    tasker_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# ==================== CHAT MODELS ====================
+
+class MessageCreate(BaseModel):
+    task_id: str
+    receiver_id: str
+    message: str
+
+class Message(MessageCreate):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str
+    sender_name: str
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 # ==================== AUTH UTILITIES ====================
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
