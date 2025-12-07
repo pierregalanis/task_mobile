@@ -188,19 +188,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.dark.border,
+    marginBottom: 12,
   },
   categoryIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: `${Colors.dark.primary}20`,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
+  categoryIcon: {
+    fontSize: 32,
+  },
   categoryTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: Colors.dark.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  categorySubcount: {
+    fontSize: 11,
+    color: Colors.dark.textSecondary,
     textAlign: 'center',
   },
   comingSoon: {
