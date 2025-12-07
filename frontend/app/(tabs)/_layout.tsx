@@ -37,7 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="taskers"
         options={{
-          title: i18n.locale === 'fr' ? 'Taskers' : 'Taskers',
+          title: i18n.t('taskers.title'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
