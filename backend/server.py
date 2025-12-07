@@ -199,7 +199,7 @@ async def get_user(user_id: str):
         )
     return user
 
-@api_router.get("/users/taskers", response_model=List[User])
+@api_router.get("/users/taskers")
 async def get_taskers(
     category: Optional[str] = None,
     country: Optional[str] = None,
@@ -208,12 +208,12 @@ async def get_taskers(
 ):
     query = {"role": "tasker"}
     if category:
-        query["category"] = category
+        query["tasker_profile.services.category"] = category
     if country:
         query["country"] = country
     
     taskers = await db.users.find(query).to_list(100)
-    return [User(**{k: v for k, v in tasker.items() if k != 'hashed_password'}) for tasker in taskers]
+    return [User(**{k: v for k, v in tasker.items() if k != 'hashed_password'}).dict() for tasker in taskers]
 
 # ==================== BASIC ENDPOINTS ====================
 
