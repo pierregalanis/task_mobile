@@ -202,7 +202,10 @@ export default function TaskersScreen() {
                       <Text style={styles.servicesLabel} numberOfLines={1}>
                         {tasker.tasker_profile.services
                           .slice(0, 2)
-                          .map((s: any) => s.category)
+                          .map((s: any) => {
+                            const category = getCategoryById(s.category);
+                            return category ? getCategoryName(category, i18n.locale) : s.category;
+                          })
                           .join(', ')}
                         {tasker.tasker_profile.services.length > 2 && ' +' + (tasker.tasker_profile.services.length - 2)}
                       </Text>
