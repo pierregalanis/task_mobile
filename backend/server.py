@@ -306,6 +306,284 @@ async def get_user(user_id: str):
         )
     return user
 
+# ==================== TASK ENDPOINTS ====================
+
+@api_router.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
+async def create_task(task_data: TaskCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can create tasks"
+        )
+    
+    task_dict = task_data.dict()
+    task_dict["client_id"] = current_user.id
+    task_dict["id"] = str(uuid.uuid4())
+    task_dict["status"] = "pending"
+    task_dict["created_at"] = datetime.utcnow()
+    task_dict["updated_at"] = datetime.utcnow()
+    
+    await db.tasks.insert_one(task_dict)
+    return Task(**task_dict)
+
+@api_router.get("/tasks/client")
+async def get_client_tasks(current_user: User = Depends(get_current_user)):
+    if current_user.role != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can access this endpoint"
+        )
+    
+    tasks = await db.tasks.find({"client_id": current_user.id}).sort("created_at", -1).to_list(100)
+    
+    # Enrich tasks with tasker info
+    for task in tasks:
+        tasker = await get_user_by_id(task["tasker_id"])
+        if tasker:
+            task["tasker_name"] = tasker.full_name
+            task["tasker_photo"] = tasker.profile_photo
+            task["tasker_phone"] = tasker.phone
+    
+    return tasks
+
+@api_router.get("/tasks/tasker")
+async def get_tasker_tasks(current_user: User = Depends(get_current_user)):
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can access this endpoint"
+        )
+    
+    tasks = await db.tasks.find({"tasker_id": current_user.id}).sort("created_at", -1).to_list(100)
+    
+    # Enrich tasks with client info
+    for task in tasks:
+        client = await get_user_by_id(task["client_id"])
+        if client:
+            task["client_name"] = client.full_name
+            task["client_photo"] = client.profile_photo
+            task["client_phone"] = client.phone
+    
+    return tasks
+
+@api_router.post("/tasks/{task_id}/accept")
+async def accept_task(task_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can accept tasks"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    if task["status"] != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task is not in pending status"
+        )
+    
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": {"status": "accepted", "accepted_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+    )
+    
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+@api_router.put("/tasks/{task_id}/status")
+async def update_task_status(task_id: str, status_update: TaskStatusUpdate, current_user: User = Depends(get_current_user)):
+    task = await db.tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    # Check permissions
+    if current_user.role == "tasker" and task["tasker_id"] != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    if current_user.role == "client" and task["client_id"] != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    update_data = {"status": status_update.status, "updated_at": datetime.utcnow()}
+    
+    if status_update.status == "in_progress":
+        update_data["started_at"] = datetime.utcnow()
+    elif status_update.status == "completed":
+        update_data["completed_at"] = datetime.utcnow()
+        # Update tasker's completed tasks count
+        if current_user.role == "tasker":
+            await db.users.update_one(
+                {"id": current_user.id},
+                {"$inc": {"completed_tasks": 1}}
+            )
+    elif status_update.status == "cancelled":
+        update_data["cancelled_at"] = datetime.utcnow()
+        update_data["cancellation_reason"] = status_update.cancellation_reason
+    
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+# ==================== REVIEW ENDPOINTS ====================
+
+@api_router.get("/reviews/tasker/{tasker_id}")
+async def get_tasker_reviews(tasker_id: str):
+    reviews = await db.reviews.find({"tasker_id": tasker_id}).sort("created_at", -1).to_list(100)
+    return reviews
+
+@api_router.post("/reviews", response_model=Review, status_code=status.HTTP_201_CREATED)
+async def create_review(review_data: ReviewCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can leave reviews"
+        )
+    
+    # Check if task exists and is completed
+    task = await db.tasks.find_one({"id": review_data.task_id, "client_id": current_user.id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if task["status"] != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only review completed tasks"
+        )
+    
+    # Check if review already exists
+    existing_review = await db.reviews.find_one({"task_id": review_data.task_id})
+    if existing_review:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Review already exists for this task"
+        )
+    
+    review_dict = review_data.dict()
+    review_dict["id"] = str(uuid.uuid4())
+    review_dict["client_id"] = current_user.id
+    review_dict["client_name"] = current_user.full_name
+    review_dict["service_name"] = task.get("title")
+    review_dict["created_at"] = datetime.utcnow()
+    
+    await db.reviews.insert_one(review_dict)
+    
+    # Update tasker's average rating and review count
+    all_reviews = await db.reviews.find({"tasker_id": review_data.tasker_id}).to_list(1000)
+    avg_rating = sum(r["rating"] for r in all_reviews) / len(all_reviews)
+    
+    await db.users.update_one(
+        {"id": review_data.tasker_id},
+        {"$set": {"rating": round(avg_rating, 1), "reviews_count": len(all_reviews)}}
+    )
+    
+    return Review(**review_dict)
+
+# ==================== FAVORITE ENDPOINTS ====================
+
+@api_router.post("/favorites/toggle")
+async def toggle_favorite(data: dict, current_user: User = Depends(get_current_user)):
+    if current_user.role != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can favorite taskers"
+        )
+    
+    tasker_id = data.get("tasker_id")
+    if not tasker_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tasker_id required")
+    
+    existing = await db.favorites.find_one({"client_id": current_user.id, "tasker_id": tasker_id})
+    
+    if existing:
+        await db.favorites.delete_one({"_id": existing["_id"]})
+        return {"favorited": False, "message": "Removed from favorites"}
+    else:
+        favorite = {
+            "id": str(uuid.uuid4()),
+            "client_id": current_user.id,
+            "tasker_id": tasker_id,
+            "created_at": datetime.utcnow()
+        }
+        await db.favorites.insert_one(favorite)
+        return {"favorited": True, "message": "Added to favorites"}
+
+@api_router.get("/favorites")
+async def get_favorites(current_user: User = Depends(get_current_user)):
+    if current_user.role != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can view favorites"
+        )
+    
+    favorites = await db.favorites.find({"client_id": current_user.id}).to_list(100)
+    
+    # Enrich with tasker info
+    tasker_ids = [f["tasker_id"] for f in favorites]
+    taskers = []
+    for tasker_id in tasker_ids:
+        tasker = await get_user_by_id(tasker_id)
+        if tasker:
+            taskers.append(tasker.dict())
+    
+    return taskers
+
+# ==================== CHAT ENDPOINTS ====================
+
+@api_router.post("/chat/send", response_model=Message)
+async def send_message(message_data: MessageCreate, current_user: User = Depends(get_current_user)):
+    # Verify task exists and user is part of it
+    task = await db.tasks.find_one({"id": message_data.task_id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if current_user.id not in [task["client_id"], task["tasker_id"]]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    message_dict = message_data.dict()
+    message_dict["id"] = str(uuid.uuid4())
+    message_dict["sender_id"] = current_user.id
+    message_dict["sender_name"] = current_user.full_name
+    message_dict["is_read"] = False
+    message_dict["created_at"] = datetime.utcnow()
+    
+    await db.messages.insert_one(message_dict)
+    return Message(**message_dict)
+
+@api_router.get("/chat/{task_id}")
+async def get_chat_messages(task_id: str, current_user: User = Depends(get_current_user)):
+    # Verify task exists and user is part of it
+    task = await db.tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    if current_user.id not in [task["client_id"], task["tasker_id"]]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    messages = await db.messages.find({"task_id": task_id}).sort("created_at", 1).to_list(1000)
+    
+    # Mark messages as read for current user
+    await db.messages.update_many(
+        {"task_id": task_id, "receiver_id": current_user.id, "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    
+    return messages
+
+@api_router.get("/chat/{task_id}/unread-count")
+async def get_unread_count(task_id: str, current_user: User = Depends(get_current_user)):
+    count = await db.messages.count_documents({
+        "task_id": task_id,
+        "receiver_id": current_user.id,
+        "is_read": False
+    })
+    return {"unread_count": count}
+
 # ==================== BASIC ENDPOINTS ====================
 
 @api_router.get("/")
