@@ -39,6 +39,12 @@ class UserRole(str):
     CLIENT = "client"
     TASKER = "tasker"
 
+class TaskerProfile(BaseModel):
+    services: Optional[List[dict]] = []
+    bio: Optional[str] = None
+    experience_years: Optional[int] = None
+    availability: Optional[dict] = None
+
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
@@ -50,6 +56,11 @@ class UserBase(BaseModel):
     longitude: Optional[float] = None
     role: Literal["client", "tasker"] = "client"
     language: Optional[str] = "en"
+    tasker_profile: Optional[TaskerProfile] = None
+    is_available: Optional[bool] = True
+    rating: Optional[float] = None
+    reviews_count: Optional[int] = 0
+    completed_tasks: Optional[int] = 0
 
 class UserCreate(UserBase):
     password: str
