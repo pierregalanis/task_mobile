@@ -616,6 +616,15 @@ async def mark_arrival(task_id: str, current_user: User = Depends(get_current_us
     }
     
     await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Tâcheron arrivé / Tasker Arrived",
+        body=f"{current_user.full_name} est arrivé et va commencer le travail / has arrived and will start the work",
+        data={"task_id": task_id, "type": "arrived"}
+    )
+    
     updated_task = await db.tasks.find_one({"id": task_id})
     return updated_task
 
