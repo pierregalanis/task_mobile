@@ -345,6 +345,15 @@ async def create_task(task_data: TaskCreate, current_user: User = Depends(get_cu
     task_dict["updated_at"] = datetime.utcnow()
     
     await db.tasks.insert_one(task_dict)
+    
+    # Send push notification to tasker
+    await send_push_notification(
+        user_id=task_data.tasker_id,
+        title="Nouvelle réservation / New Booking",
+        body=f"{current_user.full_name} vous a envoyé une nouvelle demande de réservation / sent you a new booking request",
+        data={"task_id": task_dict["id"], "type": "new_booking"}
+    )
+    
     return Task(**task_dict)
 
 @api_router.get("/tasks/client")
