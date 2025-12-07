@@ -134,6 +134,14 @@ export const taskAPI = {
     const response = await api.post(`/tasks/${taskId}/accept`);
     return response.data;
   },
+
+  async updateTaskStatus(taskId: string, status: string, cancellationReason?: string) {
+    const response = await api.put(`/tasks/${taskId}/status`, {
+      status,
+      cancellation_reason: cancellationReason,
+    });
+    return response.data;
+  },
 };
 
 export const reviewAPI = {
@@ -142,8 +150,8 @@ export const reviewAPI = {
     return response.data;
   },
 
-  async getTaskerRating(taskerId: string) {
-    const response = await api.get(`/reviews/tasker/${taskerId}/rating`);
+  async createReview(reviewData: any) {
+    const response = await api.post('/reviews', reviewData);
     return response.data;
   },
 };
@@ -156,6 +164,27 @@ export const favoriteAPI = {
 
   async getFavorites() {
     const response = await api.get('/favorites');
+    return response.data;
+  },
+};
+
+export const chatAPI = {
+  async sendMessage(taskId: string, receiverId: string, message: string) {
+    const response = await api.post('/chat/send', {
+      task_id: taskId,
+      receiver_id: receiverId,
+      message,
+    });
+    return response.data;
+  },
+
+  async getMessages(taskId: string) {
+    const response = await api.get(`/chat/${taskId}`);
+    return response.data;
+  },
+
+  async getUnreadCount(taskId: string) {
+    const response = await api.get(`/chat/${taskId}/unread-count`);
     return response.data;
   },
 };
