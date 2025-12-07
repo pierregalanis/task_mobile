@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, LoginCredentials, RegisterData, User } from '../services/api';
 import { storage } from '../utils/storage';
+import { registerForPushNotificationsAsync, savePushToken } from '../services/notifications';
 
 interface AuthContextType {
   user: User | null;
