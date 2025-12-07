@@ -25,509 +25,432 @@ class BackendTester:
         self.auth_token = None
         self.test_results = []
         
-    def log_test(self, test_name, success, details=""):
+    def log_test(self, test_name: str, success: bool, details: str = ""):
+        """Log test results"""
         status = "✅ PASS" if success else "❌ FAIL"
         print(f"{status} {test_name}")
         if details:
             print(f"   Details: {details}")
-        print()
+        self.test_results.append({
+            "test": test_name,
+            "success": success,
+            "details": details
+        })
         
-    def test_login_endpoint(self):
-        """Test POST /api/auth/login endpoint"""
-        print("=" * 60)
-        print("TESTING LOGIN ENDPOINT")
-        print("=" * 60)
-        
-        # Test 1: Valid client credentials
+    def test_basic_connectivity(self) -> bool:
+        """Test basic API connectivity"""
         try:
-            login_data = {
-                "username": TEST_CREDENTIALS["client"]["email"],
-                "password": TEST_CREDENTIALS["client"]["password"]
-            }
-            
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = self.session.post(
-                f"{self.base_url}/auth/login",
-                data=login_data,
-                headers=headers,
-                timeout=10
-            )
-            
+            response = self.session.get(f"{self.base_url}/")
             if response.status_code == 200:
                 data = response.json()
-                if "access_token" in data:
-                    self.tokens["client"] = data["access_token"]
-                    # Verify JWT format
-                    try:
-                        decoded = jwt.decode(data["access_token"], options={"verify_signature": False})
-                        self.log_test("Login with valid client credentials", True, 
-                                    f"Token received, expires: {decoded.get('exp', 'N/A')}")
-                    except Exception as e:
-                        self.log_test("Login with valid client credentials", False, 
-                                    f"Invalid JWT format: {str(e)}")
-                else:
-                    self.log_test("Login with valid client credentials", False, 
-                                "No access_token in response")
+                self.log_test("Basic API Connectivity", True, f"Status: {data.get('status', 'N/A')}")
+                return True
             else:
-                self.log_test("Login with valid client credentials", False, 
-                            f"Status: {response.status_code}, Response: {response.text}")
-                
+                self.log_test("Basic API Connectivity", False, f"Status code: {response.status_code}")
+                return False
         except Exception as e:
-            self.log_test("Login with valid client credentials", False, f"Exception: {str(e)}")
-        
-        # Test 2: Valid tasker credentials
-        try:
-            login_data = {
-                "username": TEST_CREDENTIALS["tasker"]["email"],
-                "password": TEST_CREDENTIALS["tasker"]["password"]
-            }
-            
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = self.session.post(
-                f"{self.base_url}/auth/login",
-                data=login_data,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "access_token" in data:
-                    self.tokens["tasker"] = data["access_token"]
-                    try:
-                        decoded = jwt.decode(data["access_token"], options={"verify_signature": False})
-                        self.log_test("Login with valid tasker credentials", True, 
-                                    f"Token received, expires: {decoded.get('exp', 'N/A')}")
-                    except Exception as e:
-                        self.log_test("Login with valid tasker credentials", False, 
-                                    f"Invalid JWT format: {str(e)}")
-                else:
-                    self.log_test("Login with valid tasker credentials", False, 
-                                "No access_token in response")
-            else:
-                self.log_test("Login with valid tasker credentials", False, 
-                            f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Login with valid tasker credentials", False, f"Exception: {str(e)}")
-        
-        # Test 3: Invalid credentials
-        try:
-            login_data = {
-                "username": "invalid@email.com",
-                "password": "wrongpassword"
-            }
-            
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = self.session.post(
-                f"{self.base_url}/auth/login",
-                data=login_data,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code in [401, 400, 422]:
-                self.log_test("Login with invalid credentials", True, 
-                            f"Correctly rejected with status {response.status_code}")
-            else:
-                self.log_test("Login with invalid credentials", False, 
-                            f"Unexpected status: {response.status_code}")
-                
-        except Exception as e:
-            self.log_test("Login with invalid credentials", False, f"Exception: {str(e)}")
+            self.log_test("Basic API Connectivity", False, f"Connection error: {str(e)}")
+            return False
     
-    def test_register_endpoint(self):
-        """Test POST /api/auth/register endpoint"""
-        print("=" * 60)
-        print("TESTING REGISTER ENDPOINT")
-        print("=" * 60)
-        
-        # Test 1: Register new client
+    def test_status_endpoint(self) -> bool:
+        """Test status endpoint"""
         try:
+            response = self.session.get(f"{self.base_url}/status")
+            if response.status_code == 200:
+                data = response.json()
+                self.log_test("Status Endpoint", True, f"Status: {data.get('status', 'N/A')}")
+                return True
+            else:
+                self.log_test("Status Endpoint", False, f"Status code: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_test("Status Endpoint", False, f"Error: {str(e)}")
+            return False
+    
+    def test_taskers_endpoint_public(self) -> bool:
+        """Test GET /api/users/taskers (public endpoint, no auth required)"""
+        try:
+            response = self.session.get(f"{self.base_url}/users/taskers")
+            
+            if response.status_code != 200:
+                self.log_test("GET /users/taskers (Public)", False, 
+                            f"Status code: {response.status_code}, Response: {response.text}")
+                return False
+            
+            data = response.json()
+            
+            # Verify it's a list
+            if not isinstance(data, list):
+                self.log_test("GET /users/taskers (Public)", False, 
+                            f"Expected list, got {type(data)}")
+                return False
+            
+            # Check if we have taskers
+            if len(data) == 0:
+                self.log_test("GET /users/taskers (Public)", False, 
+                            "No taskers returned")
+                return False
+            
+            # Verify tasker structure
+            sample_tasker = data[0]
+            required_fields = ['full_name', 'email', 'role', 'rating', 'reviews_count', 
+                             'completed_tasks', 'is_available', 'tasker_profile']
+            
+            missing_fields = [field for field in required_fields if field not in sample_tasker]
+            if missing_fields:
+                self.log_test("GET /users/taskers (Public)", False, 
+                            f"Missing fields: {missing_fields}")
+                return False
+            
+            # Verify role is tasker
+            if sample_tasker.get('role') != 'tasker':
+                self.log_test("GET /users/taskers (Public)", False, 
+                            f"Expected role 'tasker', got '{sample_tasker.get('role')}'")
+                return False
+            
+            # Verify tasker_profile has services
+            tasker_profile = sample_tasker.get('tasker_profile', {})
+            if 'services' not in tasker_profile:
+                self.log_test("GET /users/taskers (Public)", False, 
+                            "tasker_profile missing services array")
+                return False
+            
+            # Verify no hashed_password field is exposed
+            if 'hashed_password' in sample_tasker:
+                self.log_test("GET /users/taskers (Public)", False, 
+                            "Security issue: hashed_password field exposed")
+                return False
+            
+            self.log_test("GET /users/taskers (Public)", True, 
+                        f"Found {len(data)} taskers with proper structure")
+            return True
+            
+        except Exception as e:
+            self.log_test("GET /users/taskers (Public)", False, f"Error: {str(e)}")
+            return False
+    
+    def test_taskers_with_filters(self) -> bool:
+        """Test taskers endpoint with category and country filters"""
+        success_count = 0
+        
+        # Test category filter
+        try:
+            response = self.session.get(f"{self.base_url}/users/taskers?category=plumbing")
+            if response.status_code == 200:
+                data = response.json()
+                self.log_test("GET /users/taskers?category=plumbing", True, 
+                            f"Found {len(data)} plumbing taskers")
+                success_count += 1
+            else:
+                self.log_test("GET /users/taskers?category=plumbing", False, 
+                            f"Status code: {response.status_code}")
+        except Exception as e:
+            self.log_test("GET /users/taskers?category=plumbing", False, f"Error: {str(e)}")
+        
+        # Test country filter
+        try:
+            response = self.session.get(f"{self.base_url}/users/taskers?country=Ghana")
+            if response.status_code == 200:
+                data = response.json()
+                self.log_test("GET /users/taskers?country=Ghana", True, 
+                            f"Found {len(data)} taskers in Ghana")
+                success_count += 1
+            else:
+                self.log_test("GET /users/taskers?country=Ghana", False, 
+                            f"Status code: {response.status_code}")
+        except Exception as e:
+            self.log_test("GET /users/taskers?country=Ghana", False, f"Error: {str(e)}")
+        
+        return success_count == 2
+    
+    def test_authentication_login(self) -> bool:
+        """Test authentication login with test credentials"""
+        try:
+            login_data = {
+                "email": "testclient@demo.com",
+                "password": "test123"
+            }
+            
+            response = self.session.post(f"{self.base_url}/auth/login", json=login_data)
+            
+            if response.status_code != 200:
+                self.log_test("POST /auth/login", False, 
+                            f"Status code: {response.status_code}, Response: {response.text}")
+                return False
+            
+            data = response.json()
+            
+            # Verify response structure
+            if 'token' not in data or 'user' not in data:
+                self.log_test("POST /auth/login", False, 
+                            "Missing 'token' or 'user' in response")
+                return False
+            
+            # Store token for future requests
+            self.auth_token = data['token']
+            
+            # Verify user data
+            user = data['user']
+            if user.get('email') != 'testclient@demo.com':
+                self.log_test("POST /auth/login", False, 
+                            f"Expected email 'testclient@demo.com', got '{user.get('email')}'")
+                return False
+            
+            # Verify no hashed_password in response
+            if 'hashed_password' in user:
+                self.log_test("POST /auth/login", False, 
+                            "Security issue: hashed_password in login response")
+                return False
+            
+            self.log_test("POST /auth/login", True, 
+                        f"Successfully logged in user: {user.get('full_name')}")
+            return True
+            
+        except Exception as e:
+            self.log_test("POST /auth/login", False, f"Error: {str(e)}")
+            return False
+    
+    def test_authentication_register(self) -> bool:
+        """Test user registration with new user data"""
+        try:
+            # Use unique email to avoid conflicts
+            import time
             timestamp = int(time.time())
+            
             register_data = {
-                "email": f"newclient{timestamp}@test.com",
-                "password": "testpass123",
-                "full_name": "Test Client User",
-                "phone": "+1234567890",
-                "country": "US",
-                "role": "client",
-                "language": "en"
+                "email": f"newuser{timestamp}@demo.com",
+                "password": "test123",
+                "full_name": "New Test User",
+                "phone": "+225 0123456789",
+                "country": "Ivory Coast",
+                "city": "Abidjan",
+                "role": "client"
             }
             
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(
-                f"{self.base_url}/auth/register",
-                json=register_data,
-                headers=headers,
-                timeout=10
-            )
+            response = self.session.post(f"{self.base_url}/auth/register", json=register_data)
             
-            if response.status_code in [200, 201]:
-                data = response.json()
-                if "access_token" in data:
-                    try:
-                        decoded = jwt.decode(data["access_token"], options={"verify_signature": False})
-                        self.log_test("Register new client account", True, 
-                                    f"Account created, token received")
-                    except Exception as e:
-                        self.log_test("Register new client account", False, 
-                                    f"Invalid JWT format: {str(e)}")
-                else:
-                    self.log_test("Register new client account", False, 
-                                "No access_token in response")
-            else:
-                self.log_test("Register new client account", False, 
-                            f"Status: {response.status_code}, Response: {response.text}")
-                
+            if response.status_code != 201:
+                self.log_test("POST /auth/register", False, 
+                            f"Status code: {response.status_code}, Response: {response.text}")
+                return False
+            
+            data = response.json()
+            
+            # Verify response structure
+            if 'token' not in data or 'user' not in data:
+                self.log_test("POST /auth/register", False, 
+                            "Missing 'token' or 'user' in response")
+                return False
+            
+            # Verify user data
+            user = data['user']
+            if user.get('email') != register_data['email']:
+                self.log_test("POST /auth/register", False, 
+                            f"Email mismatch in response")
+                return False
+            
+            # Verify no hashed_password in response
+            if 'hashed_password' in user:
+                self.log_test("POST /auth/register", False, 
+                            "Security issue: hashed_password in register response")
+                return False
+            
+            self.log_test("POST /auth/register", True, 
+                        f"Successfully registered user: {user.get('full_name')}")
+            return True
+            
         except Exception as e:
-            self.log_test("Register new client account", False, f"Exception: {str(e)}")
-        
-        # Test 2: Register new tasker
-        try:
-            timestamp = int(time.time())
-            register_data = {
-                "email": f"newtasker{timestamp}@test.com",
-                "password": "testpass123",
-                "full_name": "Test Tasker User",
-                "phone": "+1234567891",
-                "country": "FR",
-                "role": "tasker",
-                "language": "fr"
-            }
-            
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(
-                f"{self.base_url}/auth/register",
-                json=register_data,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code in [200, 201]:
-                data = response.json()
-                if "access_token" in data:
-                    try:
-                        decoded = jwt.decode(data["access_token"], options={"verify_signature": False})
-                        self.log_test("Register new tasker account", True, 
-                                    f"Account created, token received")
-                    except Exception as e:
-                        self.log_test("Register new tasker account", False, 
-                                    f"Invalid JWT format: {str(e)}")
-                else:
-                    self.log_test("Register new tasker account", False, 
-                                "No access_token in response")
-            else:
-                self.log_test("Register new tasker account", False, 
-                            f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Register new tasker account", False, f"Exception: {str(e)}")
+            self.log_test("POST /auth/register", False, f"Error: {str(e)}")
+            return False
     
-    def test_get_current_user(self):
-        """Test GET /api/users/me endpoint"""
-        print("=" * 60)
-        print("TESTING GET CURRENT USER ENDPOINT")
-        print("=" * 60)
+    def test_get_current_user(self) -> bool:
+        """Test GET /users/me with valid token"""
+        if not self.auth_token:
+            self.log_test("GET /users/me", False, "No auth token available")
+            return False
         
-        # Test 1: Get user with valid client token
-        if "client" in self.tokens:
-            try:
-                headers = {"Authorization": f"Bearer {self.tokens['client']}"}
-                response = self.session.get(
-                    f"{self.base_url}/users/me",
-                    headers=headers,
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if "email" in data:
-                        self.log_test("Get current user with client token", True, 
-                                    f"User data received: {data.get('email', 'N/A')}")
-                    else:
-                        self.log_test("Get current user with client token", False, 
-                                    "No user data in response")
-                else:
-                    self.log_test("Get current user with client token", False, 
-                                f"Status: {response.status_code}, Response: {response.text}")
-                    
-            except Exception as e:
-                self.log_test("Get current user with client token", False, f"Exception: {str(e)}")
-        else:
-            self.log_test("Get current user with client token", False, "No client token available")
-        
-        # Test 2: Get user with valid tasker token
-        if "tasker" in self.tokens:
-            try:
-                headers = {"Authorization": f"Bearer {self.tokens['tasker']}"}
-                response = self.session.get(
-                    f"{self.base_url}/users/me",
-                    headers=headers,
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if "email" in data:
-                        self.log_test("Get current user with tasker token", True, 
-                                    f"User data received: {data.get('email', 'N/A')}")
-                    else:
-                        self.log_test("Get current user with tasker token", False, 
-                                    "No user data in response")
-                else:
-                    self.log_test("Get current user with tasker token", False, 
-                                f"Status: {response.status_code}, Response: {response.text}")
-                    
-            except Exception as e:
-                self.log_test("Get current user with tasker token", False, f"Exception: {str(e)}")
-        else:
-            self.log_test("Get current user with tasker token", False, "No tasker token available")
-        
-        # Test 3: Get user with invalid token
         try:
-            headers = {"Authorization": "Bearer invalid_token_here"}
-            response = self.session.get(
-                f"{self.base_url}/users/me",
-                headers=headers,
-                timeout=10
-            )
+            headers = {"Authorization": f"Bearer {self.auth_token}"}
+            response = self.session.get(f"{self.base_url}/users/me", headers=headers)
             
-            if response.status_code in [401, 403]:
-                self.log_test("Get current user with invalid token", True, 
-                            f"Correctly rejected with status {response.status_code}")
-            else:
-                self.log_test("Get current user with invalid token", False, 
-                            f"Unexpected status: {response.status_code}")
-                
+            if response.status_code != 200:
+                self.log_test("GET /users/me", False, 
+                            f"Status code: {response.status_code}, Response: {response.text}")
+                return False
+            
+            data = response.json()
+            
+            # Verify user data
+            if 'email' not in data or 'full_name' not in data:
+                self.log_test("GET /users/me", False, 
+                            "Missing required user fields")
+                return False
+            
+            # Verify no hashed_password in response
+            if 'hashed_password' in data:
+                self.log_test("GET /users/me", False, 
+                            "Security issue: hashed_password in user response")
+                return False
+            
+            self.log_test("GET /users/me", True, 
+                        f"Retrieved current user: {data.get('full_name')}")
+            return True
+            
         except Exception as e:
-            self.log_test("Get current user with invalid token", False, f"Exception: {str(e)}")
+            self.log_test("GET /users/me", False, f"Error: {str(e)}")
+            return False
     
-    def test_token_format(self):
-        """Test JWT token format and structure"""
-        print("=" * 60)
-        print("TESTING TOKEN FORMAT")
-        print("=" * 60)
-        
-        for role, token in self.tokens.items():
-            try:
-                # Decode without verification to check structure
-                decoded = jwt.decode(token, options={"verify_signature": False})
-                
-                # Check required fields
-                required_fields = ["exp", "sub"]
-                missing_fields = [field for field in required_fields if field not in decoded]
-                
-                if not missing_fields:
-                    exp_time = datetime.fromtimestamp(decoded["exp"])
-                    current_time = datetime.now()
-                    
-                    if exp_time > current_time:
-                        self.log_test(f"JWT token format for {role}", True, 
-                                    f"Valid JWT with expiry: {exp_time}")
-                    else:
-                        self.log_test(f"JWT token format for {role}", False, 
-                                    f"Token expired: {exp_time}")
-                else:
-                    self.log_test(f"JWT token format for {role}", False, 
-                                f"Missing fields: {missing_fields}")
-                    
-            except Exception as e:
-                self.log_test(f"JWT token format for {role}", False, f"Invalid JWT: {str(e)}")
+    def test_get_user_by_id(self) -> bool:
+        """Test GET /users/{user_id} with a valid tasker ID"""
+        try:
+            # First get taskers to get a valid user ID
+            response = self.session.get(f"{self.base_url}/users/taskers")
+            if response.status_code != 200:
+                self.log_test("GET /users/{user_id}", False, 
+                            "Could not get taskers list for user ID")
+                return False
+            
+            taskers = response.json()
+            if not taskers:
+                self.log_test("GET /users/{user_id}", False, 
+                            "No taskers available for testing")
+                return False
+            
+            # Use first tasker's ID
+            user_id = taskers[0].get('id')
+            if not user_id:
+                self.log_test("GET /users/{user_id}", False, 
+                            "No user ID found in tasker data")
+                return False
+            
+            # Test getting user by ID
+            response = self.session.get(f"{self.base_url}/users/{user_id}")
+            
+            if response.status_code != 200:
+                self.log_test("GET /users/{user_id}", False, 
+                            f"Status code: {response.status_code}, Response: {response.text}")
+                return False
+            
+            data = response.json()
+            
+            # Verify user data
+            if data.get('id') != user_id:
+                self.log_test("GET /users/{user_id}", False, 
+                            "User ID mismatch in response")
+                return False
+            
+            # Verify no hashed_password in response
+            if 'hashed_password' in data:
+                self.log_test("GET /users/{user_id}", False, 
+                            "Security issue: hashed_password in user response")
+                return False
+            
+            self.log_test("GET /users/{user_id}", True, 
+                        f"Retrieved user: {data.get('full_name')}")
+            return True
+            
+        except Exception as e:
+            self.log_test("GET /users/{user_id}", False, f"Error: {str(e)}")
+            return False
     
-    def test_api_accessibility(self):
-        """Test if APIs are accessible"""
-        print("=" * 60)
-        print("TESTING API ACCESSIBILITY")
-        print("=" * 60)
-        
-        # Test external API
+    def verify_sample_taskers(self) -> bool:
+        """Verify the expected sample taskers are present"""
         try:
-            response = self.session.get(f"{EXTERNAL_API_URL}/", timeout=10)
-            if response.status_code == 200:
-                self.test_results["external_api"]["accessible"] = True
-                self.log_test("External API accessibility", True, f"Status: {response.status_code}")
-            else:
-                self.log_test("External API accessibility", False, f"Status: {response.status_code}, Response: {response.text}")
-        except Exception as e:
-            self.log_test("External API accessibility", False, f"Exception: {str(e)}")
-        
-        # Test local API
-        try:
-            response = self.session.get(f"{LOCAL_API_URL}/", timeout=10)
-            if response.status_code == 200:
-                self.test_results["local_api"]["accessible"] = True
-                self.log_test("Local API accessibility", True, f"Status: {response.status_code}, Response: {response.text}")
-            else:
-                self.log_test("Local API accessibility", False, f"Status: {response.status_code}")
-        except Exception as e:
-            self.log_test("Local API accessibility", False, f"Exception: {str(e)}")
-        
-        # Test frontend configured API
-        try:
-            response = self.session.get(f"{FRONTEND_CONFIGURED_URL}/", timeout=10)
-            if response.status_code == 200:
-                self.test_results["frontend_configured_api"]["accessible"] = True
-                self.log_test("Frontend configured API accessibility", True, f"Status: {response.status_code}")
-            else:
-                self.log_test("Frontend configured API accessibility", False, f"Status: {response.status_code}")
-        except Exception as e:
-            self.log_test("Frontend configured API accessibility", False, f"Exception: {str(e)}")
-
-    def test_authentication_endpoints(self, base_url, api_name):
-        """Test authentication endpoints for a specific API"""
-        print(f"=" * 60)
-        print(f"TESTING {api_name.upper()} AUTHENTICATION ENDPOINTS")
-        print(f"=" * 60)
-        
-        # Test login endpoint
-        try:
-            login_data = {
-                "username": TEST_CREDENTIALS["client"]["email"],
-                "password": TEST_CREDENTIALS["client"]["password"]
-            }
+            response = self.session.get(f"{self.base_url}/users/taskers")
+            if response.status_code != 200:
+                self.log_test("Verify Sample Taskers", False, 
+                            f"Could not fetch taskers: {response.status_code}")
+                return False
             
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = self.session.post(
-                f"{base_url}/auth/login",
-                data=login_data,
-                headers=headers,
-                timeout=10
-            )
+            taskers = response.json()
             
-            if response.status_code == 200:
-                data = response.json()
-                if "access_token" in data:
-                    self.tokens[f"{api_name}_client"] = data["access_token"]
-                    self.log_test(f"{api_name} - Login endpoint", True, "Token received")
-                    self.test_results[api_name]["endpoints"]["login"] = True
-                else:
-                    self.log_test(f"{api_name} - Login endpoint", False, "No access_token in response")
-                    self.test_results[api_name]["endpoints"]["login"] = False
-            else:
-                self.log_test(f"{api_name} - Login endpoint", False, f"Status: {response.status_code}")
-                self.test_results[api_name]["endpoints"]["login"] = False
-                
+            # Expected taskers from the review request
+            expected_taskers = [
+                "Marie Kouassi",
+                "John Mensah", 
+                "Fatou Diop",
+                "Kwame Nkrumah"
+            ]
+            
+            found_taskers = [tasker.get('full_name') for tasker in taskers]
+            
+            missing_taskers = [name for name in expected_taskers if name not in found_taskers]
+            
+            if missing_taskers:
+                self.log_test("Verify Sample Taskers", False, 
+                            f"Missing expected taskers: {missing_taskers}")
+                return False
+            
+            # Verify specific tasker details
+            marie = next((t for t in taskers if t.get('full_name') == 'Marie Kouassi'), None)
+            if marie:
+                if marie.get('country') != 'Ivory Coast' or marie.get('rating') != 4.8:
+                    self.log_test("Verify Sample Taskers", False, 
+                                "Marie Kouassi data doesn't match expected values")
+                    return False
+            
+            kwame = next((t for t in taskers if t.get('full_name') == 'Kwame Nkrumah'), None)
+            if kwame:
+                if kwame.get('is_available') != False or kwame.get('rating') != 5.0:
+                    self.log_test("Verify Sample Taskers", False, 
+                                "Kwame Nkrumah data doesn't match expected values")
+                    return False
+            
+            self.log_test("Verify Sample Taskers", True, 
+                        f"Found all expected taskers. Total: {len(taskers)}")
+            return True
+            
         except Exception as e:
-            self.log_test(f"{api_name} - Login endpoint", False, f"Exception: {str(e)}")
-            self.test_results[api_name]["endpoints"]["login"] = False
-        
-        # Test register endpoint
-        try:
-            timestamp = int(time.time())
-            register_data = {
-                "email": f"newuser{timestamp}@test.com",
-                "password": "testpass123",
-                "full_name": "Test User",
-                "phone": "+1234567890",
-                "country": "US",
-                "role": "client",
-                "language": "en"
-            }
-            
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(
-                f"{base_url}/auth/register",
-                json=register_data,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code in [200, 201]:
-                data = response.json()
-                if "access_token" in data:
-                    self.log_test(f"{api_name} - Register endpoint", True, "Account created, token received")
-                    self.test_results[api_name]["endpoints"]["register"] = True
-                else:
-                    self.log_test(f"{api_name} - Register endpoint", False, "No access_token in response")
-                    self.test_results[api_name]["endpoints"]["register"] = False
-            else:
-                self.log_test(f"{api_name} - Register endpoint", False, f"Status: {response.status_code}")
-                self.test_results[api_name]["endpoints"]["register"] = False
-                
-        except Exception as e:
-            self.log_test(f"{api_name} - Register endpoint", False, f"Exception: {str(e)}")
-            self.test_results[api_name]["endpoints"]["register"] = False
-        
-        # Test users/me endpoint
-        if f"{api_name}_client" in self.tokens:
-            try:
-                headers = {"Authorization": f"Bearer {self.tokens[f'{api_name}_client']}"}
-                response = self.session.get(
-                    f"{base_url}/users/me",
-                    headers=headers,
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if "email" in data:
-                        self.log_test(f"{api_name} - Get current user", True, f"User data: {data.get('email')}")
-                        self.test_results[api_name]["endpoints"]["users_me"] = True
-                    else:
-                        self.log_test(f"{api_name} - Get current user", False, "No user data")
-                        self.test_results[api_name]["endpoints"]["users_me"] = False
-                else:
-                    self.log_test(f"{api_name} - Get current user", False, f"Status: {response.status_code}")
-                    self.test_results[api_name]["endpoints"]["users_me"] = False
-                    
-            except Exception as e:
-                self.log_test(f"{api_name} - Get current user", False, f"Exception: {str(e)}")
-                self.test_results[api_name]["endpoints"]["users_me"] = False
-        else:
-            self.log_test(f"{api_name} - Get current user", False, "No token available")
-            self.test_results[api_name]["endpoints"]["users_me"] = False
-
+            self.log_test("Verify Sample Taskers", False, f"Error: {str(e)}")
+            return False
+    
     def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting Backend API Integration Tests for Mobile App")
-        print(f"Test time: {datetime.now()}")
-        print()
-        print("APIs to test:")
-        print(f"1. External API (from review request): {EXTERNAL_API_URL}")
-        print(f"2. Local API: {LOCAL_API_URL}")
-        print(f"3. Frontend configured API: {FRONTEND_CONFIGURED_URL}")
-        print()
-        
-        # Test API accessibility first
-        self.test_api_accessibility()
-        
-        # Test authentication endpoints for each accessible API
-        if self.test_results["external_api"]["accessible"]:
-            self.test_authentication_endpoints(EXTERNAL_API_URL, "external_api")
-        
-        if self.test_results["local_api"]["accessible"]:
-            self.test_authentication_endpoints(LOCAL_API_URL, "local_api")
-        
-        if self.test_results["frontend_configured_api"]["accessible"]:
-            self.test_authentication_endpoints(FRONTEND_CONFIGURED_URL, "frontend_configured_api")
-        
-        # Legacy tests for the original external API
-        self.base_url = EXTERNAL_API_URL
-        self.test_login_endpoint()
-        self.test_register_endpoint()
-        self.test_get_current_user()
-        self.test_token_format()
-        
+        """Run all backend tests"""
+        print(f"🚀 Starting Backend API Tests")
+        print(f"Backend URL: {self.base_url}")
         print("=" * 60)
-        print("COMPREHENSIVE TEST SUMMARY")
-        print("=" * 60)
-        print("API Accessibility:")
-        for api_name, results in self.test_results.items():
-            status = "✅ ACCESSIBLE" if results["accessible"] else "❌ NOT ACCESSIBLE"
-            print(f"  {api_name}: {status}")
         
-        print("\nAuthentication Endpoints:")
-        for api_name, results in self.test_results.items():
-            if results["accessible"] and results["endpoints"]:
-                print(f"  {api_name}:")
-                for endpoint, working in results["endpoints"].items():
-                    status = "✅ WORKING" if working else "❌ FAILED"
-                    print(f"    {endpoint}: {status}")
+        # Test basic connectivity first
+        if not self.test_basic_connectivity():
+            print("\n❌ CRITICAL: Cannot connect to backend API")
+            return False
         
-        print(f"\nTokens obtained: {list(self.tokens.keys())}")
-        print("All tests completed!")
+        # Run all tests
+        tests = [
+            self.test_status_endpoint,
+            self.test_taskers_endpoint_public,
+            self.test_taskers_with_filters,
+            self.test_authentication_login,
+            self.test_authentication_register,
+            self.test_get_current_user,
+            self.test_get_user_by_id,
+            self.verify_sample_taskers
+        ]
+        
+        passed = 0
+        total = len(tests)
+        
+        for test in tests:
+            if test():
+                passed += 1
+        
+        print("\n" + "=" * 60)
+        print(f"📊 Test Results: {passed}/{total} tests passed")
+        
+        if passed == total:
+            print("🎉 All tests passed!")
+            return True
+        else:
+            print(f"⚠️  {total - passed} tests failed")
+            return False
+
+def main():
+    """Main test execution"""
+    tester = BackendTester()
+    success = tester.run_all_tests()
+    
+    if not success:
+        sys.exit(1)
 
 if __name__ == "__main__":
-    tester = APITester()
-    tester.run_all_tests()
+    main()
