@@ -751,6 +751,15 @@ async def send_message(message_data: MessageCreate, current_user: User = Depends
     message_dict["created_at"] = datetime.utcnow()
     
     await db.messages.insert_one(message_dict)
+    
+    # Send push notification to receiver
+    await send_push_notification(
+        user_id=message_data.receiver_id,
+        title=f"Nouveau message / New Message - {current_user.full_name}",
+        body=message_data.message[:100],  # First 100 chars
+        data={"task_id": message_data.task_id, "type": "new_message"}
+    )
+    
     return Message(**message_dict)
 
 @api_router.get("/chat/{task_id}")
