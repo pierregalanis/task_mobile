@@ -6,12 +6,12 @@ import { Loading } from '../components/Loading';
 import { Colors } from '../constants/Colors';
 
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    console.log('Index - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'segments:', segments);
+    console.log('Index - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', user?.email, 'segments:', segments);
     
     if (isLoading) {
       console.log('Still loading auth state...');
@@ -30,7 +30,7 @@ export default function Index() {
       console.log('Redirecting to welcome...');
       router.replace('/(auth)/welcome');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, user]);
 
   if (isLoading) {
     return <Loading message="Loading..." />;
