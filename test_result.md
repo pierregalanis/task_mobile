@@ -107,15 +107,18 @@ user_problem_statement: "Build mobile version of AfricaTask (renamed to Soutrali
 backend:
   - task: "Backend API is already deployed and working"
     implemented: true
-    working: true
+    working: false
     file: "External API at https://taskrabbit-africa.preview.emergentagent.com/api"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Backend API tested with curl - login endpoint working with test credentials (testclient@demo.com / test123)"
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL ISSUE: External API at https://taskrabbit-africa.preview.emergentagent.com/api returns 404 for all endpoints. Authentication endpoints (/auth/login, /auth/register, /users/me) do not exist. Local backend at localhost:8001/api only has basic status endpoints, no authentication. Frontend is configured to call external API that doesn't exist. This is a major integration issue - the mobile app cannot authenticate users."
 
 frontend:
   - task: "Authentication Flow - Login Screen"
