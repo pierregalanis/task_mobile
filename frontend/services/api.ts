@@ -142,6 +142,33 @@ export const taskAPI = {
     });
     return response.data;
   },
+
+  // GPS Tracking
+  async startJourney(taskId: string, latitude: number, longitude: number) {
+    const response = await api.post(`/tasks/${taskId}/start-journey`, {
+      latitude,
+      longitude,
+    });
+    return response.data;
+  },
+
+  async updateLocation(taskId: string, latitude: number, longitude: number) {
+    const response = await api.put(`/tasks/${taskId}/location`, {
+      latitude,
+      longitude,
+    });
+    return response.data;
+  },
+
+  async getTaskLocation(taskId: string) {
+    const response = await api.get(`/tasks/${taskId}/location`);
+    return response.data;
+  },
+
+  async markArrival(taskId: string) {
+    const response = await api.post(`/tasks/${taskId}/arrive`);
+    return response.data;
+  },
 };
 
 export const reviewAPI = {
