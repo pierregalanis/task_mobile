@@ -139,4 +139,28 @@ export const taskAPI = {
   },
 };
 
+export const reviewAPI = {
+  async getTaskerReviews(taskerId: string) {
+    const response = await api.get(`/reviews/tasker/${taskerId}`);
+    return response.data;
+  },
+
+  async getTaskerRating(taskerId: string) {
+    const response = await api.get(`/reviews/tasker/${taskerId}/rating`);
+    return response.data;
+  },
+};
+
+export const favoriteAPI = {
+  async toggleFavorite(taskerId: string) {
+    const response = await api.post('/favorites/toggle', { tasker_id: taskerId });
+    return response.data;
+  },
+
+  async getFavorites() {
+    const response = await api.get('/favorites');
+    return response.data;
+  },
+};
+
 export default api;
