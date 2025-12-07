@@ -44,7 +44,9 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await login(data);
-      // Navigation will be handled by the index.tsx redirect logic
+      // Explicitly navigate to home after successful login
+      console.log('Login completed, navigating to home...');
+      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
