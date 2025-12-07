@@ -96,17 +96,6 @@ export default function HomeScreen() {
   );
 }
 
-function CategoryCard({ icon, title, color }: { icon: any; title: string; color: string }) {
-  return (
-    <View style={styles.categoryCard}>
-      <View style={[styles.categoryIconContainer, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={28} color={color} />
-      </View>
-      <Text style={styles.categoryTitle}>{title}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
