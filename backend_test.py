@@ -11,9 +11,9 @@ from datetime import datetime
 import time
 
 # API Configuration
-EXTERNAL_API_URL = "https://taskrabbit-africa.preview.emergentagent.com/api"
+EXTERNAL_API_URL = "https://taskhub-mobile-1.preview.emergentagent.com/api"
 LOCAL_API_URL = "http://localhost:8001/api"
-FRONTEND_CONFIGURED_URL = "https://taskbuddy-app-5.preview.emergentagent.com/api"
+FRONTEND_CONFIGURED_URL = "https://taskhub-mobile-1.preview.emergentagent.com/api"
 
 TEST_CREDENTIALS = {
     "client": {"email": "testclient@demo.com", "password": "test123"},

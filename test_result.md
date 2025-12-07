@@ -108,7 +108,7 @@ backend:
   - task: "Backend API is already deployed and working"
     implemented: true
     working: false
-    file: "External API at https://taskrabbit-africa.preview.emergentagent.com/api"
+    file: "External API at https://taskhub-mobile-1.preview.emergentagent.com/api"
     stuck_count: 1
     priority: "high"
     needs_retesting: false
@@ -118,7 +118,7 @@ backend:
         comment: "Backend API tested with curl - login endpoint working with test credentials (testclient@demo.com / test123)"
       - working: false
         agent: "testing"
-        comment: "CRITICAL ISSUE: External API at https://taskrabbit-africa.preview.emergentagent.com/api returns 404 for all endpoints. Authentication endpoints (/auth/login, /auth/register, /users/me) do not exist. Local backend at localhost:8001/api only has basic status endpoints, no authentication. Frontend is configured to call external API that doesn't exist. This is a major integration issue - the mobile app cannot authenticate users."
+        comment: "CRITICAL ISSUE: External API at https://taskhub-mobile-1.preview.emergentagent.com/api returns 404 for all endpoints. Authentication endpoints (/auth/login, /auth/register, /users/me) do not exist. Local backend at localhost:8001/api only has basic status endpoints, no authentication. Frontend is configured to call external API that doesn't exist. This is a major integration issue - the mobile app cannot authenticate users."
 
 frontend:
   - task: "Authentication Flow - Login Screen"
@@ -269,6 +269,6 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "Phase 1 implementation complete. All authentication screens, context, API service, and navigation are implemented. Ready for comprehensive testing. Test credentials: testclient@demo.com / test123 (Client), testtasker@demo.com / test123 (Tasker). Backend API: https://taskrabbit-africa.preview.emergentagent.com/api"
+    message: "Phase 1 implementation complete. All authentication screens, context, API service, and navigation are implemented. Ready for comprehensive testing. Test credentials: testclient@demo.com / test123 (Client), testtasker@demo.com / test123 (Tasker). Backend API: https://taskhub-mobile-1.preview.emergentagent.com/api"
   - agent: "testing"
-    message: "CRITICAL BACKEND INTEGRATION FAILURE: Comprehensive API testing reveals that the external API (https://taskrabbit-africa.preview.emergentagent.com/api) specified in the review request and frontend configuration does not exist - all endpoints return 404. The local backend only has basic status endpoints, no authentication. The mobile app cannot function without authentication endpoints. This requires immediate attention - either implement authentication endpoints in local backend or fix external API access."
+    message: "CRITICAL BACKEND INTEGRATION FAILURE: Comprehensive API testing reveals that the external API (https://taskhub-mobile-1.preview.emergentagent.com/api) specified in the review request and frontend configuration does not exist - all endpoints return 404. The local backend only has basic status endpoints, no authentication. The mobile app cannot function without authentication endpoints. This requires immediate attention - either implement authentication endpoints in local backend or fix external API access."

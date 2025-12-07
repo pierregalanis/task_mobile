@@ -1,0 +1,247 @@
+<analysis>
+My analysis of the trajectory indicates a complex development process marked by significant debugging and architectural pivots. The initial goal was to create a React Native mobile frontend (Soutrali) for an existing web application's backend. However, the provided backend API proved to be unstable and inconsistent, frequently returning 404 errors and having a different authentication schema than described. This led to a crucial decision: to build a complete local backend using FastAPI and MongoDB to unblock frontend development.
+
+The AI engineer successfully scaffolded the Expo application, implemented a full authentication flow (Phase 1), and then began work on Phase 2 (Browse Taskers). This process involved overcoming numerous technical hurdles:
+1.  **Storage:** Switching from  (mobile-only) to  to enable web preview testing.
+2.  **Bundler Issues:** Resolving Metro bundler cache problems related to  and other dependencies.
+3.  **Navigation:** Debugging and fixing redirection logic post-login, where the app state wasn't updating correctly to navigate the user to the home screen.
+4.  **Dependency Conflicts:** Managing React Native and related package version mismatches between the project and the Expo Go client app.
+
+The most recent work involved fixing a crash in the language toggle feature on the profile screen and adding a missing API endpoint () to the local backend. The user's primary language is English, and future interactions should be in English.
+</analysis>
+
+<product_requirements>
+The primary objective is to build a mobile app version, named Soutrali, of an existing TaskRabbit clone web app called AfricaTask. The mobile app is to be built using React Native/Expo.
+
+**Core Features:**
+-   **Full Feature Parity:** The mobile app must replicate all features of the web app, including authentication (for Client and Tasker roles), service browsing by categories, Google Maps integration for location services, a complete booking flow, user dashboards, in-app chat, reviews/ratings, a favorites system, and payment integration with Paydunya.
+-   **Phased MVP Development:**
+    -   **Phase 1 (Complete):** Authentication (Login, Signup), and basic tab navigation.
+    -   **Phase 2 (In Progress):** Browse Taskers (list, filters, profiles), Service Selection, and a basic booking form.
+    -   **Future Phases:** Google Maps, Task Management, Chat, Notifications, etc.
+-   **Design:** Default dark mode with an emerald green (#10b981) theme, matching the web app's aesthetic.
+-   **Localization:** The app must be fully bilingual (English and French) from the start, with a user-facing toggle. All 13 primary service categories and their 40 subcategories must be translated.
+
+**Technical Pivot:**
+While initially specified to connect to a pre-existing backend API, its unreliability forced a pivot. A local FastAPI/MongoDB backend was created to support mobile app development and is the currently active backend.
+</product_requirements>
+
+<key_technical_concepts>
+- **Frontend:**
+  - React Native with Expo
+  - Expo Router for file-based navigation
+  - React Context API () for global state management
+  -  for HTTP requests
+  -  for client-side token/data persistence
+  -  for internationalization (EN/FR)
+- **Backend (Local):**
+  - FastAPI web framework
+  - MongoDB for the database
+  - JWT for token-based authentication
+  - Pydantic for data modeling and validation
+</key_technical_concepts>
+
+<code_architecture>
+The project is a full-stack monorepo with distinct  and  directories.
+
+**Directory Structure:**
+
+
+**Key File Summaries:**
+
+-   ****
+    -   **Importance:** This is the core of the **local backend** built to overcome external API issues. It serves all API requests for the mobile app.
+    -   **Changes:** It was created from scratch and heavily modified to implement a full authentication system (register, login with JWT, user data endpoint), User models, and MongoDB integration. Most recently, a  endpoint was added to prevent a 404 error from the frontend.
+
+-   ****
+    -   **Importance:** Manages global authentication state (user, token, loading status) and provides login/logout functions to the entire app.
+    -   **Changes:** Underwent significant debugging. Logic was added to handle different API token formats ( vs. ), the user-fetching endpoint was corrected from  to , and detailed logging was added to diagnose login flow issues.
+
+-   ****
+    -   **Importance:** Defines the global  instance and sets the base URL for all API calls.
+    -   **Changes:** The  was modified multiple times, switching between various external URLs and finally pointing to the local backend's proxy URL (). The request  was also toggled between  and  to match different backend requirements.
+
+-   ****
+    -   **Importance:** Abstracted key-value storage for persisting the auth token and user data.
+    -   **Changes:** The implementation was switched from  to  to ensure compatibility with the web preview, which was a major source of login errors.
+
+-   ****
+    -   **Importance:** The app's entry point, which handles routing the user to the auth flow or the main app based on their authentication status.
+    -   **Changes:** The  hook was modified to depend on the  object from  to correctly trigger a re-render and navigation after a successful login.
+
+-   ****
+    -   **Importance:** The user's profile screen, containing the language toggle and logout button.
+    -   **Changes:** A bug causing a crash during language change was fixed by adding the  hook to properly refresh the view.
+
+-   ****
+    -   **Importance:** The main landing screen after login.
+    -   **Changes:** Updated to fetch and display a grid of the 13 main service categories from , with full bilingual support.
+</code_architecture>
+
+<pending_tasks>
+- Fully implement Phase 2 functionality:
+  - Wire up the Book Now and Favorite buttons.
+  - Implement navigation from a tasker card to their profile page.
+  - Connect the booking form to the  endpoint.
+- Begin Phase 3: Google Maps integration (location picker, maps display, distance calculation).
+- Populate the local backend with mock tasker data so the Taskers list screen can be properly tested.
+- Implement remaining features: Task Management, Chat, Push Notifications, and Payments.
+</pending_tasks>
+
+<current_work>
+The previous engineer was in the process of fixing two distinct bugs that were identified concurrently.
+
+1.  **Language Switcher Crash:** The user reported that changing the language on the profile screen caused the app to crash with a  error.
+    -   **Action:** The engineer identified that the  hook from  was missing in the  component. A fix was applied to  by importing  and initializing it.
+
+2.  **Empty Taskers List:** While investigating the first bug, the engineer noticed in the backend logs that the app was making a  request to , which was returning a  error from the local backend. This was the reason the Taskers screen was always empty.
+    -   **Action:** To resolve this, a placeholder endpoint for  was added to the  file, which would return an empty list for now but prevent the 404 error.
+
+The final action taken was to initiate a restart of both the  and 
+  Usage: expo [command] [options]
+
+  Options:
+  
+    -V, --version                     output the version number
+    --non-interactive                 Fail, if an interactive prompt would be required to continue.
+    -h, --help                        output usage information
+  
+  Commands:
+
+    init [name]                       Create a new Expo project
+    start [path]                      Start a local dev server for the app
+    start:web [path]                  Start a Webpack dev server for the web app
+    export [path]                     Export the static files of the app for hosting it on a web server
+    install [packages...]             Install a module or other package to a project
+    run:android [path]                Run the Android app binary locally
+    run:ios [path]                    Run the iOS app binary locally
+    send [path]                       Share the project's URL to an email address
+
+    login                             Login to an Expo account
+    logout                            Logout of an Expo account
+    register                          Sign up for a new Expo account
+    whoami                            Return the currently authenticated account
+
+    client:install:ios                Install Expo Go for iOS on the simulator
+    client:install:android            Install Expo Go for Android on a connected device or emulator
+
+    config [path]                     Show the project config
+    doctor [path]                     Diagnose issues with the project
+    upgrade [sdk-version]             Upgrade the project packages and config for the given SDK version
+
+    customize:web [path]              Eject the default web files for customization
+    prebuild [path]                   Create native iOS and Android project files before building natively.
+                                      Learn more: https://docs.expo.dev/workflow/customizing/
+
+    build:web [path]                  Build the web app for production
+
+    credentials:manager [path]        Superseded by eas credentials in eas-cli
+
+    url [path]                        Log a URL for opening the project in Expo Go
+    url:ipa [path]                    Log the download URL for the standalone iOS binary
+    url:apk [path]                    Log the download URL for the standalone Android binary
+
+    webhooks [path]                   List all webhooks for a project
+    webhooks:add [path]               Add a webhook to a project
+    webhooks:remove [path]            Delete a webhook
+    webhooks:update [path]            Update an existing webhook
+
+    build:ios [path]                  Superseded by eas build in eas-cli
+    build:android [path]              Superseded by eas build in eas-cli
+    build:status [path]               Superseded by eas build:list in eas-cli
+    eject [path]                      Superseded by expo prebuild
+    fetch:ios:certs [path]            Superseded by eas credentials in eas-cli
+    fetch:android:keystore [path]     Superseded by eas credentials in eas-cli
+    fetch:android:hashes [path]       Superseded by eas credentials in eas-cli
+    fetch:android:upload-cert [path]  Superseded by eas credentials in eas-cli
+    publish [path]                    Superseded by eas update in eas-cli
+    publish:set [path]                Superseded by eas update:republish in eas-cli
+    publish:rollback [path]           Superseded by eas update:republish in eas-cli
+    publish:history [path]            Superseded by eas update:list in eas-cli
+    publish:details [path]            Superseded by eas update:view in eas-cli
+    push:android:upload [path]        Superseded by eas credentials in eas-cli
+    push:android:show [path]          Superseded by eas credentials in eas-cli
+    push:android:clear [path]         Superseded by eas credentials in eas-cli
+    upload:android [path]             Superseded by eas submit in eas-cli
+    upload:ios [path]                 Superseded by eas submit in eas-cli
+    client:ios [path]                 Superseded by Expo Dev Clients
+
+[10:15:21]   Run a command with --help for more info 💡
+[10:15:21]     $ expo start --help
+[10:15:21] services to apply these two fixes simultaneously. The work was paused immediately after issuing the restart command.
+</current_work>
+
+<optional_next_step>
+Restart both the  and 
+  Usage: expo [command] [options]
+
+  Options:
+  
+    -V, --version                     output the version number
+    --non-interactive                 Fail, if an interactive prompt would be required to continue.
+    -h, --help                        output usage information
+  
+  Commands:
+
+    init [name]                       Create a new Expo project
+    start [path]                      Start a local dev server for the app
+    start:web [path]                  Start a Webpack dev server for the web app
+    export [path]                     Export the static files of the app for hosting it on a web server
+    install [packages...]             Install a module or other package to a project
+    run:android [path]                Run the Android app binary locally
+    run:ios [path]                    Run the iOS app binary locally
+    send [path]                       Share the project's URL to an email address
+
+    login                             Login to an Expo account
+    logout                            Logout of an Expo account
+    register                          Sign up for a new Expo account
+    whoami                            Return the currently authenticated account
+
+    client:install:ios                Install Expo Go for iOS on the simulator
+    client:install:android            Install Expo Go for Android on a connected device or emulator
+
+    config [path]                     Show the project config
+    doctor [path]                     Diagnose issues with the project
+    upgrade [sdk-version]             Upgrade the project packages and config for the given SDK version
+
+    customize:web [path]              Eject the default web files for customization
+    prebuild [path]                   Create native iOS and Android project files before building natively.
+                                      Learn more: https://docs.expo.dev/workflow/customizing/
+
+    build:web [path]                  Build the web app for production
+
+    credentials:manager [path]        Superseded by eas credentials in eas-cli
+
+    url [path]                        Log a URL for opening the project in Expo Go
+    url:ipa [path]                    Log the download URL for the standalone iOS binary
+    url:apk [path]                    Log the download URL for the standalone Android binary
+
+    webhooks [path]                   List all webhooks for a project
+    webhooks:add [path]               Add a webhook to a project
+    webhooks:remove [path]            Delete a webhook
+    webhooks:update [path]            Update an existing webhook
+
+    build:ios [path]                  Superseded by eas build in eas-cli
+    build:android [path]              Superseded by eas build in eas-cli
+    build:status [path]               Superseded by eas build:list in eas-cli
+    eject [path]                      Superseded by expo prebuild
+    fetch:ios:certs [path]            Superseded by eas credentials in eas-cli
+    fetch:android:keystore [path]     Superseded by eas credentials in eas-cli
+    fetch:android:hashes [path]       Superseded by eas credentials in eas-cli
+    fetch:android:upload-cert [path]  Superseded by eas credentials in eas-cli
+    publish [path]                    Superseded by eas update in eas-cli
+    publish:set [path]                Superseded by eas update:republish in eas-cli
+    publish:rollback [path]           Superseded by eas update:republish in eas-cli
+    publish:history [path]            Superseded by eas update:list in eas-cli
+    publish:details [path]            Superseded by eas update:view in eas-cli
+    push:android:upload [path]        Superseded by eas credentials in eas-cli
+    push:android:show [path]          Superseded by eas credentials in eas-cli
+    push:android:clear [path]         Superseded by eas credentials in eas-cli
+    upload:android [path]             Superseded by eas submit in eas-cli
+    upload:ios [path]                 Superseded by eas submit in eas-cli
+    client:ios [path]                 Superseded by Expo Dev Clients
+
+[10:15:21]   Run a command with --help for more info 💡
+[10:15:21]     $ expo start --help
+[10:15:21] services to apply the fixes for the language switcher and the missing  endpoint, and then verify that both issues are resolved.
+</optional_next_step>
