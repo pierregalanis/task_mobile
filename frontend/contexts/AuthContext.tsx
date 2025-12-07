@@ -98,6 +98,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await authAPI.getCurrentUser();
       await storage.saveUser(userData);
       setUser(userData);
+      
+      // Register for push notifications after successful registration
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          await savePushToken(pushToken);
+          console.log('Push notifications registered successfully');
+        }
+      } catch (error) {
+        console.error('Failed to register push notifications:', error);
+      }
     } catch (error: any) {
       console.error('Register error:', error);
       throw new Error(error.response?.data?.detail || 'Registration failed');
