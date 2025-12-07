@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """
-Backend API Integration Tests for Mobile App Authentication
-Testing both external API and local backend endpoints
+Backend API Testing Script for Soutrali App
+Tests authentication, user endpoints, and tasker functionality
+Focus: Testing the fixed /api/users/taskers endpoint and sample data
 """
 
 import requests
 import json
-import jwt
-from datetime import datetime
-import time
+import sys
+from typing import Dict, Any, Optional
 
-# API Configuration
-EXTERNAL_API_URL = "https://taskhub-mobile-1.preview.emergentagent.com/api"
-LOCAL_API_URL = "http://localhost:8001/api"
-FRONTEND_CONFIGURED_URL = "https://taskhub-mobile-1.preview.emergentagent.com/api"
+# Backend URL from frontend configuration
+BACKEND_URL = "https://taskhub-mobile-1.preview.emergentagent.com/api"
 
 TEST_CREDENTIALS = {
     "client": {"email": "testclient@demo.com", "password": "test123"},
