@@ -17,19 +17,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 
-// Conditionally import MapView only for native platforms
+// MapView requires custom dev build - not available in Expo Go
 let MapView: any = null;
 let Marker: any = null;
 let Polyline: any = null;
 let PROVIDER_GOOGLE: any = null;
 
-if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-  Polyline = maps.Polyline;
-  PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-}
+// Maps only work in custom dev builds, not Expo Go
+const MAPS_AVAILABLE = false; // Set to true when using custom dev build
 
 export default function TrackingScreen() {
   const router = useRouter();
