@@ -107,7 +107,7 @@ export default function MapPicker({
 
   const selectPlace = async (placeId: string, description: string) => {
     try {
-      const GOOGLE_PLACES_API_KEY = 'YOUR_GOOGLE_PLACES_API_KEY'; // TODO: Add to env
+      const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
       
       // Get place details to get coordinates
       const response = await fetch(
