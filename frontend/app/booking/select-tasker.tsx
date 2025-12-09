@@ -253,6 +253,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.dark.textSecondary,
   },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  taskerPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.dark.primary,
+  },
   taskerLocation: {
     fontSize: 12,
     color: Colors.dark.textSecondary,
