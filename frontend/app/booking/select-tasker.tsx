@@ -40,13 +40,21 @@ export default function SelectTaskerScreen() {
     }
   };
 
-  const handleTaskerSelect = (taskerId: string) => {
+  const handleTaskerSelect = (tasker: any) => {
+    // Get pricing info from tasker's service
+    const service = tasker.tasker_profile?.services?.find(
+      (s: any) => s.category === categoryId
+    );
+    
     router.push({
       pathname: '/booking/create',
       params: {
-        taskerId,
+        taskerId: tasker.id,
         categoryId,
         subcategoryId,
+        pricingType: service?.pricing_type || 'hourly',
+        hourlyRate: service?.hourly_rate?.toString() || '0',
+        fixedPrice: service?.fixed_price?.toString() || '0',
       },
     });
   };
