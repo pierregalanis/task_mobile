@@ -11,7 +11,6 @@ import { CATEGORIES, getCategoryName } from '../../constants/Categories';
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
