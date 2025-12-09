@@ -62,7 +62,15 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>{i18n.t('home.categories')}</Text>
           <View style={styles.categoriesGrid}>
             {CATEGORIES.map((category) => (
-              <TouchableOpacity key={category.id} style={styles.categoryCard} activeOpacity={0.7}>
+              <TouchableOpacity 
+                key={category.id} 
+                style={styles.categoryCard} 
+                activeOpacity={0.7}
+                onPress={() => router.push({
+                  pathname: '/booking/select-service',
+                  params: { categoryId: category.id }
+                })}
+              >
                 <View style={styles.categoryIconContainer}>
                   <Text style={styles.categoryIcon}>{category.icon}</Text>
                 </View>
