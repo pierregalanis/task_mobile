@@ -70,8 +70,8 @@ export default function MapPicker({
 
     try {
       setSearching(true);
-      // Using Google Places API - you'll need to add your API key
-      const GOOGLE_PLACES_API_KEY = 'YOUR_GOOGLE_PLACES_API_KEY'; // TODO: Add to env
+      // Using Google Places API
+      const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
       
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
