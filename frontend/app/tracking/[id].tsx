@@ -246,7 +246,7 @@ export default function TrackingScreen() {
       </View>
 
       {/* Map or Web Fallback */}
-      {Platform.OS === 'web' ? (
+      {!MAPS_AVAILABLE ? (
         <View style={styles.webFallback}>
           <Ionicons name="map" size={64} color={Colors.dark.textSecondary} />
           <Text style={styles.webFallbackTitle}>
