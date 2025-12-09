@@ -331,30 +331,37 @@ async def get_user(user_id: str):
 
 @api_router.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
 async def create_task(task_data: TaskCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "client":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only clients can create tasks"
+    try:
+        logger.info(f"Received task creation request: {task_data}")
+        
+        if current_user.role != "client":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only clients can create tasks"
+            )
+        
+        task_dict = task_data.dict()
+        task_dict["client_id"] = current_user.id
+        task_dict["id"] = str(uuid.uuid4())
+        task_dict["status"] = "pending"
+        task_dict["created_at"] = datetime.utcnow()
+        task_dict["updated_at"] = datetime.utcnow()
+        
+        logger.info(f"Inserting task: {task_dict}")
+        await db.tasks.insert_one(task_dict)
+        
+        # Send push notification to tasker
+        await send_push_notification(
+            user_id=task_data.tasker_id,
+            title="Nouvelle réservation / New Booking",
+            body=f"{current_user.full_name} vous a envoyé une nouvelle demande de réservation / sent you a new booking request",
+            data={"task_id": task_dict["id"], "type": "new_booking"}
         )
-    
-    task_dict = task_data.dict()
-    task_dict["client_id"] = current_user.id
-    task_dict["id"] = str(uuid.uuid4())
-    task_dict["status"] = "pending"
-    task_dict["created_at"] = datetime.utcnow()
-    task_dict["updated_at"] = datetime.utcnow()
-    
-    await db.tasks.insert_one(task_dict)
-    
-    # Send push notification to tasker
-    await send_push_notification(
-        user_id=task_data.tasker_id,
-        title="Nouvelle réservation / New Booking",
-        body=f"{current_user.full_name} vous a envoyé une nouvelle demande de réservation / sent you a new booking request",
-        data={"task_id": task_dict["id"], "type": "new_booking"}
-    )
-    
-    return Task(**task_dict)
+        
+        return Task(**task_dict)
+    except Exception as e:
+        logger.error(f"Error creating task: {e}", exc_info=True)
+        raise
 
 @api_router.get("/tasks/client")
 async def get_client_tasks(current_user: User = Depends(get_current_user)):
