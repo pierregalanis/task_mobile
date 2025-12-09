@@ -124,6 +124,7 @@ export default function CreateBookingScreen() {
         estimated_total: calculateTotal(),
       };
 
+      console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
       await taskAPI.createTask(bookingData);
 
       Alert.alert(
