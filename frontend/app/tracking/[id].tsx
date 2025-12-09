@@ -254,8 +254,8 @@ export default function TrackingScreen() {
           </Text>
           <Text style={styles.webFallbackText}>
             {i18n.locale === 'fr' 
-              ? 'Le suivi GPS en temps réel est disponible uniquement sur mobile. Scannez le code QR avec Expo Go pour tester cette fonctionnalité.'
-              : 'Real-time GPS tracking is only available on mobile. Scan the QR code with Expo Go to test this feature.'}
+              ? 'Le suivi GPS en temps réel nécessite une version personnalisée de l\'app (pas disponible dans Expo Go). Cette fonctionnalité sera active dans la version finale de l\'app.'
+              : 'Real-time GPS tracking requires a custom development build (not available in Expo Go). This feature will be active in the production app.'}
           </Text>
           {trackingData?.en_route && (
             <View style={styles.webTrackingInfo}>
