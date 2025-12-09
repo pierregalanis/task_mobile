@@ -128,24 +128,20 @@ export default function CreateBookingScreen() {
 
       console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
       await taskAPI.createTask(bookingData);
-
       Alert.alert(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Réservation créée avec succès!' : 'Booking created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/bookings'),
-          },
-        ]
+        i18n.locale === 'fr' ? 'Réservation créée avec succès' : 'Booking created successfully'
       );
+      router.replace('/(tabs)/bookings');
     } catch (error: any) {
       console.error('Error creating booking:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       Alert.alert(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || i18n.locale === 'fr'
-          ? 'Échec de création de la réservation'
-          : 'Failed to create booking'
+        error.response?.data?.detail || (i18n.locale === 'fr'
+          ? 'Impossible de créer la réservation'
+          : 'Failed to create booking')
       );
     } finally {
       setLoading(false);
