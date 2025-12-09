@@ -24,6 +24,8 @@ export default function CreateBookingScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const params = useLocalSearchParams();
+  
+  console.log('Booking form params:', params);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
