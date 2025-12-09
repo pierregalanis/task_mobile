@@ -108,18 +108,20 @@ export default function CreateBookingScreen() {
       const bookingData = {
         title: title.trim(),
         description: description.trim(),
-        task_date: taskDate.toISOString(),
+        category: params.categoryId as string,
+        subcategory: params.subcategoryId as string,
+        tasker_id: params.taskerId as string,
+        scheduled_date: taskDate.toISOString(),
         duration_hours: pricingType === 'hourly' ? parseFloat(duration) : 1,
         address: address.trim(),
         city: city.trim(),
         latitude: user?.latitude || 5.36,
         longitude: user?.longitude || -4.0,
-        category_id: params.serviceId as string,
-        tasker_id: params.taskerId as string,
+        special_instructions: specialInstructions.trim() || null,
         pricing_type: pricingType,
         hourly_rate: pricingType === 'hourly' ? hourlyRate : null,
         fixed_price: pricingType === 'fixed' ? fixedPrice : null,
-        special_instructions: specialInstructions.trim() || null,
+        estimated_total: calculateTotal(),
       };
 
       await taskAPI.createTask(bookingData);
