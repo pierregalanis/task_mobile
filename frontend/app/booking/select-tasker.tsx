@@ -99,7 +99,7 @@ export default function SelectTaskerScreen() {
               <TouchableOpacity
                 key={tasker.id}
                 style={styles.taskerCard}
-                onPress={() => handleTaskerSelect(tasker.id)}
+                onPress={() => handleTaskerSelect(tasker)}
                 activeOpacity={0.7}
               >
                 <View style={styles.taskerAvatar}>
