@@ -122,7 +122,18 @@ export default function SelectTaskerScreen() {
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.taskerLocation}>{tasker.city}</Text>
+                  <View style={styles.priceRow}>
+                    {tasker.tasker_profile?.services?.[0]?.pricing_type === 'hourly' ? (
+                      <Text style={styles.taskerPrice}>
+                        {tasker.tasker_profile.services[0].hourly_rate} XOF/h
+                      </Text>
+                    ) : (
+                      <Text style={styles.taskerPrice}>
+                        {tasker.tasker_profile?.services?.[0]?.fixed_price} XOF
+                      </Text>
+                    )}
+                    <Text style={styles.taskerLocation}>{tasker.city}</Text>
+                  </View>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
               </TouchableOpacity>
