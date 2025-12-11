@@ -9,12 +9,27 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soutrali.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
+      }
     },
     "android": {
+      "package": "com.soutrali.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
+        }
       },
       "edgeToEdgeEnabled": true
     },
@@ -33,10 +48,23 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Soutrali to use your location for GPS tracking and finding nearby taskers."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "soutrali-mobile"
+      },
+      "EXPO_PUBLIC_BACKEND_URL": "https://gethands.preview.emergentagent.com/api",
+      "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
     }
   }
 }
