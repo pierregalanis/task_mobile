@@ -400,12 +400,14 @@ async def get_tasker_tasks(current_user: User = Depends(get_current_user)):
     
     tasks = await db.tasks.find({"tasker_id": current_user.id}).sort("created_at", -1).to_list(100)
     
-    # Enrich tasks with client info
+    # Enrich tasks with client info and remove MongoDB _id
     for task in tasks:
+        if "_id" in task:
+            del task["_id"]
         client = await get_user_by_id(task["client_id"])
         if client:
             task["client_name"] = client.full_name
-            task["client_photo"] = client.profile_photo
+            task["client_photo"] = getattr(client, 'profile_photo', None)
             task["client_phone"] = client.phone
     
     return tasks
