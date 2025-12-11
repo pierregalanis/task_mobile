@@ -2,12 +2,10 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 import Constants from 'expo-constants';
 
-// Use local backend URL from environment
+// Use backend URL from environment (already includes /api path)
 const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
-  ? `${Constants.expoConfig.extra.EXPO_PUBLIC_BACKEND_URL}/api`
-  : process.env.EXPO_PUBLIC_BACKEND_URL 
-  ? `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`
-  : 'http://localhost:8001/api';
+  || process.env.EXPO_PUBLIC_BACKEND_URL 
+  || 'http://localhost:8001';
 
 console.log('API Base URL:', API_BASE_URL);
 
