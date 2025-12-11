@@ -348,7 +348,7 @@ async def create_task(task_data: TaskCreate, current_user: User = Depends(get_cu
         task_dict["updated_at"] = datetime.utcnow()
         
         logger.info(f"Inserting task: {task_dict}")
-        await db.tasks.insert_one(task_dict)
+        result = await db.tasks.insert_one(task_dict)
         
         # Send push notification to tasker
         await send_push_notification(
@@ -358,7 +358,12 @@ async def create_task(task_data: TaskCreate, current_user: User = Depends(get_cu
             data={"task_id": task_dict["id"], "type": "new_booking"}
         )
         
-        return Task(**task_dict)
+        # Remove MongoDB's _id before returning
+        created_task = await db.tasks.find_one({"id": task_dict["id"]})
+        if created_task and "_id" in created_task:
+            del created_task["_id"]
+        
+        return Task(**created_task)
     except Exception as e:
         logger.error(f"Error creating task: {e}", exc_info=True)
         raise
