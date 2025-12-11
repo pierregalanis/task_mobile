@@ -241,23 +241,58 @@ class BackendTester:
         if not tasker_id:
             return False, "Could not find tasker ID in tasker data"
         
-        # Create booking data as specified in review request
-        booking_data = {
-            "title": "Test booking",
-            "description": "Test description", 
-            "category": "cleaning",
-            "subcategory": "cleaning",
-            "tasker_id": tasker_id,
-            "scheduled_date": "2025-12-12T10:00:00Z",
-            "duration_hours": 2,
-            "address": "123 Test St",
-            "city": "Abidjan",
-            "latitude": 5.36,
-            "longitude": -4.0,
-            "pricing_type": "hourly",
-            "hourly_rate": 2500,
-            "estimated_total": 5000
-        }
+        # Create booking data - try different field formats based on API requirements
+        booking_attempts = [
+            # Original format from review request
+            {
+                "title": "Test booking",
+                "description": "Test description", 
+                "category": "cleaning",
+                "subcategory": "cleaning",
+                "tasker_id": tasker_id,
+                "scheduled_date": "2025-12-12T10:00:00Z",
+                "duration_hours": 2,
+                "address": "123 Test St",
+                "city": "Abidjan",
+                "latitude": 5.36,
+                "longitude": -4.0,
+                "pricing_type": "hourly",
+                "hourly_rate": 2500,
+                "estimated_total": 5000
+            },
+            # Format based on API error response
+            {
+                "title": "Test booking",
+                "description": "Test description", 
+                "category_id": 1,  # Assuming cleaning has ID 1
+                "tasker_id": tasker_id,
+                "task_date": "2025-12-12T10:00:00Z",
+                "duration_hours": 2,
+                "address": "123 Test St",
+                "city": "Abidjan",
+                "latitude": 5.36,
+                "longitude": -4.0,
+                "pricing_type": "hourly",
+                "hourly_rate": 2500,
+                "estimated_total": 5000
+            },
+            # Alternative format
+            {
+                "title": "Test booking",
+                "description": "Test description", 
+                "category_id": "cleaning",
+                "tasker_id": tasker_id,
+                "task_date": "2025-12-12",
+                "task_time": "10:00:00",
+                "duration": 2,
+                "address": "123 Test St",
+                "city": "Abidjan",
+                "latitude": 5.36,
+                "longitude": -4.0,
+                "hourly_rate": 2500,
+                "total_amount": 5000
+            }
+        ]
         
         self.log(f"Creating booking with tasker_id: {tasker_id}")
         response = self.make_request("POST", "/tasks", booking_data, token=self.client_token)
