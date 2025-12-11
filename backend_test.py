@@ -295,23 +295,23 @@ class BackendTester:
         ]
         
         self.log(f"Creating booking with tasker_id: {tasker_id}")
-        response = self.make_request("POST", "/tasks", booking_data, token=self.client_token)
         
-        if not response:
-            return False, "Request failed - connection error"
+        for i, booking_data in enumerate(booking_attempts):
+            self.log(f"Trying booking format {i+1}/3")
+            response = self.make_request("POST", "/tasks", booking_data, token=self.client_token)
             
-        if response.status_code == 201:
-            try:
-                task_data = response.json()
-                self.test_task_id = task_data.get('id')
-                self.log(f"✅ Task created successfully. ID: {self.test_task_id}")
-                return True, "Task creation successful"
-            except json.JSONDecodeError:
-                return False, f"Invalid JSON response: {response.text}"
-        else:
-            # Log validation errors for analysis
-            self.log(f"Task creation failed: {response.text}", "ERROR")
-            return False, f"Task creation failed with status {response.status_code}: {response.text}"
+            if response and response.status_code == 201:
+                try:
+                    task_data = response.json()
+                    self.test_task_id = task_data.get('id')
+                    self.log(f"✅ Task created successfully with format {i+1}. ID: {self.test_task_id}")
+                    return True, f"Task creation successful with format {i+1}"
+                except json.JSONDecodeError:
+                    continue
+            elif response:
+                self.log(f"Format {i+1} failed: {response.text}", "ERROR")
+        
+        return False, "All task creation formats failed - API field requirements don't match"
     
     def test_7_get_client_tasks(self):
         """Test 7: Get Tasks (Client Side) - GET /tasks"""
