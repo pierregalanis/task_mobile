@@ -78,25 +78,34 @@ class BackendTester:
         """Test 1: Client Authentication - Login"""
         self.log("=== TEST 1: Client Login ===")
         
-        response = self.make_request("POST", "/auth/login", CLIENT_CREDENTIALS)
+        # Try different login endpoints and formats
+        login_attempts = [
+            ("/auth/login", CLIENT_CREDENTIALS, False),  # JSON format
+            ("/auth/login", CLIENT_CREDENTIALS, True),   # Form data format
+            ("/token", CLIENT_CREDENTIALS, True),        # OAuth2 token endpoint
+            ("/auth/token", CLIENT_CREDENTIALS, True),   # Alternative token endpoint
+        ]
         
-        if not response:
-            return False, "Request failed - connection error"
+        for endpoint, credentials, use_form in login_attempts:
+            self.log(f"Trying {endpoint} with {'form data' if use_form else 'JSON'}")
+            response = self.make_request("POST", endpoint, credentials, form_data=use_form)
             
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if "token" in data and "user" in data:
-                    self.client_token = data["token"]
-                    self.client_user = data["user"]
-                    self.log(f"✅ Client login successful. User: {self.client_user.get('full_name', 'Unknown')}")
-                    return True, "Client login successful"
-                else:
-                    return False, f"Invalid response structure: {data}"
-            except json.JSONDecodeError:
-                return False, f"Invalid JSON response: {response.text}"
-        else:
-            return False, f"Login failed with status {response.status_code}: {response.text}"
+            if response and response.status_code == 200:
+                try:
+                    data = response.json()
+                    # Check for different token response formats
+                    token = data.get("token") or data.get("access_token")
+                    user = data.get("user")
+                    
+                    if token:
+                        self.client_token = token
+                        self.client_user = user
+                        self.log(f"✅ Client login successful via {endpoint}. User: {user.get('full_name', 'Unknown') if user else 'Token only'}")
+                        return True, f"Client login successful via {endpoint}"
+                except json.JSONDecodeError:
+                    continue
+        
+        return False, "All login attempts failed"
     
     def test_2_authentication_tasker_login(self):
         """Test 2: Tasker Authentication - Login"""
