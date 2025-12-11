@@ -18,12 +18,12 @@ BASE_URL = "https://gethands.preview.emergentagent.com/api"
 
 # Test credentials
 CLIENT_CREDENTIALS = {
-    "email": "testclient@demo.com",
+    "username": "testclient@demo.com",
     "password": "test123"
 }
 
 TASKER_CREDENTIALS = {
-    "email": "testtasker@demo.com", 
+    "username": "testtasker@demo.com", 
     "password": "test123"
 }
 
