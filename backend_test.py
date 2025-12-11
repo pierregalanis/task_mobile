@@ -39,10 +39,13 @@ class BackendTester:
     def log(self, message, level="INFO"):
         print(f"[{level}] {message}")
         
-    def make_request(self, method, endpoint, data=None, token=None, params=None):
+    def make_request(self, method, endpoint, data=None, token=None, params=None, form_data=False):
         """Make HTTP request with proper error handling"""
         url = f"{BASE_URL}{endpoint}"
-        headers = {"Content-Type": "application/json"}
+        headers = {}
+        
+        if not form_data:
+            headers["Content-Type"] = "application/json"
         
         if token:
             headers["Authorization"] = f"Bearer {token}"
@@ -51,7 +54,10 @@ class BackendTester:
             if method.upper() == "GET":
                 response = requests.get(url, headers=headers, params=params, timeout=30)
             elif method.upper() == "POST":
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                if form_data:
+                    response = requests.post(url, headers=headers, data=data, timeout=30)
+                else:
+                    response = requests.post(url, headers=headers, json=data, timeout=30)
             elif method.upper() == "PUT":
                 response = requests.put(url, headers=headers, json=data, timeout=30)
             else:
