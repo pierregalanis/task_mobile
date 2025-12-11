@@ -110,10 +110,10 @@ export default function CreateBookingScreen() {
       const bookingData = {
         title: title.trim(),
         description: description.trim(),
-        category: params.categoryId as string,
-        subcategory: params.subcategoryId as string,
+        category_id: params.categoryId as string,
+        subcategory_id: params.subcategoryId as string,
         tasker_id: params.taskerId as string,
-        scheduled_date: taskDate.toISOString(),
+        task_date: taskDate.toISOString(),
         duration_hours: pricingType === 'hourly' ? parseFloat(duration) : 1,
         address: address.trim(),
         city: city.trim(),
