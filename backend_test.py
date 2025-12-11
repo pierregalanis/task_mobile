@@ -276,21 +276,21 @@ class BackendTester:
                 "hourly_rate": 2500,
                 "estimated_total": 5000
             },
-            # Alternative format
+            # Format based on exact API requirements
             {
                 "title": "Test booking",
                 "description": "Test description", 
-                "category_id": "cleaning",
+                "category_id": "cleaning",  # String type as per error
                 "tasker_id": tasker_id,
-                "task_date": "2025-12-12",
-                "task_time": "10:00:00",
-                "duration": 2,
+                "task_date": "2025-12-12T10:00:00Z",  # Combined date/time
+                "duration_hours": 2,  # Required field
                 "address": "123 Test St",
                 "city": "Abidjan",
                 "latitude": 5.36,
                 "longitude": -4.0,
+                "pricing_type": "hourly",
                 "hourly_rate": 2500,
-                "total_amount": 5000
+                "estimated_total": 5000
             }
         ]
         
