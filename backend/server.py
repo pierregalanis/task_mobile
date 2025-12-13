@@ -1283,6 +1283,126 @@ async def root():
 async def status_check():
     return {"status": "healthy", "timestamp": datetime.utcnow()}
 
+# ==================== AI ASSISTANT ENDPOINT ====================
+
+class ChatMessage(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    session_id: str
+
+@api_router.post("/ai/chat", response_model=ChatResponse)
+async def ai_chat(chat_message: ChatMessage, current_user: User = Depends(get_current_user)):
+    """AI Assistant endpoint - helps users with questions about the platform"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        # Generate or use existing session ID
+        session_id = chat_message.session_id or f"{current_user.id}_{str(uuid.uuid4())[:8]}"
+        
+        # Get user context
+        user_role = current_user.role
+        user_name = current_user.full_name
+        
+        # Get relevant data for context
+        categories_data = CATEGORIES
+        
+        # Get user's tasks for context
+        if user_role == "client":
+            user_tasks = await db.tasks.find({"client_id": current_user.id}).sort("created_at", -1).limit(5).to_list(length=5)
+        else:
+            user_tasks = await db.tasks.find({"tasker_id": current_user.id}).sort("created_at", -1).limit(5).to_list(length=5)
+        
+        # Get available taskers summary
+        taskers_count = await db.users.count_documents({"role": "tasker", "is_available": True})
+        
+        # Build system prompt with app context
+        system_prompt = f"""Tu es Soutou, l'assistant IA de Soutrali, une plateforme de services à domicile en Côte d'Ivoire et en Afrique de l'Ouest.
+
+CONTEXTE UTILISATEUR:
+- Nom: {user_name}
+- Rôle: {"Client" if user_role == "client" else "Tâcheron (prestataire de services)"}
+- Nombre de tâches récentes: {len(user_tasks)}
+
+CATÉGORIES DE SERVICES DISPONIBLES:
+{', '.join([cat['name']['fr'] for cat in categories_data])}
+
+STATISTIQUES PLATEFORME:
+- Tâcherons disponibles: {taskers_count}
+
+TES CAPACITÉS:
+1. Aider les clients à trouver des tâcherons selon leurs besoins
+2. Expliquer les tarifs (horaire vs fixe)
+3. Aider avec le processus de réservation
+4. Répondre aux questions sur les services
+5. Aider les tâcherons à améliorer leurs descriptions de services
+6. Donner des conseils sur les prix du marché
+7. Expliquer le fonctionnement de la plateforme
+
+RÈGLES:
+- Réponds toujours en français par défaut (sauf si l'utilisateur parle anglais)
+- Sois amical, professionnel et concis
+- Si tu ne connais pas une information spécifique, dis-le honnêtement
+- Encourage l'utilisation de la plateforme
+- Pour les prix, donne des fourchettes réalistes pour la Côte d'Ivoire (en XOF)
+
+FOURCHETTES DE PRIX TYPIQUES (XOF):
+- Ménage: 2,000 - 5,000 XOF/heure
+- Plomberie: 5,000 - 15,000 XOF/intervention
+- Électricité: 5,000 - 20,000 XOF/intervention  
+- Déménagement: 25,000 - 100,000 XOF selon volume
+- Peinture: 15,000 - 50,000 XOF selon surface
+- Jardinage: 3,000 - 8,000 XOF/heure"""
+
+        # Initialize chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("openai", "gpt-4.1")
+        
+        # Create user message
+        user_msg = UserMessage(text=chat_message.message)
+        
+        # Get response
+        response = await chat.send_message(user_msg)
+        
+        # Store chat in database for history
+        await db.ai_chats.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": current_user.id,
+            "session_id": session_id,
+            "user_message": chat_message.message,
+            "ai_response": response,
+            "created_at": datetime.utcnow()
+        })
+        
+        return ChatResponse(response=response, session_id=session_id)
+        
+    except Exception as e:
+        logger.error(f"AI Chat error: {e}")
+        # Fallback response
+        fallback_response = "Désolé, je rencontre des difficultés techniques. Veuillez réessayer dans quelques instants ou contacter notre support."
+        return ChatResponse(response=fallback_response, session_id=chat_message.session_id or str(uuid.uuid4()))
+
+@api_router.get("/ai/chat/history")
+async def get_chat_history(current_user: User = Depends(get_current_user), limit: int = 20):
+    """Get AI chat history for the current user"""
+    chats = await db.ai_chats.find(
+        {"user_id": current_user.id}
+    ).sort("created_at", -1).limit(limit).to_list(length=limit)
+    
+    # Clean up for JSON serialization
+    for chat in chats:
+        if "_id" in chat:
+            del chat["_id"]
+        if "created_at" in chat:
+            chat["created_at"] = chat["created_at"].isoformat()
+    
+    return chats
+
 # Include the router in the main app
 app.include_router(api_router)
 
