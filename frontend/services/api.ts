@@ -110,7 +110,7 @@ export const taskerAPI = {
 
 export const categoryAPI = {
   async getCategories() {
-    const response = await api.get('/categories');
+    const response = await api.get('/api/categories');
     return response.data;
   },
 };
