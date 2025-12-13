@@ -117,27 +117,27 @@ export const categoryAPI = {
 
 export const taskAPI = {
   async createTask(taskData: any) {
-    const response = await api.post('/tasks', taskData);
+    const response = await api.post('/api/tasks', taskData);
     return response.data;
   },
 
   async getClientTasks() {
-    const response = await api.get('/tasks/client');
+    const response = await api.get('/api/tasks/client');
     return response.data;
   },
 
   async getTaskerTasks() {
-    const response = await api.get('/tasks/tasker');
+    const response = await api.get('/api/tasks/tasker');
     return response.data;
   },
 
   async acceptTask(taskId: string) {
-    const response = await api.post(`/tasks/${taskId}/accept`);
+    const response = await api.post(`/api/tasks/${taskId}/accept`);
     return response.data;
   },
 
   async updateTaskStatus(taskId: string, status: string, cancellationReason?: string) {
-    const response = await api.put(`/tasks/${taskId}/status`, {
+    const response = await api.put(`/api/tasks/${taskId}/status`, {
       status,
       cancellation_reason: cancellationReason,
     });
@@ -146,7 +146,7 @@ export const taskAPI = {
 
   // GPS Tracking
   async startJourney(taskId: string, latitude: number, longitude: number) {
-    const response = await api.post(`/tasks/${taskId}/start-journey`, {
+    const response = await api.post(`/api/tasks/${taskId}/start-journey`, {
       latitude,
       longitude,
     });
@@ -154,7 +154,7 @@ export const taskAPI = {
   },
 
   async updateLocation(taskId: string, latitude: number, longitude: number) {
-    const response = await api.put(`/tasks/${taskId}/location`, {
+    const response = await api.put(`/api/tasks/${taskId}/location`, {
       latitude,
       longitude,
     });
@@ -162,12 +162,12 @@ export const taskAPI = {
   },
 
   async getTaskLocation(taskId: string) {
-    const response = await api.get(`/tasks/${taskId}/location`);
+    const response = await api.get(`/api/tasks/${taskId}/location`);
     return response.data;
   },
 
   async markArrival(taskId: string) {
-    const response = await api.post(`/tasks/${taskId}/arrive`);
+    const response = await api.post(`/api/tasks/${taskId}/arrive`);
     return response.data;
   },
 };
