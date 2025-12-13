@@ -161,6 +161,10 @@ class ReviewRequestTester:
                             aminata_found = True
                             break
                     
+                    # If Aminata not found, use first available tasker
+                    if not self.tasker_id and taskers:
+                        self.tasker_id = taskers[0].get('id')
+                    
                     # Check if taskers have services
                     services_count = sum(1 for t in taskers if t.get('tasker_profile', {}).get('services'))
                     
