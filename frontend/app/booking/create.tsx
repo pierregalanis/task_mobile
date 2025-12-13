@@ -219,7 +219,7 @@ export default function CreateBookingScreen() {
     }
   };
 
-  // Search places using Google Places API
+  // Search places using backend proxy (avoids CORS issues)
   const searchPlaces = async (query: string) => {
     if (!query || query.length < 3) {
       setSearchResults([]);
@@ -229,12 +229,10 @@ export default function CreateBookingScreen() {
 
     try {
       setSearching(true);
-      const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || '';
       
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-          query
-        )}&components=country:ci&key=${GOOGLE_PLACES_API_KEY}`
+        `${baseUrl}/api/places/autocomplete?input=${encodeURIComponent(query)}&components=country:ci`
       );
       
       const data = await response.json();
@@ -253,10 +251,10 @@ export default function CreateBookingScreen() {
   // Select a place from search results
   const selectPlace = async (placeId: string, description: string) => {
     try {
-      const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || '';
       
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GOOGLE_PLACES_API_KEY}`
+        `${baseUrl}/api/places/details?place_id=${placeId}`
       );
       
       const data = await response.json();
