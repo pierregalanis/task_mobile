@@ -327,6 +327,76 @@ async def get_user(user_id: str):
         )
     return user
 
+# ==================== CATEGORY ENDPOINTS ====================
+
+# Service categories with translations
+CATEGORIES = [
+    {
+        "id": "cleaning",
+        "name": {"en": "Cleaning", "fr": "Ménage"},
+        "icon": "sparkles-outline",
+        "subcategories": [
+            {"id": "home_cleaning", "name": {"en": "Home Cleaning", "fr": "Nettoyage maison"}},
+            {"id": "office_cleaning", "name": {"en": "Office Cleaning", "fr": "Nettoyage bureau"}},
+            {"id": "deep_cleaning", "name": {"en": "Deep Cleaning", "fr": "Nettoyage profond"}},
+            {"id": "window_cleaning", "name": {"en": "Window Cleaning", "fr": "Nettoyage vitres"}},
+        ]
+    },
+    {
+        "id": "plumbing",
+        "name": {"en": "Plumbing", "fr": "Plomberie"},
+        "icon": "water-outline",
+        "subcategories": [
+            {"id": "leak_repair", "name": {"en": "Leak Repair", "fr": "Réparation fuite"}},
+            {"id": "pipe_installation", "name": {"en": "Pipe Installation", "fr": "Installation tuyaux"}},
+            {"id": "drain_cleaning", "name": {"en": "Drain Cleaning", "fr": "Débouchage"}},
+        ]
+    },
+    {
+        "id": "electrical",
+        "name": {"en": "Electrical", "fr": "Électricité"},
+        "icon": "flash-outline",
+        "subcategories": [
+            {"id": "wiring", "name": {"en": "Wiring", "fr": "Câblage"}},
+            {"id": "lighting", "name": {"en": "Lighting Installation", "fr": "Installation éclairage"}},
+            {"id": "repairs", "name": {"en": "Electrical Repairs", "fr": "Réparations électriques"}},
+        ]
+    },
+    {
+        "id": "moving",
+        "name": {"en": "Moving", "fr": "Déménagement"},
+        "icon": "car-outline",
+        "subcategories": [
+            {"id": "home_moving", "name": {"en": "Home Moving", "fr": "Déménagement maison"}},
+            {"id": "office_moving", "name": {"en": "Office Moving", "fr": "Déménagement bureau"}},
+            {"id": "furniture_moving", "name": {"en": "Furniture Moving", "fr": "Déplacement meubles"}},
+        ]
+    },
+    {
+        "id": "painting",
+        "name": {"en": "Painting", "fr": "Peinture"},
+        "icon": "color-palette-outline",
+        "subcategories": [
+            {"id": "interior", "name": {"en": "Interior Painting", "fr": "Peinture intérieure"}},
+            {"id": "exterior", "name": {"en": "Exterior Painting", "fr": "Peinture extérieure"}},
+        ]
+    },
+    {
+        "id": "gardening",
+        "name": {"en": "Gardening", "fr": "Jardinage"},
+        "icon": "leaf-outline",
+        "subcategories": [
+            {"id": "lawn_care", "name": {"en": "Lawn Care", "fr": "Entretien pelouse"}},
+            {"id": "tree_trimming", "name": {"en": "Tree Trimming", "fr": "Taille arbres"}},
+            {"id": "planting", "name": {"en": "Planting", "fr": "Plantation"}},
+        ]
+    },
+]
+
+@api_router.get("/categories")
+async def get_categories():
+    return CATEGORIES
+
 # ==================== TASK ENDPOINTS ====================
 
 @api_router.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
