@@ -65,15 +65,28 @@ export default function TaskerProfileScreen() {
   const handleServiceSelect = (service: any) => {
     setSelectedService(service);
     setShowServiceModal(false);
+    
+    // Get service display name
+    const category = getCategoryById(service.category);
+    const subcategory = getSubcategoryById(service.category, service.subcategory);
+    const displayName = subcategory 
+      ? getSubcategoryName(subcategory, i18n.locale)
+      : (category ? getCategoryName(category, i18n.locale) : service.category);
+    
     router.push({
       pathname: '/booking/create',
       params: {
         taskerId: id,
         serviceId: service.id,
-        serviceName: service.category,
+        serviceName: displayName,
+        categoryId: service.category,
+        subcategoryId: service.subcategory || '',
         pricingType: service.pricing_type,
-        hourlyRate: service.hourly_rate,
-        fixedPrice: service.fixed_price,
+        hourlyRate: service.hourly_rate || 0,
+        fixedPrice: service.fixed_price || 0,
+        maxTravelDistance: service.max_travel_distance || 50,
+        taskerLatitude: tasker?.latitude || '',
+        taskerLongitude: tasker?.longitude || '',
       },
     });
   };
