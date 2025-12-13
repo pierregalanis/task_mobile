@@ -16,14 +16,14 @@ import sys
 # Backend URL from frontend .env
 BASE_URL = "https://gethands.preview.emergentagent.com/api"
 
-# Test credentials
+# Test credentials from review request
 CLIENT_CREDENTIALS = {
-    "username": "testclient@demo.com",
+    "username": "client@test.com",
     "password": "test123"
 }
 
 TASKER_CREDENTIALS = {
-    "username": "testtasker@demo.com", 
+    "username": "tasker@test.com", 
     "password": "test123"
 }
 
