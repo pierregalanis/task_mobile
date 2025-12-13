@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 URGENT: Test Complete Booking Flow on Web Backend
-Backend: https://gethands.preview.emergentagent.com/api
+Backend: https://service-app-4.preview.emergentagent.com/api
 
 This test follows the EXACT requirements from the review request to find
 the precise data format expected by the web backend for creating bookings.
@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timedelta
 
 # Configuration from review request
-BASE_URL = "https://gethands.preview.emergentagent.com/api"
+BASE_URL = "https://service-app-4.preview.emergentagent.com/api"
 TEST_CREDENTIALS = {
     "client": {"username": "client@test.com", "password": "test123"},
     "tasker": {"username": "tasker@test.com", "password": "test123"}
@@ -292,7 +292,7 @@ def main():
     """Run the complete booking flow test as specified in review request"""
     print("=" * 80)
     print("🚀 URGENT: COMPLETE BOOKING FLOW TEST")
-    print("Backend: https://gethands.preview.emergentagent.com/api")
+    print("Backend: https://service-app-4.preview.emergentagent.com/api")
     print("=" * 80)
     
     # Test 1: Authentication

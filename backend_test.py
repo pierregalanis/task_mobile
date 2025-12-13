@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend Testing for Mobile App
-Testing against: https://gethands.preview.emergentagent.com/api
+Testing against: https://service-app-4.preview.emergentagent.com/api
 
 Test credentials:
 - Client: testclient@demo.com / test123
@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import sys
 
 # Backend URL from frontend .env
-BASE_URL = "https://gethands.preview.emergentagent.com/api"
+BASE_URL = "https://service-app-4.preview.emergentagent.com/api"
 
 # Test credentials from review request
 CLIENT_CREDENTIALS = {
