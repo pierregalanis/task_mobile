@@ -17,6 +17,9 @@ import httpx
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Emergent LLM Key for AI Assistant
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+
 # Google Places API Key
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8")
 
