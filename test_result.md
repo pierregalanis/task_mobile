@@ -141,15 +141,18 @@ backend:
 frontend:
   - task: "Authentication Flow - Login Screen"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/app/(auth)/login.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented login screen with email/password form, validation with react-hook-form, JWT token storage with expo-secure-store"
+      - working: true
+        agent: "main"
+        comment: "Fixed API configuration - all endpoints now use /api prefix. Login tested and working with client@test.com/test123. User redirected to home screen after successful login."
 
   - task: "Authentication Flow - Signup Screen"
     implemented: true
