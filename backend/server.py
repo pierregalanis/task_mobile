@@ -12,9 +12,13 @@ import uuid
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Google Places API Key
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8")
 
 # Security configurations
 SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-this-in-production")
