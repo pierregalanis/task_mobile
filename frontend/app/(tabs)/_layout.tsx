@@ -3,8 +3,12 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function TabsLayout() {
+  const { user } = useAuth();
+  const isTasker = user?.role === 'tasker';
+
   return (
     <Tabs
       screenOptions={{
@@ -34,6 +38,19 @@ export default function TabsLayout() {
           ),
         }}
       />
+      
+      {/* Tasker Dashboard - Only for taskers */}
+      <Tabs.Screen
+        name="tasker-dashboard"
+        options={{
+          title: i18n.locale === 'fr' ? 'Mes Tâches' : 'My Tasks',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase" size={size} color={color} />
+          ),
+          href: isTasker ? '/tasker-dashboard' : null,
+        }}
+      />
+
       <Tabs.Screen
         name="taskers"
         options={{
@@ -41,6 +58,8 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
+          // Hide for taskers - they don't need to browse other taskers
+          href: isTasker ? null : '/taskers',
         }}
       />
       <Tabs.Screen
@@ -59,6 +78,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
+        }}
+      />
+      
+      {/* Hidden screens that are part of tabs but not shown in tab bar */}
+      <Tabs.Screen
+        name="chat"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
