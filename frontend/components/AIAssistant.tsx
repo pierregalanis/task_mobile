@@ -314,10 +314,7 @@ export default function AIAssistant() {
                   <TouchableOpacity
                     key={index}
                     style={styles.quickAction}
-                    onPress={() => {
-                      setMessage(action.query);
-                      sendMessage();
-                    }}
+                    onPress={() => handleQuickAction(action.query)}
                   >
                     <Text style={styles.quickActionText}>{action.label}</Text>
                   </TouchableOpacity>
