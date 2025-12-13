@@ -93,17 +93,17 @@ export const authAPI = {
 
 export const taskerAPI = {
   async getTaskers(params?: any) {
-    const response = await api.get('/users/taskers', { params });
+    const response = await api.get('/api/users/taskers', { params });
     return response.data;
   },
 
   async getTasker(userId: string) {
-    const response = await api.get(`/users/${userId}`);
+    const response = await api.get(`/api/users/${userId}`);
     return response.data;
   },
 
   async getTaskerProfile(userId: string) {
-    const response = await api.get(`/users/${userId}`);
+    const response = await api.get(`/api/users/${userId}`);
     return response.data;
   },
 };
