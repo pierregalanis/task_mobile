@@ -69,9 +69,12 @@ export default function CreateBookingScreen() {
   
   console.log('Booking form params:', params);
 
-  // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  // Get service name from params for auto-fill
+  const serviceName = params.serviceName as string || '';
+  
+  // Form state - Auto-fill title with service name
+  const [title, setTitle] = useState(serviceName);
+  const [description, setDescription] = useState(''); // Leave empty for user input
   const [taskDate, setTaskDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
