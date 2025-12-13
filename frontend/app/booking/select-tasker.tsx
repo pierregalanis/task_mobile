@@ -46,15 +46,24 @@ export default function SelectTaskerScreen() {
       (s: any) => s.category === categoryId
     );
     
+    // Get subcategory name for the booking title
+    const serviceName = subcategory 
+      ? getSubcategoryName(subcategory, i18n.locale) 
+      : (category ? getCategoryName(category, i18n.locale) : 'Service');
+    
     router.push({
       pathname: '/booking/create',
       params: {
         taskerId: tasker.id,
         categoryId,
         subcategoryId,
+        serviceName,
         pricingType: service?.pricing_type || 'hourly',
         hourlyRate: service?.hourly_rate?.toString() || '0',
         fixedPrice: service?.fixed_price?.toString() || '0',
+        maxTravelDistance: service?.max_travel_distance?.toString() || '50',
+        taskerLatitude: tasker.latitude?.toString() || '',
+        taskerLongitude: tasker.longitude?.toString() || '',
       },
     });
   };
