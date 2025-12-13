@@ -1184,6 +1184,13 @@ async def get_chat_messages(task_id: str, current_user: User = Depends(get_curre
         {"$set": {"is_read": True}}
     )
     
+    # Clean up ObjectId for JSON serialization
+    for msg in messages:
+        if "_id" in msg:
+            del msg["_id"]
+        if "created_at" in msg and hasattr(msg["created_at"], 'isoformat'):
+            msg["created_at"] = msg["created_at"].isoformat()
+    
     return messages
 
 @api_router.get("/chat/{task_id}/unread-count")
