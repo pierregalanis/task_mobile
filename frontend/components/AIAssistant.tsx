@@ -158,6 +158,60 @@ export default function AIAssistant() {
     },
   ];
 
+  // Handle quick action - directly send the query
+  const handleQuickAction = async (query: string) => {
+    if (loading) return;
+    
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: query,
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+    Keyboard.dismiss();
+
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
+    try {
+      const response = await api.post('/api/ai/chat', {
+        message: query,
+        session_id: sessionId,
+      });
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: response.data.response,
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+      setSessionId(response.data.session_id);
+
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: i18n.locale === 'fr'
+          ? 'Désolé, je rencontre des difficultés. Veuillez réessayer.'
+          : 'Sorry, I encountered an issue. Please try again.',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
