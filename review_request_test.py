@@ -166,7 +166,7 @@ class ReviewRequestTester:
                         self.tasker_id = taskers[0].get('id')
                     
                     # Check if taskers have services
-                    services_count = sum(1 for t in taskers if t.get('tasker_profile', {}).get('services'))
+                    services_count = sum(1 for t in taskers if t.get('tasker_profile') and t.get('tasker_profile', {}).get('services'))
                     
                     self.log_test(
                         "GET /api/users/taskers", 
