@@ -570,6 +570,15 @@ async def accept_task(task_id: str, current_user: User = Depends(get_current_use
         {"$set": {"status": "accepted", "accepted_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
+    # Create notification for client
+    await create_notification(
+        user_id=task["client_id"],
+        type="task_accepted",
+        title="Tâche acceptée / Task Accepted",
+        message=f"{current_user.full_name} a accepté votre réservation / has accepted your booking",
+        task_id=task_id
+    )
+    
     # Send push notification to client
     await send_push_notification(
         user_id=task["client_id"],
@@ -580,6 +589,241 @@ async def accept_task(task_id: str, current_user: User = Depends(get_current_use
     
     updated_task = await db.tasks.find_one({"id": task_id})
     return updated_task
+
+@api_router.post("/tasks/{task_id}/reject")
+async def reject_task(task_id: str, current_user: User = Depends(get_current_user)):
+    """Tasker rejects a task request"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can reject tasks"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    if task["status"] != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task is not in pending status"
+        )
+    
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": {"status": "rejected", "rejected_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+    )
+    
+    # Create notification for client
+    await create_notification(
+        user_id=task["client_id"],
+        type="task_rejected",
+        title="Tâche refusée / Task Rejected",
+        message=f"{current_user.full_name} n'est pas disponible pour cette tâche / is not available for this task",
+        task_id=task_id
+    )
+    
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Tâche refusée / Task Rejected",
+        body=f"{current_user.full_name} n'est pas disponible / is not available",
+        data={"task_id": task_id, "type": "task_rejected"}
+    )
+    
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+@api_router.post("/tasks/{task_id}/start-timer")
+async def start_task_timer(task_id: str, current_user: User = Depends(get_current_user)):
+    """Tasker starts the work timer for hourly tasks"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can start the timer"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    if task["status"] != "accepted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task must be accepted before starting timer"
+        )
+    
+    timer_started_at = datetime.utcnow()
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": "in_progress",
+            "timer_started_at": timer_started_at,
+            "started_at": timer_started_at,
+            "updated_at": timer_started_at
+        }}
+    )
+    
+    # Create notification for client
+    await create_notification(
+        user_id=task["client_id"],
+        type="task_started",
+        title="Travail commencé / Work Started",
+        message=f"{current_user.full_name} a commencé le travail / has started working",
+        task_id=task_id
+    )
+    
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Travail commencé / Work Started",
+        body=f"{current_user.full_name} a commencé le travail / has started working",
+        data={"task_id": task_id, "type": "task_started"}
+    )
+    
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+@api_router.post("/tasks/{task_id}/stop-timer")
+async def stop_task_timer(task_id: str, current_user: User = Depends(get_current_user)):
+    """Tasker stops the work timer and completes the task"""
+    if current_user.role != "tasker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only taskers can stop the timer"
+        )
+    
+    task = await db.tasks.find_one({"id": task_id, "tasker_id": current_user.id})
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    if task["status"] != "in_progress":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task must be in progress to stop timer"
+        )
+    
+    timer_stopped_at = datetime.utcnow()
+    timer_started_at = task.get("timer_started_at")
+    
+    # Calculate actual duration
+    actual_duration_seconds = 0
+    if timer_started_at:
+        actual_duration_seconds = (timer_stopped_at - timer_started_at).total_seconds()
+    
+    actual_duration_hours = actual_duration_seconds / 3600
+    
+    # Calculate final price for hourly tasks
+    final_price = task.get("estimated_total", 0)
+    if task.get("pricing_type") == "hourly" and task.get("hourly_rate"):
+        final_price = round(task["hourly_rate"] * actual_duration_hours)
+    
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": "completed",
+            "timer_stopped_at": timer_stopped_at,
+            "completed_at": timer_stopped_at,
+            "actual_duration_seconds": actual_duration_seconds,
+            "actual_duration_hours": actual_duration_hours,
+            "final_price": final_price,
+            "updated_at": timer_stopped_at
+        }}
+    )
+    
+    # Update tasker's completed tasks count
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$inc": {"completed_tasks": 1}}
+    )
+    
+    # Create notification for client
+    await create_notification(
+        user_id=task["client_id"],
+        type="task_completed",
+        title="Tâche terminée / Task Completed",
+        message=f"{current_user.full_name} a terminé le travail / has completed the work",
+        task_id=task_id
+    )
+    
+    # Send push notification to client
+    await send_push_notification(
+        user_id=task["client_id"],
+        title="Tâche terminée / Task Completed ✅",
+        body=f"{current_user.full_name} a terminé. Laissez un avis! / has finished. Leave a review!",
+        data={"task_id": task_id, "type": "task_completed"}
+    )
+    
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return updated_task
+
+# ==================== NOTIFICATION ENDPOINTS ====================
+
+async def create_notification(user_id: str, type: str, title: str, message: str, task_id: str = None):
+    """Create a notification in the database"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": type,
+        "title": title,
+        "message": message,
+        "task_id": task_id,
+        "read": False,
+        "created_at": datetime.utcnow()
+    }
+    await db.notifications.insert_one(notification)
+    return notification
+
+@api_router.get("/notifications")
+async def get_notifications(current_user: User = Depends(get_current_user)):
+    """Get all notifications for the current user"""
+    notifications = await db.notifications.find(
+        {"user_id": current_user.id}
+    ).sort("created_at", -1).limit(50).to_list(length=50)
+    
+    # Convert ObjectId and datetime to string for JSON serialization
+    for notif in notifications:
+        if "_id" in notif:
+            del notif["_id"]
+        if "created_at" in notif:
+            notif["created_at"] = notif["created_at"].isoformat()
+    
+    return notifications
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_notification_count(current_user: User = Depends(get_current_user)):
+    """Get count of unread notifications"""
+    count = await db.notifications.count_documents({"user_id": current_user.id, "read": False})
+    return {"unread_count": count}
+
+@api_router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Mark a notification as read"""
+    result = await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"$set": {"read": True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"status": "success"}
+
+@api_router.post("/notifications/read-all")
+async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
+    """Mark all notifications as read"""
+    await db.notifications.update_many(
+        {"user_id": current_user.id, "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"status": "success"}
 
 @api_router.put("/tasks/{task_id}/status")
 async def update_task_status(task_id: str, status_update: TaskStatusUpdate, current_user: User = Depends(get_current_user)):
