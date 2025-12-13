@@ -174,31 +174,31 @@ export const taskAPI = {
 
 export const reviewAPI = {
   async getTaskerReviews(taskerId: string) {
-    const response = await api.get(`/reviews/tasker/${taskerId}`);
+    const response = await api.get(`/api/reviews/tasker/${taskerId}`);
     return response.data;
   },
 
   async createReview(reviewData: any) {
-    const response = await api.post('/reviews', reviewData);
+    const response = await api.post('/api/reviews', reviewData);
     return response.data;
   },
 };
 
 export const favoriteAPI = {
   async toggleFavorite(taskerId: string) {
-    const response = await api.post('/favorites/toggle', { tasker_id: taskerId });
+    const response = await api.post('/api/favorites/toggle', { tasker_id: taskerId });
     return response.data;
   },
 
   async getFavorites() {
-    const response = await api.get('/favorites');
+    const response = await api.get('/api/favorites');
     return response.data;
   },
 };
 
 export const chatAPI = {
   async sendMessage(taskId: string, receiverId: string, message: string) {
-    const response = await api.post('/chat/send', {
+    const response = await api.post('/api/chat/send', {
       task_id: taskId,
       receiver_id: receiverId,
       message,
@@ -207,12 +207,12 @@ export const chatAPI = {
   },
 
   async getMessages(taskId: string) {
-    const response = await api.get(`/chat/${taskId}`);
+    const response = await api.get(`/api/chat/${taskId}`);
     return response.data;
   },
 
   async getUnreadCount(taskId: string) {
-    const response = await api.get(`/chat/${taskId}/unread-count`);
+    const response = await api.get(`/api/chat/${taskId}/unread-count`);
     return response.data;
   },
 };
