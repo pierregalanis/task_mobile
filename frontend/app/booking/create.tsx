@@ -111,7 +111,6 @@ export default function CreateBookingScreen() {
   const pricingType = (params.pricingType as string) || 'hourly';
   const hourlyRate = params.hourlyRate ? parseFloat(params.hourlyRate as string) : 0;
   const fixedPrice = params.fixedPrice ? parseFloat(params.fixedPrice as string) : 0;
-  const serviceName = params.serviceName as string || '';
   const maxTravelDistance = params.maxTravelDistance ? parseFloat(params.maxTravelDistance as string) : 50;
   const taskerLatitude = params.taskerLatitude ? parseFloat(params.taskerLatitude as string) : null;
   const taskerLongitude = params.taskerLongitude ? parseFloat(params.taskerLongitude as string) : null;
