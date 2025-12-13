@@ -136,6 +136,21 @@ export const taskAPI = {
     return response.data;
   },
 
+  async rejectTask(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/reject`);
+    return response.data;
+  },
+
+  async startTimer(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/start-timer`);
+    return response.data;
+  },
+
+  async stopTimer(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/stop-timer`);
+    return response.data;
+  },
+
   async updateTaskStatus(taskId: string, status: string, cancellationReason?: string) {
     const response = await api.put(`/api/tasks/${taskId}/status`, {
       status,
