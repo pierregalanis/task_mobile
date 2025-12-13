@@ -401,6 +401,64 @@ CATEGORIES = [
 async def get_categories():
     return CATEGORIES
 
+# ==================== GOOGLE PLACES PROXY ====================
+
+@api_router.get("/places/autocomplete")
+async def places_autocomplete(input: str, components: str = "country:ci"):
+    """Proxy for Google Places Autocomplete API to avoid CORS issues"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+                params={
+                    "input": input,
+                    "components": components,
+                    "key": GOOGLE_PLACES_API_KEY,
+                },
+                timeout=10.0
+            )
+            return response.json()
+    except Exception as e:
+        logger.error(f"Google Places Autocomplete error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to search places")
+
+@api_router.get("/places/details")
+async def places_details(place_id: str):
+    """Proxy for Google Places Details API to avoid CORS issues"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/place/details/json",
+                params={
+                    "place_id": place_id,
+                    "fields": "geometry,formatted_address,name",
+                    "key": GOOGLE_PLACES_API_KEY,
+                },
+                timeout=10.0
+            )
+            return response.json()
+    except Exception as e:
+        logger.error(f"Google Places Details error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get place details")
+
+@api_router.get("/places/geocode")
+async def geocode_address(address: str):
+    """Proxy for Google Geocoding API to convert address to coordinates"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={
+                    "address": address,
+                    "key": GOOGLE_PLACES_API_KEY,
+                },
+                timeout=10.0
+            )
+            return response.json()
+    except Exception as e:
+        logger.error(f"Google Geocoding error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to geocode address")
+
 # ==================== TASK ENDPOINTS ====================
 
 @api_router.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
