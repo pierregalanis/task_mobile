@@ -72,15 +72,10 @@ export interface User {
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    // Web backend expects form data with username/password (not email/password)
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
-    
-    const response = await api.post('/auth/login', formData.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    // Backend expects JSON with email/password
+    const response = await api.post('/api/auth/login', {
+      email: credentials.email,
+      password: credentials.password
     });
     return response.data;
   },
