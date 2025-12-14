@@ -1205,7 +1205,7 @@ async def get_unread_count(task_id: str, current_user: User = Depends(get_curren
 # ==================== PUSH NOTIFICATION HELPERS ====================
 
 async def send_push_notification(user_id: str, title: str, body: str, data: dict = None):
-    """Send push notification to a user"""
+    """Send push notification to a user via Expo Push Service"""
     try:
         # Get user's push tokens
         tokens = await db.push_tokens.find({"user_id": user_id}).to_list(10)
@@ -1226,19 +1226,20 @@ async def send_push_notification(user_id: str, title: str, body: str, data: dict
                 "priority": "high",
             })
         
-        # Send to Expo Push Notification service
+        # Send to Expo Push Notification service using async httpx
         if messages:
-            import requests
-            response = requests.post(
-                "https://exp.host/--/api/v2/push/send",
-                headers={
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                json=messages,
-            )
-            logger.info(f"Push notification sent to user {user_id}: {response.status_code}")
-            return response.json()
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://exp.host/--/api/v2/push/send",
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    json=messages,
+                    timeout=10.0,
+                )
+                logger.info(f"Push notification sent to user {user_id}: {response.status_code}")
+                return response.json()
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")
 
