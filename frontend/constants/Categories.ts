@@ -12,9 +12,10 @@ export interface Category {
   subcategories: Subcategory[];
 }
 
+// Production backend category IDs (UUIDs)
 export const CATEGORIES: Category[] = [
   {
-    id: 'home_repairs',
+    id: '2a98920a-3536-4139-8f50-65c87574fae3',
     icon: '🏠',
     name_en: 'Home & Repairs',
     name_fr: 'Maison & Réparations',
@@ -31,7 +32,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'cleaning',
+    id: '435e14b3-71a9-4095-8dea-5a48f03060e2',
     icon: '🧹',
     name_en: 'Cleaning & Organization',
     name_fr: 'Nettoyage & Organisation',
@@ -41,7 +42,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'errands',
+    id: 'c755612b-aeaa-428a-8f0e-a6d67f03e6b4',
     icon: '📦',
     name_en: 'Errands & Personal Help',
     name_fr: 'Courses & Aide Personnelle',
@@ -51,7 +52,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'crafts',
+    id: '9fb97f84-080d-4b43-b8f3-c6ca5a748206',
     icon: '🎨',
     name_en: 'Crafts & Creative',
     name_fr: 'Arts & Créatif',
@@ -61,7 +62,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'kitchen',
+    id: '4c535e64-38c1-47b3-852c-43c78a2dc8f5',
     icon: '🍳',
     name_en: 'Kitchen & Food',
     name_fr: 'Cuisine & Alimentation',
@@ -70,7 +71,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'home_admin',
+    id: '03736ac6-b18c-4eeb-b8e8-378a9d2b6330',
     icon: '🧺',
     name_en: 'Home Administration',
     name_fr: 'Administration Domestique',
@@ -81,7 +82,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'clothing',
+    id: '79a47f61-c295-4aac-9507-63982d95b332',
     icon: '🧵',
     name_en: 'Clothing & Sewing',
     name_fr: 'Vêtements & Couture',
@@ -90,7 +91,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'beauty',
+    id: 'c9cc9751-9ef4-4090-bc63-12db8bd0dff7',
     icon: '💄',
     name_en: 'Beauty & Grooming',
     name_fr: 'Beauté & Soins',
@@ -102,7 +103,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'education',
+    id: 'a5b5bc87-7d18-471c-b50b-22c75e587ba8',
     icon: '📚',
     name_en: 'Education & Tutoring',
     name_fr: 'Éducation & Tutorat',
@@ -112,7 +113,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'childcare',
+    id: 'a716dfd5-2647-4312-b77c-b716c7c1e763',
     icon: '👶',
     name_en: 'Child Care & Daycare',
     name_fr: 'Garde d\'Enfants',
@@ -121,7 +122,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'car_services',
+    id: '657c304d-07c3-45ff-aee1-847f2792ad97',
     icon: '🚗',
     name_en: 'Car Services',
     name_fr: 'Services Automobiles',
@@ -131,7 +132,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'delivery',
+    id: 'a663cb8d-2e1b-4904-93b8-d2b6302886f2',
     icon: '🚚',
     name_en: 'Delivery Service',
     name_fr: 'Service de Livraison',
@@ -144,7 +145,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'massage',
+    id: '71cc7e2c-66d4-4d35-9ba9-23fd9d0f0ff5',
     icon: '💆',
     name_en: 'Massage & Wellness',
     name_fr: 'Massage & Bien-être',
@@ -159,8 +160,36 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
+// Legacy ID mapping for backward compatibility with old tasks
+const LEGACY_ID_MAP: { [key: string]: string } = {
+  'home_repairs': '2a98920a-3536-4139-8f50-65c87574fae3',
+  'cleaning': '435e14b3-71a9-4095-8dea-5a48f03060e2',
+  'errands': 'c755612b-aeaa-428a-8f0e-a6d67f03e6b4',
+  'crafts': '9fb97f84-080d-4b43-b8f3-c6ca5a748206',
+  'kitchen': '4c535e64-38c1-47b3-852c-43c78a2dc8f5',
+  'home_admin': '03736ac6-b18c-4eeb-b8e8-378a9d2b6330',
+  'clothing': '79a47f61-c295-4aac-9507-63982d95b332',
+  'beauty': 'c9cc9751-9ef4-4090-bc63-12db8bd0dff7',
+  'education': 'a5b5bc87-7d18-471c-b50b-22c75e587ba8',
+  'childcare': 'a716dfd5-2647-4312-b77c-b716c7c1e763',
+  'car_services': '657c304d-07c3-45ff-aee1-847f2792ad97',
+  'delivery': 'a663cb8d-2e1b-4904-93b8-d2b6302886f2',
+  'massage': '71cc7e2c-66d4-4d35-9ba9-23fd9d0f0ff5',
+  // Also map some legacy IDs from old tasks
+  'home-repairs': '2a98920a-3536-4139-8f50-65c87574fae3',
+  'test-category': '2a98920a-3536-4139-8f50-65c87574fae3',
+};
+
 export const getCategoryById = (id: string): Category | undefined => {
-  return CATEGORIES.find((cat) => cat.id === id);
+  // First try direct match
+  let category = CATEGORIES.find((cat) => cat.id === id);
+  
+  // If not found, try legacy ID mapping
+  if (!category && LEGACY_ID_MAP[id]) {
+    category = CATEGORIES.find((cat) => cat.id === LEGACY_ID_MAP[id]);
+  }
+  
+  return category;
 };
 
 export const getSubcategoryById = (categoryId: string, subcategoryId: string): Subcategory | undefined => {
