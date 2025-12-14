@@ -28,12 +28,15 @@ export default function HomeScreen() {
           name_en: cat.name_en,
           name_fr: cat.name_fr,
           subcategories: (cat.subcategories || []).map((sub: any, index: number) => ({
-            id: `${cat.id}_sub_${index}`,
-            name_en: sub.en || sub.name_en,
-            name_fr: sub.fr || sub.name_fr,
+            id: sub.id || `${cat.id}_sub_${index}`,
+            name_en: sub.en || sub.name_en || sub.name || '',
+            name_fr: sub.fr || sub.name_fr || sub.name || '',
           })),
         }));
         setCategories(mappedCategories);
+        console.log('Categories loaded:', mappedCategories.length);
+      } else {
+        console.log('No categories returned from API, using defaults');
       }
     } catch (error) {
       console.log('Error fetching categories, using defaults:', error);
