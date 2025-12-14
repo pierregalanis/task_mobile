@@ -367,10 +367,6 @@ export default function CreateBookingScreen() {
         }
       }
     } catch (e) {
-          setCity(addressResult.city);
-        }
-      }
-    } catch (e) {
       location.address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
     }
     
