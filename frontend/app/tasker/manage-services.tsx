@@ -65,11 +65,9 @@ export default function ManageServicesScreen() {
       const updatedServices = [...services];
       updatedServices[index] = updatedService;
       
-      await api.put('/api/users/profile', {
-        tasker_profile: {
-          ...user?.tasker_profile,
-          services: updatedServices,
-        },
+      // Use tasker-specific profile endpoint
+      await api.put('/api/taskers/profile', {
+        services: updatedServices,
       });
 
       setServices(updatedServices);
