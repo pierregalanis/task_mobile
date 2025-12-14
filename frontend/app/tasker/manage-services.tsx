@@ -100,11 +100,8 @@ export default function ManageServicesScreen() {
               setLoading(true);
               const updatedServices = services.filter((_, i) => i !== index);
               
-              await api.put('/api/users/profile', {
-                tasker_profile: {
-                  ...user?.tasker_profile,
-                  services: updatedServices,
-                },
+              await api.put('/api/taskers/profile', {
+                services: updatedServices,
               });
 
               setServices(updatedServices);
@@ -138,11 +135,8 @@ export default function ManageServicesScreen() {
 
       const updatedServices = [...services, newService];
       
-      await api.put('/api/users/profile', {
-        tasker_profile: {
-          ...user?.tasker_profile,
-          services: updatedServices,
-        },
+      await api.put('/api/taskers/profile', {
+        services: updatedServices,
       });
 
       setServices(updatedServices);
