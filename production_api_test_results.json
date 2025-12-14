@@ -1,0 +1,219 @@
+{
+  "summary": {
+    "total_tests": 11,
+    "passed": 11,
+    "failed": 0,
+    "success_rate": 100.0,
+    "backend_url": "https://gethands.preview.emergentagent.com",
+    "test_timestamp": "2025-12-14T04:07:30.940756"
+  },
+  "detailed_results": [
+    {
+      "test": "Authentication (Client)",
+      "success": true,
+      "details": "Login successful, token received. Token type: bearer",
+      "response_data": {
+        "status_code": 200,
+        "has_token": true
+      },
+      "timestamp": "2025-12-14T04:07:30.577211"
+    },
+    {
+      "test": "Authentication (Tasker)",
+      "success": true,
+      "details": "Login successful, token received. Token type: bearer",
+      "response_data": {
+        "status_code": 200,
+        "has_token": true
+      },
+      "timestamp": "2025-12-14T04:07:30.810351"
+    },
+    {
+      "test": "Get Current User (Client)",
+      "success": true,
+      "details": "User data retrieved successfully. Role: client, Email: client@test.com",
+      "response_data": {
+        "status_code": 200,
+        "user_role": "client"
+      },
+      "timestamp": "2025-12-14T04:07:30.818450"
+    },
+    {
+      "test": "Get Current User (Tasker)",
+      "success": true,
+      "details": "User data retrieved successfully. Role: tasker, Email: tasker@test.com",
+      "response_data": {
+        "status_code": 200,
+        "user_role": "tasker"
+      },
+      "timestamp": "2025-12-14T04:07:30.829663"
+    },
+    {
+      "test": "Get Categories",
+      "success": true,
+      "details": "Retrieved 13 categories. Has subcategories: True",
+      "response_data": {
+        "status_code": 200,
+        "count": 13,
+        "sample": {
+          "id": "2a98920a-3536-4139-8f50-65c87574fae3",
+          "name_en": "Home & Repairs",
+          "name_fr": "Maison & R\u00e9parations",
+          "icon": "\ud83c\udfe0",
+          "subcategories": [
+            {
+              "en": "Furniture Assembly / IKEA Assembly",
+              "fr": "Montage de meubles / IKEA"
+            },
+            {
+              "en": "Indoor Painting & Decoration",
+              "fr": "Peinture int\u00e9rieure & d\u00e9coration"
+            },
+            {
+              "en": "General Home Repairs / Handyman",
+              "fr": "R\u00e9parations domestiques / Bricolage"
+            },
+            {
+              "en": "Light Carpentry",
+              "fr": "Menuiserie l\u00e9g\u00e8re"
+            },
+            {
+              "en": "Smart Home / TV Mounting & Repairs",
+              "fr": "Installation domotique / Montage et r\u00e9paration de t\u00e9l\u00e9viseur"
+            },
+            {
+              "en": "Help Moving (including packing/unpacking)",
+              "fr": "Aide au d\u00e9m\u00e9nagement (emballage/d\u00e9ballage)"
+            },
+            {
+              "en": "Heavy Lifting & Loading",
+              "fr": "Levage lourd & chargement"
+            },
+            {
+              "en": "Trash & Furniture Removal",
+              "fr": "Enl\u00e8vement de d\u00e9chets et mobilier"
+            },
+            {
+              "en": "Yard Work & Snow Removal",
+              "fr": "Jardinage & d\u00e9neigement"
+            }
+          ]
+        }
+      },
+      "timestamp": "2025-12-14T04:07:30.837404"
+    },
+    {
+      "test": "Get Taskers Search",
+      "success": true,
+      "details": "Retrieved 3 taskers. Has tasker_profile: True",
+      "response_data": {
+        "status_code": 200,
+        "count": 3,
+        "sample": {
+          "email": "tasker@test.com",
+          "full_name": "Marie Kouassi",
+          "phone": "+225 0987654321",
+          "role": "tasker",
+          "language": "fr",
+          "country": null,
+          "address": null,
+          "city": null,
+          "latitude": null,
+          "longitude": null,
+          "id": "402fb413-3c73-4bf8-90e4-cf372cda3a7b",
+          "created_at": "2025-11-30T02:12:34.581000",
+          "is_active": true,
+          "is_verified": false,
+          "tasker_profile": {
+            "bio": "Experte en nettoyage avec 5 ans d'exp\u00e9rience. Ponctuelle et professionnelle.",
+            "hourly_rate": 5000.0,
+            "services": [
+              {
+                "category": "Cleaning & Organization",
+                "subcategory": "Cleaning & Spring Cleaning",
+                "hourly_rate": "2000",
+                "bio": "cleaning whole house",
+                "max_travel_distance": "10"
+              },
+              {
+                "category": "Massage & Wellness",
+                "subcategory": "Relaxation Massage",
+                "hourly_rate": "1000",
+                "bio": "massage",
+                "max_travel_distance": "50"
+              }
+            ],
+            "certifications": [],
+            "portfolio_images": [
+              "/uploads/portfolios/f7299f45-a5d9-49ba-a249-e66f2af94e89.jpg",
+              "/uploads/portfolios/bf8bcd04-f12f-474f-83e8-bb5cce786a9b.jpg"
+            ],
+            "profile_image": null,
+            "availability": {},
+            "is_available": true,
+            "max_travel_distance": 50.0,
+            "completed_tasks": 0,
+            "average_rating": 0.0,
+            "total_reviews": 0,
+            "languages_spoken": [
+              "fr"
+            ]
+          }
+        }
+      },
+      "timestamp": "2025-12-14T04:07:30.845428"
+    },
+    {
+      "test": "Get Tasks (Client)",
+      "success": true,
+      "details": "Retrieved 26 tasks for Client",
+      "response_data": {
+        "status_code": 200,
+        "count": 26
+      },
+      "timestamp": "2025-12-14T04:07:30.861633"
+    },
+    {
+      "test": "Get Tasks (Tasker)",
+      "success": true,
+      "details": "Retrieved 26 tasks for Tasker",
+      "response_data": {
+        "status_code": 200,
+        "count": 26
+      },
+      "timestamp": "2025-12-14T04:07:30.869500"
+    },
+    {
+      "test": "Create Task",
+      "success": true,
+      "details": "Task created successfully with ID: a397e101-e4b9-4ee4-8608-92cfd8f73cfb",
+      "response_data": {
+        "status_code": 201,
+        "task_id": "a397e101-e4b9-4ee4-8608-92cfd8f73cfb"
+      },
+      "timestamp": "2025-12-14T04:07:30.922902"
+    },
+    {
+      "test": "Get Notifications (Client)",
+      "success": true,
+      "details": "Retrieved notifications in correct format. Count: 13, Unread: 12",
+      "response_data": {
+        "status_code": 200,
+        "count": 13,
+        "unread": 12
+      },
+      "timestamp": "2025-12-14T04:07:30.931948"
+    },
+    {
+      "test": "Get Notifications (Tasker)",
+      "success": true,
+      "details": "Retrieved notifications in correct format. Count: 1, Unread: 1",
+      "response_data": {
+        "status_code": 200,
+        "count": 1,
+        "unread": 1
+      },
+      "timestamp": "2025-12-14T04:07:30.940643"
+    }
+  ]
+}
