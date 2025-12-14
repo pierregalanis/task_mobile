@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { showMessage } from '../../utils/alert';
 import {
   View,
   Text,
@@ -8,25 +7,17 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { showMessage } from '../../utils/alert';
 import { useRouter } from 'expo-router';
-import { showMessage } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { showMessage } from '../../utils/alert';
 import { useForm, Controller } from 'react-hook-form';
-import { showMessage } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
-import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
-import { showMessage } from '../../utils/alert';
-import { Input } from '../../components/Input';
-import { showMessage } from '../../utils/alert';
-import { Button } from '../../components/Button';
-import { showMessage } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
+import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
 import i18n from '../../utils/i18n';
+import { showMessage } from '../../utils/alert';
 
 interface LoginFormData {
   email: string;
@@ -36,13 +27,10 @@ interface LoginFormData {
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     defaultValues: {
       email: '',
       password: '',
@@ -50,19 +38,18 @@ export default function LoginScreen() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
     try {
-      await login(data);
-      // Explicitly navigate to home after successful login
-      console.log('Login completed, navigating to home...');
+      setLoading(true);
+      await login(data.email, data.password);
       router.replace('/(tabs)/home');
     } catch (error: any) {
+      console.error('Login error:', error);
       showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.message || i18n.t('auth.loginError')
+        i18n.locale === 'fr' ? 'Erreur de connexion' : 'Login Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Email ou mot de passe incorrect' : 'Invalid email or password')
       );
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -74,57 +61,47 @@ export default function LoginScreen() {
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+          </TouchableOpacity>
+
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
-            </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>{i18n.t('auth.login')}</Text>
-            </View>
-          </View>
-
-          {/* Welcome Message */}
-          <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeTitle}>
-              {i18n.locale === 'fr' ? 'Bon retour!' : 'Welcome Back!'}
-            </Text>
-            <Text style={styles.welcomeSubtitle}>
-              {i18n.locale === 'fr'
-                ? 'Connectez-vous pour continuer'
-                : 'Sign in to continue'}
-            </Text>
+            <Text style={styles.title}>{i18n.t('auth.login.title')}</Text>
+            <Text style={styles.subtitle}>{i18n.t('auth.login.subtitle')}</Text>
           </View>
 
           {/* Form */}
-          <View style={styles.formContainer}>
+          <View style={styles.form}>
             <Controller
               control={control}
               name="email"
               rules={{
-                required: i18n.t('auth.emailRequired'),
+                required: i18n.locale === 'fr' ? 'Email requis' : 'Email is required',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: i18n.t('auth.invalidEmail'),
+                  message: i18n.locale === 'fr' ? 'Email invalide' : 'Invalid email address',
                 },
               }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label={i18n.t('auth.email')}
-                  placeholder="example@email.com"
+                  label={i18n.t('auth.login.email')}
+                  placeholder={i18n.t('auth.login.emailPlaceholder')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  error={errors.email?.message}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoComplete="email"
+                  error={errors.email?.message}
+                  leftIcon={<Ionicons name="mail-outline" size={20} color={Colors.dark.textSecondary} />}
                 />
               )}
             />
@@ -133,46 +110,58 @@ export default function LoginScreen() {
               control={control}
               name="password"
               rules={{
-                required: i18n.t('auth.passwordRequired'),
+                required: i18n.locale === 'fr' ? 'Mot de passe requis' : 'Password is required',
+                minLength: {
+                  value: 6,
+                  message: i18n.locale === 'fr' ? 'Minimum 6 caractères' : 'Minimum 6 characters',
+                },
               }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label={i18n.t('auth.password')}
-                  placeholder="••••••••"
+                  label={i18n.t('auth.login.password')}
+                  placeholder={i18n.t('auth.login.passwordPlaceholder')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
                   error={errors.password?.message}
-                  secure
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={Colors.dark.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  }
                 />
               )}
             />
 
-            {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>
-                {i18n.t('auth.forgotPassword')}
+                {i18n.t('auth.login.forgotPassword')}
               </Text>
             </TouchableOpacity>
-
-            {/* Login Button */}
-            <Button
-              title={isLoading ? i18n.t('auth.loggingIn') : i18n.t('auth.loginButton')}
-              onPress={handleSubmit(onSubmit)}
-              loading={isLoading}
-              variant="primary"
-              style={styles.loginButton}
-            />
           </View>
+
+          {/* Login Button */}
+          <Button
+            title={i18n.t('auth.login.button')}
+            onPress={handleSubmit(onSubmit)}
+            loading={loading}
+            style={styles.loginButton}
+          />
 
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>{i18n.t('auth.noAccount')} </Text>
-            <TouchableOpacity
-              onPress={() => router.replace('/(auth)/signup')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.signupLink}>{i18n.t('auth.signup')}</Text>
+            <Text style={styles.signupText}>
+              {i18n.t('auth.login.noAccount')}
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+              <Text style={styles.signupLink}>{i18n.t('auth.login.signUp')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -191,73 +180,54 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 24,
+    padding: 24,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.dark.card,
-    alignItems: 'center',
+    width: 44,
+    height: 44,
     justifyContent: 'center',
+    marginBottom: 16,
   },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    marginRight: 40,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.dark.text,
-  },
-  welcomeContainer: {
+  header: {
     marginBottom: 32,
   },
-  welcomeTitle: {
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.dark.text,
     marginBottom: 8,
   },
-  welcomeSubtitle: {
+  subtitle: {
     fontSize: 16,
     color: Colors.dark.textSecondary,
   },
-  formContainer: {
+  form: {
+    gap: 16,
     marginBottom: 24,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
   },
   forgotPasswordText: {
-    fontSize: 14,
     color: Colors.dark.primary,
-    fontWeight: '500',
+    fontSize: 14,
   },
   loginButton: {
-    width: '100%',
+    marginBottom: 24,
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 24,
+    gap: 4,
   },
   signupText: {
-    fontSize: 14,
     color: Colors.dark.textSecondary,
+    fontSize: 14,
   },
   signupLink: {
-    fontSize: 14,
     color: Colors.dark.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
 });
