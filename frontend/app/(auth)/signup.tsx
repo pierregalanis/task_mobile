@@ -48,7 +48,7 @@ export default function SignupScreen() {
         password: data.password,
         full_name: data.fullName,
         phone: data.phone,
-        country: 'CI',
+        country: 'ivory_coast',  // Production backend expects 'ivory_coast' or 'senegal'
         role: role,
       });
       showMessage(
