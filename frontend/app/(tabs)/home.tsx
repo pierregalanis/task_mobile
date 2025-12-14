@@ -46,9 +46,20 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.userName}>{user?.full_name}</Text>
           </View>
-          <View style={styles.iconCircle}>
+          <TouchableOpacity 
+            style={styles.iconCircle} 
+            onPress={() => router.push('/notifications')}
+            activeOpacity={0.7}
+          >
             <Ionicons name="notifications-outline" size={24} color={Colors.dark.text} />
-          </View>
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Welcome Card */}
