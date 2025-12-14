@@ -237,15 +237,18 @@ frontend:
 
   - task: "Home Screen"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/app/(tabs)/home.tsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented home screen with greeting, service categories, role-based content"
+      - working: false
+        agent: "testing"
+        comment: "⚠️ HOME SCREEN PARTIAL ISSUE: Login successful and home screen loads with proper greeting ('Bonjour, Test Client') and notification bell, but categories section not displaying properly during testing. This appears to be a minor UI rendering issue - the categories data may not be loading from the production API correctly. Core navigation and user info display working fine."
 
   - task: "Profile Screen"
     implemented: true
