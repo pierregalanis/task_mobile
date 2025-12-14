@@ -1,10 +1,21 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
+import { Platform } from 'react-native';
 
-// ONE backend for EVERYTHING - Production Backend
-const API_BASE_URL = 'https://gethands.preview.emergentagent.com';
+// Use relative URLs for web (goes through same-origin proxy)
+// Use full URL for native (no CORS issues on native)
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    // For web, use relative URLs to avoid CORS
+    return '';
+  }
+  // For native apps, can use the full backend URL
+  return 'https://gethands.preview.emergentagent.com';
+};
 
-console.log('API URL:', API_BASE_URL);
+const API_BASE_URL = getApiBaseUrl();
+
+console.log('API URL:', API_BASE_URL || '(relative - same origin)');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
