@@ -23,6 +23,42 @@ import i18n from '../../utils/i18n';
 import { Button } from '../../components/Button';
 import * as Location from 'expo-location';
 
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8';
+
+// Reverse geocode using Google Maps API (replaces deprecated expo-location geocoding)
+const reverseGeocode = async (latitude: number, longitude: number): Promise<{ address: string; city: string } | null> => {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`
+    );
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results.length > 0) {
+      const result = data.results[0];
+      const addressComponents = result.address_components || [];
+      
+      // Extract city from address components
+      let city = '';
+      for (const component of addressComponents) {
+        if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+          city = component.long_name;
+          break;
+        }
+      }
+      
+      return {
+        address: result.formatted_address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        city: city || '',
+      };
+    }
+    return null;
+  } catch (error) {
+    console.log('Reverse geocoding error:', error);
+    return null;
+  }
+};
+
 // Conditionally import MapView only for native platforms
 let MapView: any = null;
 let Marker: any = null;
