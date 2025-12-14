@@ -284,6 +284,23 @@ async def get_me_proxy(request: Request):
             logger.error(f"Proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
+@api_router.post("/auth/register")
+async def register_proxy(request: Request):
+    """Proxy registration to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{PROD_BACKEND}/api/auth/register",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Registration proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
 @api_router.get("/categories")
 async def categories_proxy():
     """Proxy categories to production backend"""
