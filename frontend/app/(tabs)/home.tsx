@@ -125,29 +125,33 @@ export default function HomeScreen() {
         {/* Categories Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{i18n.t('home.categories')}</Text>
-          <View style={styles.categoriesGrid}>
-            {CATEGORIES.map((category) => (
-              <TouchableOpacity 
-                key={category.id} 
-                style={styles.categoryCard} 
-                activeOpacity={0.7}
-                onPress={() => router.push({
-                  pathname: '/booking/select-service',
-                  params: { categoryId: category.id }
-                })}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
-                </View>
-                <Text style={styles.categoryTitle}>
-                  {getCategoryName(category, i18n.locale)}
-                </Text>
-                <Text style={styles.categorySubcount}>
-                  {category.subcategories.length} {i18n.locale === 'fr' ? 'services' : 'services'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {loadingCategories ? (
+            <ActivityIndicator size="large" color={Colors.dark.primary} />
+          ) : (
+            <View style={styles.categoriesGrid}>
+              {categories.map((category) => (
+                <TouchableOpacity 
+                  key={category.id} 
+                  style={styles.categoryCard} 
+                  activeOpacity={0.7}
+                  onPress={() => router.push({
+                    pathname: '/booking/select-service',
+                    params: { categoryId: category.id }
+                  })}
+                >
+                  <View style={styles.categoryIconContainer}>
+                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  </View>
+                  <Text style={styles.categoryTitle}>
+                    {getCategoryName(category, i18n.locale)}
+                  </Text>
+                  <Text style={styles.categorySubcount}>
+                    {category.subcategories.length} {i18n.locale === 'fr' ? 'services' : 'services'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Featured Taskers */}
