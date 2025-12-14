@@ -254,4 +254,19 @@ export const notificationAPI = {
   },
 };
 
+export const pushTokenAPI = {
+  async registerToken(token: string, deviceType?: string) {
+    const response = await api.post('/api/push-tokens', {
+      token,
+      device_type: deviceType,
+    });
+    return response.data;
+  },
+
+  async unregisterToken(token: string) {
+    const response = await api.delete(`/api/push-tokens/${token}`);
+    return response.data;
+  },
+};
+
 export default api;
