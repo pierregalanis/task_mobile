@@ -339,7 +339,16 @@ async def register_proxy(request: Request):
             algorithm="HS256"
         )
         
-        user_response = {k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in user_data.items() if k != 'hashed_password'}
+        # Remove MongoDB _id and serialize dates
+        user_response = {}
+        for k, v in user_data.items():
+            if k == 'hashed_password' or k == '_id':
+                continue
+            if isinstance(v, datetime):
+                user_response[k] = v.isoformat()
+            else:
+                user_response[k] = v
+        
         return JSONResponse(content={"token": access_token, "user": user_response}, status_code=201)
     except HTTPException:
         raise
