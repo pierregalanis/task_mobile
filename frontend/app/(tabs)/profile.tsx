@@ -15,26 +15,20 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert(
+    showConfirm(
       i18n.locale === 'fr' ? 'Déconnexion' : 'Logout',
       i18n.locale === 'fr'
         ? 'Êtes-vous sûr de vouloir vous déconnecter?'
         : 'Are you sure you want to logout?',
-      [
-        {
-          text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: i18n.locale === 'fr' ? 'Déconnexion' : 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoggingOut(true);
-            await logout();
-            setIsLoggingOut(false);
-          },
-        },
-      ]
+      async () => {
+        setIsLoggingOut(true);
+        await logout();
+        setIsLoggingOut(false);
+        router.replace('/');
+      },
+      undefined,
+      i18n.locale === 'fr' ? 'Déconnexion' : 'Logout',
+      i18n.locale === 'fr' ? 'Annuler' : 'Cancel'
     );
   };
 
