@@ -157,8 +157,27 @@ export default function BookingsScreen() {
           </View>
         ) : (
           displayTasks.map((task) => {
-            const category = getCategoryById(task.category);
-            const categoryName = category ? getCategoryName(category, i18n.locale) : task.category;
+            // Support both production (category_id) and local (category) field names
+            const categoryId = task.category_id || task.category;
+            const category = getCategoryById(categoryId);
+            const categoryName = category ? getCategoryName(category, i18n.locale) : (task.title || categoryId);
+            
+            // Support both production (task_date) and local (scheduled_date) field names
+            const taskDate = task.task_date || task.scheduled_date;
+            const totalCost = task.total_cost || task.estimated_total || 0;
+            
+            // Safe date formatting
+            const formatTaskDate = (dateStr: string) => {
+              if (!dateStr) return 'N/A';
+              const date = new Date(dateStr);
+              return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+            };
+            
+            const formatTaskTime = (dateStr: string) => {
+              if (!dateStr) return '';
+              const date = new Date(dateStr);
+              return isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            };
             
             return (
               <TouchableOpacity
@@ -190,20 +209,20 @@ export default function BookingsScreen() {
                   <View style={styles.metaItem}>
                     <Ionicons name="calendar-outline" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.metaText}>
-                      {new Date(task.scheduled_date).toLocaleDateString()}
+                      {formatTaskDate(taskDate)}
                     </Text>
                   </View>
                   <View style={styles.metaDivider} />
                   <View style={styles.metaItem}>
                     <Ionicons name="time-outline" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.metaText}>
-                      {new Date(task.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatTaskTime(taskDate)}
                     </Text>
                   </View>
                   <View style={styles.metaDivider} />
                   <View style={styles.metaItem}>
                     <Ionicons name="location-outline" size={14} color={Colors.dark.textSecondary} />
-                    <Text style={styles.metaText}>{task.city}</Text>
+                    <Text style={styles.metaText}>{task.city || 'N/A'}</Text>
                   </View>
                 </View>
 
@@ -211,10 +230,10 @@ export default function BookingsScreen() {
                   <View style={styles.personInfo}>
                     <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
                     <Text style={styles.personName}>
-                      {user?.role === 'client' ? task.tasker_name : task.client_name}
+                      {user?.role === 'client' ? (task.tasker_name || 'Tasker') : (task.client_name || 'Client')}
                     </Text>
                   </View>
-                  <Text style={styles.taskPrice}>{task.estimated_total} XOF</Text>
+                  <Text style={styles.taskPrice}>{totalCost.toLocaleString()} XOF</Text>
                 </View>
 
                 {/* Action Buttons for Tasker */}
