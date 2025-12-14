@@ -176,8 +176,6 @@ export default function TaskerDashboardScreen() {
       i18n.locale === 'fr' ? 'Oui, refuser' : 'Yes, reject',
       i18n.locale === 'fr' ? 'Non' : 'No'
     );
-      ]
-    );
   };
 
   const handleStartTimer = async (taskId: string) => {
@@ -186,14 +184,14 @@ export default function TaskerDashboardScreen() {
       await taskAPI.startTimer(taskId);
       setActiveTaskTimer(taskId);
       setElapsedTime(0);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Chronomètre démarré' : 'Timer Started',
         i18n.locale === 'fr' ? 'Le client a été notifié que vous avez commencé.' : 'The client has been notified that you started.'
       );
       fetchData();
     } catch (error: any) {
       console.error('Error starting timer:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de démarrer le chronomètre' : 'Failed to start timer')
       );
@@ -203,36 +201,33 @@ export default function TaskerDashboardScreen() {
   };
 
   const handleStopTimer = async (taskId: string) => {
-    Alert.alert(
+    showConfirm(
       i18n.locale === 'fr' ? 'Terminer le travail?' : 'Finish work?',
       i18n.locale === 'fr' ? 'Êtes-vous sûr de vouloir arrêter le chronomètre et terminer la tâche?' : 'Are you sure you want to stop the timer and complete the task?',
-      [
-        { text: i18n.locale === 'fr' ? 'Non' : 'No', style: 'cancel' },
-        {
-          text: i18n.locale === 'fr' ? 'Oui, terminer' : 'Yes, finish',
-          onPress: async () => {
-            try {
-              setActionLoading(taskId);
-              await taskAPI.stopTimer(taskId);
-              setActiveTaskTimer(null);
-              setElapsedTime(0);
-              Alert.alert(
-                i18n.locale === 'fr' ? 'Travail terminé!' : 'Work completed!',
-                i18n.locale === 'fr' ? 'Le client a été notifié.' : 'The client has been notified.'
-              );
-              fetchData();
-            } catch (error: any) {
-              console.error('Error stopping timer:', error);
-              Alert.alert(
-                i18n.locale === 'fr' ? 'Erreur' : 'Error',
-                error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'arrêter le chronomètre' : 'Failed to stop timer')
-              );
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          setActionLoading(taskId);
+          await taskAPI.stopTimer(taskId);
+          setActiveTaskTimer(null);
+          setElapsedTime(0);
+          showMessage(
+            i18n.locale === 'fr' ? 'Travail terminé!' : 'Work completed!',
+            i18n.locale === 'fr' ? 'Le client a été notifié.' : 'The client has been notified.'
+          );
+          fetchData();
+        } catch (error: any) {
+          console.error('Error stopping timer:', error);
+          showMessage(
+            i18n.locale === 'fr' ? 'Erreur' : 'Error',
+            error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'arrêter le chronomètre' : 'Failed to stop timer')
+          );
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      i18n.locale === 'fr' ? 'Oui, terminer' : 'Yes, finish',
+      i18n.locale === 'fr' ? 'Non' : 'No'
     );
   };
 
