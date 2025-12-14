@@ -192,7 +192,7 @@ export default function CreateBookingScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert(
+        showMessage(
           i18n.locale === 'fr' ? 'Permission refusée' : 'Permission denied',
           i18n.locale === 'fr' 
             ? 'Veuillez autoriser l\'accès à la localisation' 
@@ -239,7 +239,7 @@ export default function CreateBookingScreen() {
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' 
           ? 'Impossible d\'obtenir votre position' 
@@ -408,7 +408,7 @@ export default function CreateBookingScreen() {
   const handleSubmit = async () => {
     // Validation
     if (!title.trim()) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Veuillez entrer un titre' : 'Please enter a title'
       );
@@ -416,7 +416,7 @@ export default function CreateBookingScreen() {
     }
 
     if (!description.trim()) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Veuillez entrer une description' : 'Please enter a description'
       );
@@ -424,7 +424,7 @@ export default function CreateBookingScreen() {
     }
 
     if (!address.trim()) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Veuillez entrer une adresse' : 'Please enter an address'
       );
@@ -434,7 +434,7 @@ export default function CreateBookingScreen() {
     // Check if location is pinned (for native only)
     if (Platform.OS !== 'web' && !selectedLocation) {
       setLocationError(true);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' 
           ? 'Veuillez sélectionner un emplacement sur la carte' 
@@ -445,7 +445,7 @@ export default function CreateBookingScreen() {
 
     // Check distance validation
     if (distanceValid === false) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Distance trop éloignée' : 'Too far away',
         i18n.locale === 'fr' 
           ? `Le tâcheron ne peut pas se déplacer au-delà de ${maxTravelDistance} km. Votre emplacement est à ${calculatedDistance?.toFixed(1)} km.` 
@@ -483,7 +483,7 @@ export default function CreateBookingScreen() {
     } catch (error: any) {
       console.error('Error creating booking:', error);
       console.error('Error response:', error.response?.data);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail || (i18n.locale === 'fr'
           ? 'Impossible de créer la réservation'
