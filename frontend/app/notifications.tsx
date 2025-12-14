@@ -241,12 +241,12 @@ export default function NotificationsScreen() {
                     <View style={styles.notificationContent}>
                       <View style={styles.notificationHeader}>
                         <Text style={[styles.notificationTitle, !notification.read && styles.unreadTitle]}>
-                          {notification.title.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.title}
+                          {notification.title ? (notification.title.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.title) : 'Notification'}
                         </Text>
                         {!notification.read && <View style={styles.unreadDot} />}
                       </View>
                       <Text style={styles.notificationMessage} numberOfLines={2}>
-                        {notification.message.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.message}
+                        {notification.message ? (notification.message.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.message) : ''}
                       </Text>
                       <Text style={styles.notificationTime}>
                         {formatTimeAgo(notification.created_at)}
