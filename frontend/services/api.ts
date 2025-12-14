@@ -2,7 +2,7 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 
 // ONE backend for EVERYTHING
-const API_BASE_URL = 'https://gethands.preview.emergentagent.com';
+const API_BASE_URL = 'https://soutrali-mobile.preview.emergentagent.com';
 
 console.log('API URL:', API_BASE_URL);
 
