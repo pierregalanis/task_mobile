@@ -40,7 +40,7 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setLoading(true);
-      await login(data.email, data.password);
+      await login({ email: data.email, password: data.password });
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error('Login error:', error);
