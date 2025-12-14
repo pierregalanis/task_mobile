@@ -33,7 +33,7 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription>();
   
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Register for push notifications
   const registerForPushNotifications = useCallback(async () => {
