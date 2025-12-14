@@ -148,13 +148,23 @@ export function usePushNotifications() {
     return () => {
       // Clean up listeners
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        try {
+          notificationListener.current.remove();
+        } catch (e) {
+          // Fallback for web where removeNotificationSubscription may not exist
+          console.log('Could not remove notification listener');
+        }
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        try {
+          responseListener.current.remove();
+        } catch (e) {
+          // Fallback for web
+          console.log('Could not remove response listener');
+        }
       }
     };
-  }, [user, token, registerForPushNotifications, handleNotificationReceived, handleNotificationResponse]);
+  }, [user, registerForPushNotifications, handleNotificationReceived, handleNotificationResponse]);
 
   // Re-register token when user changes
   useEffect(() => {
