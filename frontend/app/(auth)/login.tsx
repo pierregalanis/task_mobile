@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { showMessage } from '../../utils/alert';
 import {
   View,
   Text,
@@ -9,13 +10,21 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { showMessage } from '../../utils/alert';
 import { useRouter } from 'expo-router';
+import { showMessage } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage } from '../../utils/alert';
 import { useForm, Controller } from 'react-hook-form';
+import { showMessage } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
+import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
+import { showMessage } from '../../utils/alert';
 import { Input } from '../../components/Input';
+import { showMessage } from '../../utils/alert';
 import { Button } from '../../components/Button';
+import { showMessage } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 
@@ -48,7 +57,7 @@ export default function LoginScreen() {
       console.log('Login completed, navigating to home...');
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.message || i18n.t('auth.loginError')
       );

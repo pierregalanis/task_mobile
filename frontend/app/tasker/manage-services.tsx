@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { showMessage, showConfirm } from '../../utils/alert';
 import {
   View,
   Text,
@@ -10,13 +11,19 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { useRouter } from 'expo-router';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import api, { categoryAPI } from '../../services/api';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { CATEGORIES, getCategoryName, getSubcategoryName } from '../../constants/Categories';
 
 interface Service {
@@ -74,20 +81,20 @@ export default function ManageServicesScreen() {
       await refreshUser();
       setExpandedIndex(null);
       
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Service mis à jour!' : 'Service updated!'
       );
     } catch (error: any) {
       console.error('Error saving service:', error);
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save');
+      showMessage('Error', error.response?.data?.detail || 'Failed to save');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemoveService = async (index: number) => {
-    Alert.alert(
+    showMessage(
       i18n.locale === 'fr' ? 'Supprimer le service?' : 'Remove service?',
       i18n.locale === 'fr' ? 'Cette action est irréversible.' : 'This action cannot be undone.',
       [
@@ -107,7 +114,7 @@ export default function ManageServicesScreen() {
               setServices(updatedServices);
               await refreshUser();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.detail || 'Failed to remove');
+              showMessage('Error', error.response?.data?.detail || 'Failed to remove');
             } finally {
               setLoading(false);
             }
@@ -119,7 +126,7 @@ export default function ManageServicesScreen() {
 
   const handleAddService = async () => {
     if (!selectedCategory || !selectedSubcategory || !newRate) {
-      Alert.alert('Error', 'Please fill all required fields');
+      showMessage('Error', 'Please fill all required fields');
       return;
     }
 
@@ -144,9 +151,9 @@ export default function ManageServicesScreen() {
       setShowAddModal(false);
       resetNewServiceForm();
       
-      Alert.alert('Success', 'Service added!');
+      showMessage('Success', 'Service added!');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to add service');
+      showMessage('Error', error.response?.data?.detail || 'Failed to add service');
     } finally {
       setLoading(false);
     }

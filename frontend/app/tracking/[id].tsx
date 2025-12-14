@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { showMessage } from '../../utils/alert';
 import {
   View,
   Text,
@@ -8,12 +9,18 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { showMessage } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
+import { showMessage } from '../../utils/alert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
+import { showMessage } from '../../utils/alert';
 import { taskAPI } from '../../services/api';
+import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
+import { showMessage } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 
@@ -63,7 +70,7 @@ export default function TrackingScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert(
+        showMessage(
           i18n.locale === 'fr' ? 'Permission requise' : 'Permission Required',
           i18n.locale === 'fr' 
             ? 'L\'accès à la localisation est requis pour cette fonctionnalité'
@@ -160,7 +167,7 @@ export default function TrackingScreen() {
     } catch (error) {
       console.error('Error starting journey:', error);
       setStartingJourney(false);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' 
           ? 'Impossible de démarrer le trajet'
@@ -177,7 +184,7 @@ export default function TrackingScreen() {
         locationSubscription.remove();
       }
 
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Arrivée confirmée' : 'Arrival Confirmed',
         i18n.locale === 'fr' 
           ? 'Vous pouvez maintenant commencer le travail'

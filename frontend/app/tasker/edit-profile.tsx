@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { showMessage } from '../../utils/alert';
 import {
   View,
   Text,
@@ -12,11 +13,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { showMessage } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
+import { showMessage } from '../../utils/alert';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
+import { showMessage } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import api from '../../services/api';
@@ -35,7 +41,7 @@ export default function EditProfileScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your photo library');
+      showMessage('Permission needed', 'Please allow access to your photo library');
       return;
     }
 
@@ -71,14 +77,14 @@ export default function EditProfileScreen() {
 
       await refreshUser();
       
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Profil mis à jour!' : 'Profile updated!'
       );
       router.back();
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail || 'Failed to update profile'
       );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { showMessage, showConfirm } from '../../utils/alert';
 import {
   View,
   Text,
@@ -11,14 +12,22 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { taskAPI, reviewAPI } from '../../services/api';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
+import { showMessage, showConfirm } from '../../utils/alert';
 import { Button } from '../../components/Button';
 
 export default function TaskDetailsScreen() {
@@ -58,7 +67,7 @@ export default function TaskDetailsScreen() {
       }
     } catch (error) {
       console.error('Error fetching task:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Impossible de charger les détails' : 'Failed to load details'
       );
@@ -96,7 +105,7 @@ export default function TaskDetailsScreen() {
 
   const handleCancelTask = async () => {
     if (!cancelReason.trim()) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Veuillez indiquer une raison' : 'Please provide a reason'
       );
@@ -108,14 +117,14 @@ export default function TaskDetailsScreen() {
       await taskAPI.updateTaskStatus(task.id, 'cancelled', cancelReason);
       setShowCancelModal(false);
       setCancelReason('');
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Tâche annulée' : 'Task cancelled',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
       console.error('Error cancelling task:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Impossible d\'annuler la tâche' : 'Failed to cancel task'
       );
@@ -126,7 +135,7 @@ export default function TaskDetailsScreen() {
 
   const handleSubmitReview = async () => {
     if (!reviewComment.trim()) {
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Veuillez ajouter un commentaire' : 'Please add a comment'
       );
@@ -144,14 +153,14 @@ export default function TaskDetailsScreen() {
       setShowReviewModal(false);
       setReviewComment('');
       setRating(5);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
         i18n.locale === 'fr' ? 'Votre avis a été soumis' : 'Your review has been submitted'
       );
       fetchTaskDetails();
     } catch (error: any) {
       console.error('Error submitting review:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de soumettre l\'avis' : 'Failed to submit review')
       );
