@@ -457,23 +457,24 @@ export default function CreateBookingScreen() {
     setLoading(true);
 
     try {
+      // Map fields to production backend format
       const bookingData = {
         title: title.trim(),
         description: description.trim(),
-        category: params.categoryId as string,
+        category_id: params.categoryId as string,  // Production uses category_id
         subcategory: (params.subcategoryId as string) || null,
         tasker_id: params.taskerId as string,
-        scheduled_date: taskDate.toISOString(),
+        task_date: taskDate.toISOString(),  // Production uses task_date
         duration_hours: pricingType === 'hourly' ? duration : 1,
         address: address.trim(),
-        city: city.trim(),
+        city: city.trim() || 'Abidjan',  // Default city if not provided
         latitude: selectedLocation?.latitude || user?.latitude || 5.36,
         longitude: selectedLocation?.longitude || user?.longitude || -4.0,
         special_instructions: specialInstructions.trim() || null,
         pricing_type: pricingType,
-        hourly_rate: pricingType === 'hourly' ? hourlyRate : null,
+        hourly_rate: pricingType === 'hourly' ? hourlyRate : (fixedPrice || 5000),
         fixed_price: pricingType === 'fixed' ? fixedPrice : null,
-        estimated_total: calculateTotal(),
+        total_cost: calculateTotal(),  // Production uses total_cost
       };
 
       console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
