@@ -328,23 +328,15 @@ export default function CreateBookingScreen() {
       longitude,
     };
 
-    // Try to reverse geocode
+    // Try to reverse geocode using Google Maps API
     try {
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      const geocodeResult = await reverseGeocode(latitude, longitude);
       
-      if (addressResult) {
-        const addressParts = [
-          addressResult.street,
-          addressResult.city,
-          addressResult.region,
-        ].filter(Boolean);
-        location.address = addressParts.join(', ');
-        setAddress(location.address);
-        if (addressResult.city) {
-          setCity(addressResult.city);
+      if (geocodeResult) {
+        location.address = geocodeResult.address;
+        setAddress(geocodeResult.address);
+        if (geocodeResult.city) {
+          setCity(geocodeResult.city);
         }
       }
     } catch (e) {
@@ -363,22 +355,18 @@ export default function CreateBookingScreen() {
       longitude,
     };
 
-    // Try to reverse geocode
+    // Try to reverse geocode using Google Maps API
     try {
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      const geocodeResult = await reverseGeocode(latitude, longitude);
       
-      if (addressResult) {
-        const addressParts = [
-          addressResult.street,
-          addressResult.city,
-          addressResult.region,
-        ].filter(Boolean);
-        location.address = addressParts.join(', ');
-        setAddress(location.address);
-        if (addressResult.city) {
+      if (geocodeResult) {
+        location.address = geocodeResult.address;
+        setAddress(geocodeResult.address);
+        if (geocodeResult.city) {
+          setCity(geocodeResult.city);
+        }
+      }
+    } catch (e) {
           setCity(addressResult.city);
         }
       }
