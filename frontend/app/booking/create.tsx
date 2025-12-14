@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   ActivityIndicator,
@@ -21,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Button } from '../../components/Button';
+import { showMessage } from '../../utils/alert';
 import * as Location from 'expo-location';
 
 // Google Maps API Key
