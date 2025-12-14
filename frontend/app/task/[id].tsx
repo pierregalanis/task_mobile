@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { showMessage, showConfirm } from '../../utils/alert';
 import {
   View,
   Text,
@@ -7,28 +6,20 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
   Platform,
 } from 'react-native';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { taskAPI, reviewAPI } from '../../services/api';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { Button } from '../../components/Button';
+import { showMessage, showConfirm } from '../../utils/alert';
 
 export default function TaskDetailsScreen() {
   const router = useRouter();
