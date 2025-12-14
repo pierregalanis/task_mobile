@@ -306,17 +306,15 @@ export const notificationAPI = {
 
 export const pushTokenAPI = {
   async registerToken(token: string, platform: string = 'ios') {
-    const response = await api.post('/api/users/device-token', {
-      device_token: token,
-      platform: platform,
+    const response = await api.post('/api/push-tokens', {
+      token: token,
+      device_type: platform,
     });
     return response.data;
   },
 
   async unregisterToken(token: string) {
-    const response = await api.delete(`/api/users/device-token`, {
-      data: { device_token: token },
-    });
+    const response = await api.delete(`/api/push-tokens/${token}`);
     return response.data;
   },
 };
