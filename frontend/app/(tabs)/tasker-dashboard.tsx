@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { taskAPI, notificationAPI } from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
+import { taskAPI, notificationAPI, reviewAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -23,20 +24,35 @@ export default function TaskerDashboardScreen() {
   const { user } = useAuth();
   
   const [tasks, setTasks] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  // Stats
+  const [stats, setStats] = useState({
+    rating: 0,
+    totalReviews: 0,
+    completedTasks: 0,
+    totalEarnings: 0,
+  });
   
   // Timer state
   const [activeTaskTimer, setActiveTaskTimer] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.role === 'tasker') {
+        fetchData();
+      }
+    }, [user])
+  );
+
   useEffect(() => {
     if (user?.role === 'tasker') {
-      fetchData();
       // Poll for new tasks every 30 seconds
       const pollInterval = setInterval(fetchData, 30000);
       return () => clearInterval(pollInterval);
@@ -68,7 +84,6 @@ export default function TaskerDashboardScreen() {
     const activeTask = tasks.find(t => t.status === 'in_progress' && t.timer_started_at);
     if (activeTask) {
       setActiveTaskTimer(activeTask.id);
-      // Calculate elapsed time from timer_started_at
       const startTime = new Date(activeTask.timer_started_at).getTime();
       const now = Date.now();
       setElapsedTime(Math.floor((now - startTime) / 1000));
@@ -77,14 +92,30 @@ export default function TaskerDashboardScreen() {
 
   const fetchData = async () => {
     try {
-      const [tasksData, notifData, unreadData] = await Promise.all([
+      const [tasksData, unreadData] = await Promise.all([
         taskAPI.getTaskerTasks(),
-        notificationAPI.getNotifications(),
         notificationAPI.getUnreadCount(),
       ]);
-      setTasks(tasksData || []);
-      setNotifications(notifData || []);
+      
+      const taskList = tasksData || [];
+      setTasks(taskList);
       setUnreadCount(unreadData?.unread_count || 0);
+      
+      // Calculate stats from tasks
+      const completedTasks = taskList.filter((t: any) => t.status === 'completed');
+      const totalEarnings = completedTasks.reduce((sum: number, t: any) => 
+        sum + (t.final_price || t.estimated_total || 0), 0);
+      
+      // Get rating from user profile or calculate from reviews
+      const rating = user?.tasker_profile?.rating || 0;
+      const totalReviews = user?.tasker_profile?.total_reviews || 0;
+      
+      setStats({
+        rating: rating,
+        totalReviews: totalReviews,
+        completedTasks: completedTasks.length,
+        totalEarnings: totalEarnings,
+      });
     } catch (error) {
       console.error('Error fetching tasker data:', error);
     } finally {
@@ -267,24 +298,6 @@ export default function TaskerDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {i18n.locale === 'fr' ? 'Tableau de bord' : 'Dashboard'}
-        </Text>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={() => router.push('/notifications')}
-        >
-          <Ionicons name="notifications" size={24} color={Colors.dark.text} />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -293,26 +306,120 @@ export default function TaskerDashboardScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats Cards */}
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <View style={styles.welcomeContent}>
+            <View style={styles.welcomeTextContainer}>
+              <Text style={styles.welcomeHand}>👋</Text>
+              <Text style={styles.welcomeText}>
+                {i18n.locale === 'fr' ? 'Bonjour,' : 'Welcome,'} {user?.full_name?.split(' ')[0]}!
+              </Text>
+            </View>
+            <Text style={styles.motivationalText}>
+              {i18n.locale === 'fr' 
+                ? 'Prêt à améliorer la journée de quelqu\'un'
+                : 'Ready to make someone\'s day better'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => router.push('/notifications')}
+          >
+            <Ionicons name="notifications" size={24} color={Colors.dark.text} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Cards - Clickable */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: '#f59e0b20' }]}>
-            <Text style={[styles.statNumber, { color: '#f59e0b' }]}>{pendingTasks.length}</Text>
-            <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'En attente' : 'Pending'}
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: '#f59e0b20' }]}
+            onPress={() => router.push('/tasker/my-reviews')}
+          >
+            <Ionicons name="star" size={20} color="#f59e0b" />
+            <Text style={[styles.statNumber, { color: '#f59e0b' }]}>
+              {stats.rating > 0 ? stats.rating.toFixed(1) : '-'}
             </Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#8b5cf620' }]}>
-            <Text style={[styles.statNumber, { color: '#8b5cf6' }]}>{inProgressTasks.length}</Text>
             <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'En cours' : 'In Progress'}
+              {i18n.locale === 'fr' ? 'Note' : 'Rating'}
             </Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#10b98120' }]}>
-            <Text style={[styles.statNumber, { color: Colors.dark.success }]}>{user?.completed_tasks || 0}</Text>
+            <Text style={styles.statSubLabel}>({stats.totalReviews})</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: '#3b82f620' }]}
+            onPress={() => {/* Could navigate to completed tasks list */}}
+          >
+            <Ionicons name="clipboard-outline" size={20} color="#3b82f6" />
+            <Text style={[styles.statNumber, { color: '#3b82f6' }]}>{stats.completedTasks}</Text>
             <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'Terminées' : 'Completed'}
+              {i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}
             </Text>
-          </View>
+            <Text style={styles.statSubLabel}>{i18n.locale === 'fr' ? 'terminées' : 'complete'}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.statCard, { backgroundColor: '#10b98120' }]}
+            onPress={() => router.push('/tasker/my-earnings')}
+          >
+            <Ionicons name="wallet-outline" size={20} color={Colors.dark.success} />
+            <Text style={[styles.statNumber, { color: Colors.dark.success }]}>
+              {stats.totalEarnings > 1000 
+                ? `${Math.round(stats.totalEarnings / 1000)}K` 
+                : stats.totalEarnings}
+            </Text>
+            <Text style={styles.statLabel}>
+              {i18n.locale === 'fr' ? 'Revenus' : 'Earned'}
+            </Text>
+            <Text style={styles.statSubLabel}>XOF</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity 
+            style={styles.quickActionBtn}
+            onPress={() => router.push('/tasker/edit-profile')}
+          >
+            <Ionicons name="person-outline" size={20} color={Colors.dark.primary} />
+            <Text style={styles.quickActionText}>
+              {i18n.locale === 'fr' ? 'Profil' : 'Profile'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickActionBtn}
+            onPress={() => router.push('/tasker/manage-services')}
+          >
+            <Ionicons name="construct-outline" size={20} color={Colors.dark.primary} />
+            <Text style={styles.quickActionText}>
+              {i18n.locale === 'fr' ? 'Services' : 'Services'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickActionBtn}
+            onPress={() => router.push('/tasker/my-reviews')}
+          >
+            <Ionicons name="chatbubbles-outline" size={20} color={Colors.dark.primary} />
+            <Text style={styles.quickActionText}>
+              {i18n.locale === 'fr' ? 'Avis' : 'Reviews'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickActionBtn}
+            onPress={() => router.push('/tasker/my-earnings')}
+          >
+            <Ionicons name="cash-outline" size={20} color={Colors.dark.primary} />
+            <Text style={styles.quickActionText}>
+              {i18n.locale === 'fr' ? 'Revenus' : 'Earnings'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Pending Task Requests - CRITICAL SECTION */}
@@ -324,7 +431,7 @@ export default function TaskerDashboardScreen() {
                   <Ionicons name="alert-circle" size={16} color={Colors.dark.background} />
                 </View>
                 <Text style={styles.sectionTitle}>
-                  {i18n.locale === 'fr' ? 'Nouvelles demandes' : 'New Requests'}
+                  {i18n.locale === 'fr' ? 'Demandes en attente' : 'Pending Requests'}
                 </Text>
               </View>
               <Text style={styles.taskCount}>{pendingTasks.length}</Text>
@@ -333,9 +440,6 @@ export default function TaskerDashboardScreen() {
             {pendingTasks.map((task) => {
               const category = getCategoryById(task.category);
               const subcategory = task.subcategory ? getSubcategoryById(task.category, task.subcategory) : null;
-              const displayName = subcategory 
-                ? getSubcategoryName(subcategory, i18n.locale)
-                : (category ? getCategoryName(category, i18n.locale) : task.category);
 
               return (
                 <View key={task.id} style={styles.pendingCard}>
@@ -343,16 +447,20 @@ export default function TaskerDashboardScreen() {
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingTitle}>{task.title}</Text>
                       <View style={styles.pendingMeta}>
+                        <Ionicons name="person" size={14} color={Colors.dark.textSecondary} />
+                        <Text style={styles.pendingMetaText}>{task.client_name || 'Client'}</Text>
+                      </View>
+                      <View style={styles.pendingMeta}>
                         <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                        <Text style={styles.pendingMetaText}>{formatDate(task.scheduled_date)}</Text>
+                        <Text style={styles.pendingMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
                         <Ionicons name="location" size={14} color={Colors.dark.textSecondary} />
-                        <Text style={styles.pendingMetaText}>{task.city}</Text>
+                        <Text style={styles.pendingMetaText}>{task.city || task.address}</Text>
                       </View>
                     </View>
                     <View style={styles.pendingPrice}>
-                      <Text style={styles.pendingPriceValue}>{task.estimated_total?.toLocaleString()}</Text>
+                      <Text style={styles.pendingPriceValue}>{(task.estimated_total || task.total_cost || 0).toLocaleString()}</Text>
                       <Text style={styles.pendingPriceCurrency}>XOF</Text>
                     </View>
                   </View>
@@ -414,12 +522,12 @@ export default function TaskerDashboardScreen() {
                 </View>
                 <View style={styles.taskMeta}>
                   <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                  <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date)}</Text>
+                  <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
                   <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
-                  <Text style={styles.taskMetaText}>{task.city}</Text>
+                  <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
                 </View>
                 <View style={styles.taskFooter}>
-                  <Text style={styles.taskPrice}>{task.estimated_total?.toLocaleString()} XOF</Text>
+                  <Text style={styles.taskPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
                   <TouchableOpacity
                     style={styles.startTimerBtn}
                     onPress={() => handleStartTimer(task.id)}
@@ -479,7 +587,7 @@ export default function TaskerDashboardScreen() {
                 <View style={styles.taskFooter}>
                   <View>
                     <Text style={styles.taskMetaText}>{task.address}</Text>
-                    <Text style={styles.taskPrice}>{task.estimated_total?.toLocaleString()} XOF</Text>
+                    <Text style={styles.taskPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.stopTimerBtn}
@@ -525,10 +633,10 @@ export default function TaskerDashboardScreen() {
                 </View>
                 <View style={styles.taskMeta}>
                   <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                  <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date)}</Text>
+                  <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date || task.task_date)}</Text>
                 </View>
                 <Text style={styles.taskPrice}>
-                  {(task.final_price || task.estimated_total)?.toLocaleString()} XOF
+                  {(task.final_price || task.estimated_total || task.total_cost || 0).toLocaleString()} XOF
                 </Text>
               </TouchableOpacity>
             ))}
@@ -565,25 +673,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.dark.background,
   },
-  header: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  // Welcome Section
+  welcomeSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    backgroundColor: Colors.dark.primary,
+    marginHorizontal: -20,
+    marginTop: -20,
+    padding: 20,
+    paddingTop: 16,
   },
-  headerTitle: {
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  welcomeHand: {
     fontSize: 24,
+  },
+  welcomeText: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.dark.text,
+    color: Colors.dark.background,
+  },
+  motivationalText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 4,
+    marginLeft: 32,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.dark.card,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -602,35 +737,57 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: Colors.dark.background,
+    color: '#fff',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-    paddingBottom: 40,
-  },
+  // Stats Row
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
+    marginTop: 6,
   },
   statLabel: {
     fontSize: 12,
     color: Colors.dark.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
   },
+  statSubLabel: {
+    fontSize: 10,
+    color: Colors.dark.textSecondary,
+  },
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 8,
+  },
+  quickActionBtn: {
+    flex: 1,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  quickActionText: {
+    fontSize: 11,
+    color: Colors.dark.text,
+    fontWeight: '500',
+  },
+  // Section
   section: {
     marginBottom: 24,
   },
@@ -662,6 +819,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.dark.textSecondary,
   },
+  // Pending Card
   pendingCard: {
     backgroundColor: Colors.dark.card,
     borderRadius: 16,
@@ -737,6 +895,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.dark.background,
   },
+  // Task Card
   taskCard: {
     backgroundColor: Colors.dark.card,
     borderRadius: 16,
