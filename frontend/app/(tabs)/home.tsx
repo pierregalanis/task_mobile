@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,13 +7,41 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { CATEGORIES, getCategoryName } from '../../constants/Categories';
-import { notificationAPI } from '../../services/api';
+import { CATEGORIES, getCategoryName, Category } from '../../constants/Categories';
+import { notificationAPI, categoryAPI } from '../../services/api';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await categoryAPI.getCategories();
+      if (data && data.length > 0) {
+        // Map production format to app format
+        const mappedCategories = data.map((cat: any) => ({
+          id: cat.id,
+          icon: cat.icon || '📦',
+          name_en: cat.name_en,
+          name_fr: cat.name_fr,
+          subcategories: (cat.subcategories || []).map((sub: any, index: number) => ({
+            id: `${cat.id}_sub_${index}`,
+            name_en: sub.en || sub.name_en,
+            name_fr: sub.fr || sub.name_fr,
+          })),
+        }));
+        setCategories(mappedCategories);
+      }
+    } catch (error) {
+      console.log('Error fetching categories, using defaults:', error);
+      // Keep using default categories
+    } finally {
+      setLoadingCategories(false);
+    }
+  }, []);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -23,6 +51,11 @@ export default function HomeScreen() {
       console.log('Error fetching unread count:', error);
     }
   }, []);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   // Fetch unread count when screen comes into focus
   useFocusEffect(
