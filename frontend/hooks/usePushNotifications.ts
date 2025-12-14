@@ -81,7 +81,7 @@ export function usePushNotifications() {
       setExpoPushToken(pushToken);
 
       // Register token with backend if user is authenticated
-      if (user && token && pushToken) {
+      if (user && isAuthenticated && pushToken) {
         try {
           await pushTokenAPI.registerToken(pushToken, Platform.OS);
           console.log('Push token registered with backend');
