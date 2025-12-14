@@ -52,7 +52,7 @@ export async function registerForPushNotificationsAsync() {
 
 export async function savePushToken(token: string) {
   try {
-    await api.post('/push-tokens', {
+    await api.post('/api/push-tokens', {
       token,
       device_type: Platform.OS,
     });
