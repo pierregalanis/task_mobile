@@ -107,7 +107,7 @@ export function usePushNotifications() {
     }
 
     return pushToken;
-  }, [user, token]);
+  }, [user, isAuthenticated]);
 
   // Handle notification received while app is open
   const handleNotificationReceived = useCallback((notification: Notifications.Notification) => {
