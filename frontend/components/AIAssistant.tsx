@@ -92,14 +92,19 @@ export default function AIAssistant() {
     }, 100);
 
     try {
-      const response = await api.post('/api/ai/chat', {
+      // Use the production AI assistant endpoint
+      const response = await api.post('/api/ai-assistant/chat', {
         message: userMessage.text,
         session_id: sessionId,
+        chat_history: messages.filter(m => m.id !== 'greeting').map(m => ({
+          role: m.isUser ? 'user' : 'assistant',
+          content: m.text,
+        })),
       });
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.data.response,
+        text: response.data.response || response.data.message || 'I apologize, I could not process your request.',
         isUser: false,
         timestamp: new Date(),
       };
