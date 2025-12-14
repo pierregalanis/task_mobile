@@ -489,6 +489,24 @@ async def create_review_proxy(request: Request):
             logger.error(f"Proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
+@api_router.post("/ai-assistant/chat")
+async def ai_chat_proxy(request: Request):
+    """Proxy AI assistant chat to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{PROD_BACKEND}/api/ai-assistant/chat",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=60.0  # Longer timeout for AI responses
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"AI Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="AI service unavailable")
+
 @api_router.api_route("/taskers/profile", methods=["GET", "PUT"])
 async def tasker_profile_proxy(request: Request):
     """Proxy tasker profile to production backend"""
