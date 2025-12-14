@@ -25,7 +25,7 @@ export default function HomeScreen() {
   const fetchUnreadCount = async () => {
     try {
       const data = await notificationAPI.getUnreadCount();
-      setUnreadCount(data.count || 0);
+      setUnreadCount(data.unread_count || data.count || 0);
     } catch (error) {
       console.log('Error fetching unread count:', error);
     }
