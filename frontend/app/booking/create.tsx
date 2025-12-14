@@ -207,23 +207,18 @@ export default function CreateBookingScreen() {
         longitude: location.coords.longitude,
       };
 
-      // Reverse geocode to get address
+      // Reverse geocode to get address using Google Maps API
       try {
-        const [addressResult] = await Location.reverseGeocodeAsync({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
+        const geocodeResult = await reverseGeocode(
+          location.coords.latitude,
+          location.coords.longitude
+        );
         
-        if (addressResult) {
-          const addressParts = [
-            addressResult.street,
-            addressResult.city,
-            addressResult.region,
-          ].filter(Boolean);
-          newLocation.address = addressParts.join(', ');
-          setAddress(newLocation.address);
-          if (addressResult.city) {
-            setCity(addressResult.city);
+        if (geocodeResult) {
+          newLocation.address = geocodeResult.address;
+          setAddress(geocodeResult.address);
+          if (geocodeResult.city) {
+            setCity(geocodeResult.city);
           }
         }
       } catch (e) {
