@@ -286,8 +286,10 @@ async def get_me_proxy(request: Request):
 
 @api_router.post("/auth/register")
 async def register_proxy(request: Request):
-    """Proxy registration to production backend"""
+    """Proxy registration to production backend, fallback to local"""
     body = await request.json()
+    
+    # Try production first
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -296,10 +298,53 @@ async def register_proxy(request: Request):
                 headers={"Content-Type": "application/json"},
                 timeout=30.0
             )
-            return JSONResponse(content=response.json(), status_code=response.status_code)
+            if response.status_code == 200 or response.status_code == 201:
+                return JSONResponse(content=response.json(), status_code=response.status_code)
         except Exception as e:
-            logger.error(f"Registration proxy error: {e}")
-            raise HTTPException(status_code=502, detail="Backend unavailable")
+            logger.error(f"Production registration error: {e}")
+    
+    # Fallback to local registration
+    logger.info("Falling back to local registration")
+    try:
+        # Check if user exists locally
+        existing = await db.users.find_one({"email": body.get("email")})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create user locally
+        user_id = str(uuid.uuid4())
+        hashed_password = hashlib.sha256(body.get("password", "").encode()).hexdigest()
+        
+        user_data = {
+            "id": user_id,
+            "email": body.get("email"),
+            "full_name": body.get("full_name"),
+            "phone": body.get("phone"),
+            "country": body.get("country", "ivory_coast"),
+            "role": body.get("role", "client"),
+            "hashed_password": hashed_password,
+            "is_active": True,
+            "is_verified": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        
+        await db.users.insert_one(user_data)
+        
+        # Create token
+        access_token = jwt.encode(
+            {"sub": user_id, "exp": datetime.utcnow() + timedelta(days=30)},
+            SECRET_KEY,
+            algorithm="HS256"
+        )
+        
+        user_response = {k: v for k, v in user_data.items() if k != 'hashed_password'}
+        return JSONResponse(content={"token": access_token, "user": user_response}, status_code=201)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Local registration error: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")
 
 @api_router.get("/categories")
 async def categories_proxy():
