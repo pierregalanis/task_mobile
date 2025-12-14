@@ -229,7 +229,7 @@ export default function CreateBookingScreen() {
 
     try {
       setSearching(true);
-      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+      const baseUrl = 'https://gethands.preview.emergentagent.com';
       
       const response = await fetch(
         `${baseUrl}/api/places/autocomplete?input=${encodeURIComponent(query)}&components=country:ci`
