@@ -2,22 +2,49 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 import Constants from 'expo-constants';
 
-// Use backend URL from environment (already includes /api path)
-const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
+// Production backend URL
+const PRODUCTION_API_URL = 'https://gethands.preview.emergentagent.com';
+
+// Local backend URL (for features not in production like AI, push tokens)
+const LOCAL_API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
   || process.env.EXPO_PUBLIC_BACKEND_URL 
   || 'http://localhost:8001';
 
-console.log('API Base URL:', API_BASE_URL);
+console.log('Production API URL:', PRODUCTION_API_URL);
+console.log('Local API URL:', LOCAL_API_URL);
 
+// Main API client for production backend
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: PRODUCTION_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add token
+// Local API client for features not in production
+const localApi = axios.create({
+  baseURL: LOCAL_API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add token - production API
 api.interceptors.request.use(
+  async (config) => {
+    const token = await storage.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Request interceptor to add token - local API
+localApi.interceptors.request.use(
   async (config) => {
     const token = await storage.getToken();
     if (token) {
@@ -35,9 +62,17 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       await storage.clearAll();
-      // You might want to redirect to login here
+    }
+    return Promise.reject(error);
+  }
+);
+
+localApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await storage.clearAll();
     }
     return Promise.reject(error);
   }
@@ -68,16 +103,27 @@ export interface User {
   language?: string;
   latitude?: number;
   longitude?: number;
+  tasker_profile?: any;
 }
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    // Backend expects JSON with email/password
-    const response = await api.post('/api/auth/login', {
-      email: credentials.email,
-      password: credentials.password
+    // Production API expects form data with username/password
+    const formData = new URLSearchParams();
+    formData.append('username', credentials.email);
+    formData.append('password', credentials.password);
+    
+    const response = await api.post('/api/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
-    return response.data;
+    
+    // Map production response to expected format
+    return {
+      token: response.data.access_token,
+      token_type: response.data.token_type,
+    };
   },
 
   async register(data: RegisterData) {
@@ -86,14 +132,16 @@ export const authAPI = {
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await api.get('/api/users/me');
+    // Production uses /api/auth/me instead of /api/users/me
+    const response = await api.get('/api/auth/me');
     return response.data;
   },
 };
 
 export const taskerAPI = {
   async getTaskers(params?: any) {
-    const response = await api.get('/api/users/taskers', { params });
+    // Production uses /api/taskers/search
+    const response = await api.get('/api/taskers/search', { params });
     return response.data;
   },
 
@@ -117,17 +165,32 @@ export const categoryAPI = {
 
 export const taskAPI = {
   async createTask(taskData: any) {
-    const response = await api.post('/api/tasks', taskData);
+    // Production expects tasker_id, not assigned_tasker_id
+    const prodTaskData = {
+      ...taskData,
+      tasker_id: taskData.assigned_tasker_id || taskData.tasker_id,
+    };
+    // Remove the old field name if present
+    delete prodTaskData.assigned_tasker_id;
+    
+    const response = await api.post('/api/tasks', prodTaskData);
     return response.data;
   },
 
   async getClientTasks() {
-    const response = await api.get('/api/tasks/client');
+    // Production returns all tasks for the authenticated user
+    const response = await api.get('/api/tasks');
     return response.data;
   },
 
   async getTaskerTasks() {
-    const response = await api.get('/api/tasks/tasker');
+    // Production returns all tasks for the authenticated user
+    const response = await api.get('/api/tasks');
+    return response.data;
+  },
+
+  async getTask(taskId: string) {
+    const response = await api.get(`/api/tasks/${taskId}`);
     return response.data;
   },
 
@@ -155,6 +218,20 @@ export const taskAPI = {
     const response = await api.put(`/api/tasks/${taskId}/status`, {
       status,
       cancellation_reason: cancellationReason,
+    });
+    return response.data;
+  },
+
+  async cancelTask(taskId: string, reason?: string) {
+    const response = await api.post(`/api/tasks/${taskId}/cancel`, {
+      reason,
+    });
+    return response.data;
+  },
+
+  async completeTask(taskId: string, paymentMethod?: string) {
+    const response = await api.post(`/api/tasks/${taskId}/complete`, {
+      payment_method: paymentMethod,
     });
     return response.data;
   },
@@ -213,34 +290,70 @@ export const favoriteAPI = {
 
 export const chatAPI = {
   async sendMessage(taskId: string, receiverId: string, message: string) {
-    const response = await api.post('/api/chat/send', {
-      task_id: taskId,
-      receiver_id: receiverId,
-      message,
-    });
-    return response.data;
+    // Try production first, fallback to local
+    try {
+      const response = await api.post(`/api/messages/${taskId}`, {
+        content: message,
+      });
+      return response.data;
+    } catch (error) {
+      // Fallback to local API
+      const response = await localApi.post('/api/chat/send', {
+        task_id: taskId,
+        receiver_id: receiverId,
+        message,
+      });
+      return response.data;
+    }
   },
 
   async getMessages(taskId: string) {
-    const response = await api.get(`/api/chat/${taskId}`);
-    return response.data;
+    // Try production first, fallback to local
+    try {
+      const response = await api.get(`/api/messages/${taskId}`);
+      return response.data;
+    } catch (error) {
+      // Fallback to local API
+      const response = await localApi.get(`/api/chat/${taskId}`);
+      return response.data;
+    }
   },
 
   async getUnreadCount(taskId: string) {
-    const response = await api.get(`/api/chat/${taskId}/unread-count`);
-    return response.data;
+    try {
+      const response = await api.get(`/api/messages/${taskId}/unread`);
+      return response.data;
+    } catch (error) {
+      const response = await localApi.get(`/api/chat/${taskId}/unread-count`);
+      return response.data;
+    }
   },
 };
 
 export const notificationAPI = {
   async getNotifications() {
     const response = await api.get('/api/notifications');
+    // Production returns { notifications: [], unread_count: int }
+    // Normalize to array format for compatibility
+    if (response.data.notifications) {
+      return response.data.notifications;
+    }
     return response.data;
   },
 
   async getUnreadCount() {
-    const response = await api.get('/api/notifications/unread-count');
-    return response.data;
+    const response = await api.get('/api/notifications');
+    // Production includes unread_count in the notifications response
+    if (response.data.unread_count !== undefined) {
+      return { unread_count: response.data.unread_count, count: response.data.unread_count };
+    }
+    // Fallback to separate endpoint
+    try {
+      const countResponse = await api.get('/api/notifications/unread-count');
+      return countResponse.data;
+    } catch {
+      return { unread_count: 0, count: 0 };
+    }
   },
 
   async markAsRead(notificationId: string) {
@@ -254,17 +367,61 @@ export const notificationAPI = {
   },
 };
 
+// Push tokens - use local API since production may not have this
 export const pushTokenAPI = {
   async registerToken(token: string, deviceType?: string) {
-    const response = await api.post('/api/push-tokens', {
-      token,
-      device_type: deviceType,
+    try {
+      // Try production first
+      const response = await api.post('/api/push-tokens', {
+        token,
+        device_type: deviceType,
+      });
+      return response.data;
+    } catch (error) {
+      // Fallback to local
+      const response = await localApi.post('/api/push-tokens', {
+        token,
+        device_type: deviceType,
+      });
+      return response.data;
+    }
+  },
+
+  async unregisterToken(token: string) {
+    try {
+      const response = await api.delete(`/api/push-tokens/${token}`);
+      return response.data;
+    } catch (error) {
+      const response = await localApi.delete(`/api/push-tokens/${token}`);
+      return response.data;
+    }
+  },
+};
+
+// AI Assistant - uses local API with OpenAI integration
+export const aiAPI = {
+  async chat(message: string, sessionId?: string) {
+    const response = await localApi.post('/api/ai/chat', {
+      message,
+      session_id: sessionId,
+    });
+    return response.data;
+  },
+};
+
+// Google Places - uses local proxy to avoid CORS
+export const googlePlacesAPI = {
+  async autocomplete(input: string) {
+    const response = await localApi.get('/api/google/places/autocomplete', {
+      params: { input },
     });
     return response.data;
   },
 
-  async unregisterToken(token: string) {
-    const response = await api.delete(`/api/push-tokens/${token}`);
+  async getPlaceDetails(placeId: string) {
+    const response = await localApi.get('/api/google/places/details', {
+      params: { place_id: placeId },
+    });
     return response.data;
   },
 };
