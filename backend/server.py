@@ -367,6 +367,178 @@ async def user_proxy(user_id: str, request: Request):
             logger.error(f"Proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
+@api_router.get("/tasks/{task_id}")
+async def task_detail_proxy(task_id: str, request: Request):
+    """Proxy task details to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/tasks/{task_id}",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.put("/tasks/{task_id}")
+async def task_update_proxy(task_id: str, request: Request):
+    """Proxy task update to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.put(
+                f"{PROD_BACKEND}/api/tasks/{task_id}",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.api_route("/tasks/{task_id}/{action}", methods=["POST", "PUT"])
+async def task_action_proxy(task_id: str, action: str, request: Request):
+    """Proxy task actions (accept, start, complete, cancel, etc.) to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.request(
+                request.method,
+                f"{PROD_BACKEND}/api/tasks/{task_id}/{action}",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/messages/{task_id}")
+async def messages_proxy(task_id: str, request: Request):
+    """Proxy messages to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/messages/{task_id}",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.post("/messages/{task_id}")
+async def send_message_proxy(task_id: str, request: Request):
+    """Proxy send message to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{PROD_BACKEND}/api/messages/{task_id}",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/reviews/{tasker_id}")
+async def reviews_proxy(tasker_id: str, request: Request):
+    """Proxy reviews to production backend"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/reviews/{tasker_id}",
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.post("/reviews")
+async def create_review_proxy(request: Request):
+    """Proxy create review to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{PROD_BACKEND}/api/reviews",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.api_route("/taskers/profile", methods=["GET", "PUT"])
+async def tasker_profile_proxy(request: Request):
+    """Proxy tasker profile to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            if request.method == "GET":
+                response = await client.get(
+                    f"{PROD_BACKEND}/api/taskers/profile",
+                    headers={"Authorization": auth_header},
+                    timeout=30.0
+                )
+            else:
+                body = await request.json()
+                response = await client.put(
+                    f"{PROD_BACKEND}/api/taskers/profile",
+                    json=body,
+                    headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                    timeout=30.0
+                )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.api_route("/users/profile", methods=["GET", "PUT"])
+async def user_profile_proxy(request: Request):
+    """Proxy user profile to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            if request.method == "GET":
+                response = await client.get(
+                    f"{PROD_BACKEND}/api/users/profile",
+                    headers={"Authorization": auth_header},
+                    timeout=30.0
+                )
+            else:
+                body = await request.json()
+                response = await client.put(
+                    f"{PROD_BACKEND}/api/users/profile",
+                    json=body,
+                    headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                    timeout=30.0
+                )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
 # ==================== LOCAL AUTH ENDPOINTS (FALLBACK) ====================
 
 @api_router.post("/auth/register", response_model=Token, status_code=status.HTTP_201_CREATED)
