@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { showMessage, showConfirm } from '../../utils/alert';
 import {
   View,
   Text,
@@ -7,24 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { Ionicons } from '@expo/vector-icons';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { useRouter } from 'expo-router';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import api, { categoryAPI } from '../../services/api';
-import { showMessage, showConfirm } from '../../utils/alert';
 import { CATEGORIES, getCategoryName, getSubcategoryName } from '../../constants/Categories';
+import { showMessage, showConfirm } from '../../utils/alert';
 
 interface Service {
   category: string;
