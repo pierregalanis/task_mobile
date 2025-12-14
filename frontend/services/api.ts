@@ -1,10 +1,12 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
+import { Platform } from 'react-native';
 
-// Standalone - using local backend
-const API_BASE_URL = '';
+// Production Backend
+// Native apps connect directly, web uses local proxy to avoid CORS
+const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://gethands.preview.emergentagent.com';
 
-console.log('API URL: Local Backend');
+console.log('API URL:', API_BASE_URL || 'Local Proxy (Web)');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
