@@ -245,7 +245,97 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise credentials_exception
     return user
 
-# ==================== AUTH ENDPOINTS ====================
+# ==================== PRODUCTION BACKEND PROXY ====================
+PROD_BACKEND = "https://gethands.preview.emergentagent.com"
+
+# Login proxy to production
+from fastapi import Form, Request
+from fastapi.responses import JSONResponse
+
+@api_router.post("/auth/login")
+async def login_proxy(username: str = Form(...), password: str = Form(...)):
+    """Proxy login to production backend"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{PROD_BACKEND}/api/auth/login",
+                data={"username": username, "password": password},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/auth/me")
+async def get_me_proxy(request: Request):
+    """Proxy get current user to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/auth/me",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/categories")
+async def categories_proxy():
+    """Proxy categories to production backend"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{PROD_BACKEND}/api/categories", timeout=30.0)
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.api_route("/tasks", methods=["GET", "POST"])
+async def tasks_proxy(request: Request):
+    """Proxy tasks to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            if request.method == "GET":
+                response = await client.get(
+                    f"{PROD_BACKEND}/api/tasks",
+                    headers={"Authorization": auth_header},
+                    timeout=30.0
+                )
+            else:
+                body = await request.json()
+                response = await client.post(
+                    f"{PROD_BACKEND}/api/tasks",
+                    json=body,
+                    headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                    timeout=30.0
+                )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/taskers/search")
+async def taskers_proxy(request: Request):
+    """Proxy taskers search to production backend"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/taskers/search",
+                params=dict(request.query_params),
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+# ==================== LOCAL AUTH ENDPOINTS (FALLBACK) ====================
 
 @api_router.post("/auth/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate):
