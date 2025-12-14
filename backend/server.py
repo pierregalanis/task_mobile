@@ -1281,6 +1281,22 @@ async def unregister_push_token(token: str, current_user: User = Depends(get_cur
     await db.push_tokens.delete_one({"user_id": current_user.id, "token": token})
     return {"message": "Token unregistered"}
 
+class TestPushNotification(BaseModel):
+    title: str
+    body: str
+    data: Optional[dict] = None
+
+@api_router.post("/push-test")
+async def send_test_push_notification(notification: TestPushNotification, current_user: User = Depends(get_current_user)):
+    """Send a test push notification to the current user"""
+    result = await send_push_notification(
+        user_id=current_user.id,
+        title=notification.title,
+        body=notification.body,
+        data=notification.data
+    )
+    return {"message": "Test notification sent", "result": result}
+
 # ==================== BASIC ENDPOINTS ====================
 
 @api_router.get("/")
