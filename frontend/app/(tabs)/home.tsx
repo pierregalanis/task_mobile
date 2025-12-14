@@ -1,16 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { CATEGORIES, getCategoryName } from '../../constants/Categories';
+import { notificationAPI } from '../../services/api';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnreadCount();
+    }, [])
+  );
+
+  const fetchUnreadCount = async () => {
+    try {
+      const data = await notificationAPI.getUnreadCount();
+      setUnreadCount(data.count || 0);
+    } catch (error) {
+      console.log('Error fetching unread count:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
