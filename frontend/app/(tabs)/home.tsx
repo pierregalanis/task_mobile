@@ -15,21 +15,21 @@ export default function HomeScreen() {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread count when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchUnreadCount();
-    }, [])
-  );
-
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const data = await notificationAPI.getUnreadCount();
       setUnreadCount(data.unread_count || data.count || 0);
     } catch (error) {
       console.log('Error fetching unread count:', error);
     }
-  };
+  }, []);
+
+  // Fetch unread count when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnreadCount();
+    }, [fetchUnreadCount])
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
