@@ -94,8 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = response.token || response.access_token;
       await storage.saveToken(token);
       
-      // Get user data after register
-      const userData = await authAPI.getCurrentUser();
+      // Use user data from response if available (local fallback), otherwise fetch
+      let userData = response.user;
+      if (!userData) {
+        userData = await authAPI.getCurrentUser();
+      }
       await storage.saveUser(userData);
       setUser(userData);
       
