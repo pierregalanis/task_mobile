@@ -132,7 +132,7 @@ export function usePushNotifications() {
   // Set up listeners on mount
   useEffect(() => {
     // Register for push notifications when user is authenticated
-    if (user && token) {
+    if (user && isAuthenticated) {
       registerForPushNotifications();
     }
 
