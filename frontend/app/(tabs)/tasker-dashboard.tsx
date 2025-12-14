@@ -133,14 +133,14 @@ export default function TaskerDashboardScreen() {
     try {
       setActionLoading(taskId);
       await taskAPI.acceptTask(taskId);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Tâche acceptée!' : 'Task accepted!'
       );
       fetchData();
     } catch (error: any) {
       console.error('Error accepting task:', error);
-      Alert.alert(
+      showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'accepter la tâche' : 'Failed to accept task')
       );
@@ -150,34 +150,32 @@ export default function TaskerDashboardScreen() {
   };
 
   const handleRejectTask = async (taskId: string) => {
-    Alert.alert(
+    showConfirm(
       i18n.locale === 'fr' ? 'Refuser la tâche?' : 'Reject task?',
       i18n.locale === 'fr' ? 'Êtes-vous sûr de vouloir refuser cette tâche?' : 'Are you sure you want to reject this task?',
-      [
-        { text: i18n.locale === 'fr' ? 'Non' : 'No', style: 'cancel' },
-        {
-          text: i18n.locale === 'fr' ? 'Oui, refuser' : 'Yes, reject',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setActionLoading(taskId);
-              await taskAPI.rejectTask(taskId);
-              Alert.alert(
-                i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected',
-                i18n.locale === 'fr' ? 'Le client sera notifié.' : 'The client will be notified.'
-              );
-              fetchData();
-            } catch (error: any) {
-              console.error('Error rejecting task:', error);
-              Alert.alert(
-                i18n.locale === 'fr' ? 'Erreur' : 'Error',
-                error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de refuser la tâche' : 'Failed to reject task')
-              );
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
+      async () => {
+        try {
+          setActionLoading(taskId);
+          await taskAPI.rejectTask(taskId);
+          showMessage(
+            i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected',
+            i18n.locale === 'fr' ? 'Le client sera notifié.' : 'The client will be notified.'
+          );
+          fetchData();
+        } catch (error: any) {
+          console.error('Error rejecting task:', error);
+          showMessage(
+            i18n.locale === 'fr' ? 'Erreur' : 'Error',
+            error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de refuser la tâche' : 'Failed to reject task')
+          );
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      i18n.locale === 'fr' ? 'Oui, refuser' : 'Yes, reject',
+      i18n.locale === 'fr' ? 'Non' : 'No'
+    );
       ]
     );
   };
