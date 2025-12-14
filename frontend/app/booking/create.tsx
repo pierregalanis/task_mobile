@@ -251,7 +251,7 @@ export default function CreateBookingScreen() {
   // Select a place from search results
   const selectPlace = async (placeId: string, description: string) => {
     try {
-      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+      const baseUrl = 'https://gethands.preview.emergentagent.com';
       
       const response = await fetch(
         `${baseUrl}/api/places/details?place_id=${placeId}`
