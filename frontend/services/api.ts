@@ -81,18 +81,15 @@ export interface User {
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    // Production uses form data
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
-    
-    const response = await api.post('/api/auth/login', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    // Send as JSON - local backend expects email/password
+    const response = await api.post('/api/auth/login', {
+      email: credentials.email,
+      password: credentials.password,
     });
     
     return {
-      token: response.data.access_token,
-      token_type: response.data.token_type,
+      token: response.data.token || response.data.access_token,
+      token_type: response.data.token_type || 'bearer',
     };
   },
 
