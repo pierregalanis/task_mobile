@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
 
-// Production Backend - works on native mobile (CORS only affects web preview)
-const API_BASE_URL = 'https://gethands.preview.emergentagent.com';
+// Standalone - using local backend
+const API_BASE_URL = '';
 
-console.log('API URL:', API_BASE_URL);
+console.log('API URL: Local Backend');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
