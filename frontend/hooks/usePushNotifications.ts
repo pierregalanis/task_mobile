@@ -168,12 +168,12 @@ export function usePushNotifications() {
 
   // Re-register token when user changes
   useEffect(() => {
-    if (user && token && expoPushToken) {
+    if (user && isAuthenticated && expoPushToken) {
       pushTokenAPI.registerToken(expoPushToken, Platform.OS)
         .then(() => console.log('Token re-registered for user:', user.id))
         .catch((err) => console.error('Failed to re-register token:', err));
     }
-  }, [user?.id, token, expoPushToken]);
+  }, [user?.id, isAuthenticated, expoPushToken]);
 
   // Unregister token on logout
   const unregisterToken = useCallback(async () => {
