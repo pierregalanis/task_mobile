@@ -55,15 +55,19 @@ export default function EditProfileScreen() {
     try {
       setLoading(true);
       
+      // Update basic profile info
       await api.put('/api/users/profile', {
         full_name: fullName,
         phone,
         city,
-        tasker_profile: {
-          ...user?.tasker_profile,
-          bio,
-        },
       });
+
+      // Update tasker-specific profile if user is a tasker
+      if (user?.role === 'tasker') {
+        await api.put('/api/taskers/profile', {
+          bio,
+        });
+      }
 
       await refreshUser();
       
