@@ -335,6 +335,38 @@ async def taskers_proxy(request: Request):
             logger.error(f"Proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
+@api_router.get("/notifications")
+async def notifications_proxy(request: Request):
+    """Proxy notifications to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/notifications",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.get("/users/{user_id}")
+async def user_proxy(user_id: str, request: Request):
+    """Proxy user details to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PROD_BACKEND}/api/users/{user_id}",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
 # ==================== LOCAL AUTH ENDPOINTS (FALLBACK) ====================
 
 @api_router.post("/auth/register", response_model=Token, status_code=status.HTTP_201_CREATED)
