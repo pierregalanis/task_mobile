@@ -33,12 +33,37 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'client' | 'tasker'>('client');
+  const [country, setCountry] = useState<'ivory_coast' | 'senegal'>('ivory_coast');
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
     defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
   });
 
   const password = watch('password');
+
+  // Country config
+  const countryConfig = {
+    ivory_coast: {
+      name_fr: "Côte d'Ivoire",
+      name_en: "Ivory Coast",
+      flag: "🇨🇮",
+      phonePrefix: "+225",
+      defaultCity: "Abidjan",
+      latitude: 5.36,
+      longitude: -4.00,
+    },
+    senegal: {
+      name_fr: "Sénégal",
+      name_en: "Senegal",
+      flag: "🇸🇳",
+      phonePrefix: "+221",
+      defaultCity: "Dakar",
+      latitude: 14.7167,
+      longitude: -17.4677,
+    },
+  };
+
+  const selectedCountry = countryConfig[country];
 
   const onSubmit = async (data: SignupFormData) => {
     try {
@@ -48,7 +73,11 @@ export default function SignupScreen() {
         password: data.password,
         full_name: data.fullName,
         phone: data.phone,
-        country: 'ivory_coast',  // Production backend expects 'ivory_coast' or 'senegal'
+        country: country,
+        city: selectedCountry.defaultCity,
+        latitude: selectedCountry.latitude,
+        longitude: selectedCountry.longitude,
+        language: i18n.locale,
         role: role,
       });
       showMessage(
