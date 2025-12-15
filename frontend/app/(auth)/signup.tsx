@@ -165,7 +165,7 @@ export default function SignupScreen() {
             <Controller control={control} name="phone"
               rules={{ required: i18n.locale === 'fr' ? 'Téléphone requis' : 'Phone is required' }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.phone')} placeholder="+225 XX XX XX XX" value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="phone-pad" error={errors.phone?.message} leftIcon={<Ionicons name="call-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <Input label={i18n.t('auth.signup.phone')} placeholder={`${selectedCountry.phonePrefix} XX XX XX XX`} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="phone-pad" error={errors.phone?.message} leftIcon={<Ionicons name="call-outline" size={20} color={Colors.dark.textSecondary} />} />
               )}
             />
 
