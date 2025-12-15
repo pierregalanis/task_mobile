@@ -7,14 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { CATEGORIES, getCategoryName, Category } from '../../constants/Categories';
+import { getCategoryName, Category } from '../../constants/Categories';
 import { notificationAPI, categoryAPI } from '../../services/api';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   const fetchCategories = useCallback(async () => {
