@@ -54,9 +54,7 @@ export default function SelectTaskerScreen() {
     // Get pricing info from tasker's service
     const service = tasker.tasker_profile?.services?.find(
       (s: any) => s.category === categoryId
-    ); 
-      ? getSubcategoryName(subcategory, i18n.locale) 
-      : (category ? getCategoryName(category, i18n.locale) : 'Service');
+    );
     
     router.push({
       pathname: '/booking/create',
@@ -64,7 +62,7 @@ export default function SelectTaskerScreen() {
         taskerId: tasker.id,
         categoryId,
         subcategoryId,
-        serviceName,
+        serviceName: getServiceName(),
         pricingType: service?.pricing_type || 'hourly',
         hourlyRate: service?.hourly_rate?.toString() || '0',
         fixedPrice: service?.fixed_price?.toString() || '0',
@@ -84,10 +82,10 @@ export default function SelectTaskerScreen() {
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>
-            {subcategory ? getSubcategoryName(subcategory, i18n.locale) : 'Sélectionner un tâcheron'}
+            {getServiceName() || 'Sélectionner un tâcheron'}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {category ? getCategoryName(category, i18n.locale) : ''}
+            {getCategoryName()}
           </Text>
         </View>
       </View>
