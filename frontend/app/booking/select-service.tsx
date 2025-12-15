@@ -101,11 +101,11 @@ export default function SelectServiceScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.serviceIcon}>
-              <Text style={styles.serviceIconText}>{subcategory.icon || '🔧'}</Text>
+              <Text style={styles.serviceIconText}>🔧</Text>
             </View>
             <View style={styles.serviceInfo}>
               <Text style={styles.serviceName}>
-                {getSubcategoryName(subcategory, i18n.locale)}
+                {getSubcategoryName(subcategory)}
               </Text>
               <Text style={styles.serviceDescription}>
                 {i18n.locale === 'fr' ? 'Appuyez pour voir les tâcherons disponibles' : 'Tap to see available taskers'}
