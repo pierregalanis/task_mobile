@@ -10,44 +10,51 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskerAPI } from '../../services/api';
+import { taskerAPI, categoryAPI } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
 
 export default function SelectTaskerScreen() {
   const router = useRouter();
-  const { categoryId, subcategoryId } = useLocalSearchParams();
+  const { categoryId, subcategoryId, serviceName } = useLocalSearchParams();
   const [taskers, setTaskers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const category = getCategoryById(categoryId as string);
-  const subcategory = getSubcategoryById(categoryId as string, subcategoryId as string);
+  const [category, setCategory] = useState<any>(null);
 
   useEffect(() => {
-    fetchTaskers();
-  }, []);
+    const initialize = async () => {
+      try {
+        // Fetch category info
+        const categories = await categoryAPI.getCategories();
+        const found = categories.find((cat: any) => cat.id === categoryId);
+        setCategory(found);
+        
+        // Fetch taskers
+        const data = await taskerAPI.getTaskers({ category: categoryId });
+        setTaskers(data);
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initialize();
+  }, [categoryId]);
 
-  const fetchTaskers = async () => {
-    try {
-      setLoading(true);
-      const data = await taskerAPI.getTaskers({ category: categoryId });
-      setTaskers(data);
-    } catch (error) {
-      console.error('Error fetching taskers:', error);
-    } finally {
-      setLoading(false);
-    }
+  const getCategoryName = () => {
+    if (!category) return '';
+    return i18n.locale === 'fr' ? category.name_fr : category.name_en;
+  };
+
+  const getServiceName = () => {
+    return serviceName as string || '';
   };
 
   const handleTaskerSelect = (tasker: any) => {
     // Get pricing info from tasker's service
     const service = tasker.tasker_profile?.services?.find(
       (s: any) => s.category === categoryId
-    );
-    
-    // Get subcategory name for the booking title
-    const serviceName = subcategory 
+    ); 
       ? getSubcategoryName(subcategory, i18n.locale) 
       : (category ? getCategoryName(category, i18n.locale) : 'Service');
     
