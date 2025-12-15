@@ -1,22 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { CATEGORIES, getCategoryById, getCategoryName, getSubcategoryName } from '../../constants/Categories';
+import { categoryAPI } from '../../services/api';
 
 export default function SelectServiceScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams();
-  const category = getCategoryById(categoryId as string);
+  const [category, setCategory] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategory = async () => {
+      try {
+        const categories = await categoryAPI.getAll();
+        const found = categories.find((cat: any) => cat.id === categoryId);
+        setCategory(found);
+      } catch (error) {
+        console.error('Error fetching category:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategory();
+  }, [categoryId]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.dark.primary} />
+      </SafeAreaView>
+    );
+  }
 
   if (!category) {
     return (
@@ -26,12 +51,21 @@ export default function SelectServiceScreen() {
     );
   }
 
-  const handleServiceSelect = (subcategoryId: string) => {
+  const getCategoryName = (cat: any) => {
+    return i18n.locale === 'fr' ? cat.name_fr : cat.name_en;
+  };
+
+  const getSubcategoryName = (sub: any) => {
+    return i18n.locale === 'fr' ? sub.fr : sub.en;
+  };
+
+  const handleServiceSelect = (subcategoryIndex: number, subcategoryName: string) => {
     router.push({
       pathname: '/booking/select-tasker',
       params: {
         categoryId: category.id,
-        subcategoryId,
+        subcategoryId: subcategoryIndex.toString(),
+        serviceName: subcategoryName,
       },
     });
   };
