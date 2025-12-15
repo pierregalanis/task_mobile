@@ -79,7 +79,7 @@ export default function SelectServiceScreen() {
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>
-            {getCategoryName(category, i18n.locale)}
+            {getCategoryName(category)}
           </Text>
           <Text style={styles.headerSubtitle}>
             {category.subcategories.length} {i18n.locale === 'fr' ? 'services disponibles' : 'services available'}
@@ -93,11 +93,11 @@ export default function SelectServiceScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {category.subcategories.map((subcategory) => (
+        {category.subcategories.map((subcategory: any, index: number) => (
           <TouchableOpacity
-            key={subcategory.id}
+            key={index}
             style={styles.serviceCard}
-            onPress={() => handleServiceSelect(subcategory.id)}
+            onPress={() => handleServiceSelect(index, getSubcategoryName(subcategory))}
             activeOpacity={0.7}
           >
             <View style={styles.serviceIcon}>
