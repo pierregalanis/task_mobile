@@ -23,7 +23,7 @@ export default function SelectServiceScreen() {
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const categories = await categoryAPI.getAll();
+        const categories = await categoryAPI.getCategories();
         const found = categories.find((cat: any) => cat.id === categoryId);
         setCategory(found);
       } catch (error) {
