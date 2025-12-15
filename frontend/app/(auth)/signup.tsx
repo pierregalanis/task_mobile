@@ -122,6 +122,31 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Country Selector */}
+          <View style={styles.countrySection}>
+            <Text style={styles.countryLabel}>{i18n.locale === 'fr' ? 'Pays' : 'Country'}</Text>
+            <View style={styles.countrySelector}>
+              <TouchableOpacity 
+                style={[styles.countryButton, country === 'ivory_coast' && styles.countryButtonActive]} 
+                onPress={() => setCountry('ivory_coast')}
+              >
+                <Text style={styles.countryFlag}>🇨🇮</Text>
+                <Text style={[styles.countryButtonText, country === 'ivory_coast' && styles.countryButtonTextActive]}>
+                  {i18n.locale === 'fr' ? "Côte d'Ivoire" : "Ivory Coast"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.countryButton, country === 'senegal' && styles.countryButtonActive]} 
+                onPress={() => setCountry('senegal')}
+              >
+                <Text style={styles.countryFlag}>🇸🇳</Text>
+                <Text style={[styles.countryButtonText, country === 'senegal' && styles.countryButtonTextActive]}>
+                  {i18n.locale === 'fr' ? "Sénégal" : "Senegal"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.form}>
             <Controller control={control} name="fullName"
               rules={{ required: i18n.locale === 'fr' ? 'Nom complet requis' : 'Full name is required' }}
