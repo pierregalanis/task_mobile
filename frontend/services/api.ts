@@ -383,9 +383,12 @@ export const pushTokenAPI = {
 
 export const aiAPI = {
   async chat(message: string, sessionId?: string, chatHistory?: any[]) {
+    // Generate a session ID if not provided (required by the backend)
+    const effectiveSessionId = sessionId || `mobile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const response = await api.post('/api/ai-assistant/chat', {
       message,
-      session_id: sessionId,
+      session_id: effectiveSessionId,
       chat_history: chatHistory || [],
     });
     return response.data;
