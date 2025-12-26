@@ -137,7 +137,8 @@ export default function AIAssistant() {
 
   const clearChat = () => {
     setMessages([]);
-    setSessionId(null);
+    // Generate new session ID when clearing chat
+    setSessionId(`mobile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
     // Re-add greeting
     const greeting: Message = {
       id: 'greeting-new',
