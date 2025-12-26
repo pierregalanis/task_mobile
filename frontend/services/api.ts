@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // Production Backend
 // Native apps connect directly, web uses local proxy to avoid CORS
-const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://gethands.preview.emergentagent.com';
+const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://service-finder-230.preview.emergentagent.com';
 
 console.log('API URL:', API_BASE_URL || 'Local Proxy (Web)');
 
