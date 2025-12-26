@@ -1,0 +1,207 @@
+{
+  "summary": {
+    "total": 28,
+    "passed": 20,
+    "failed": 8,
+    "success_rate": 71.42857142857143,
+    "timestamp": "2025-12-26T06:23:51.326231"
+  },
+  "test_results": [
+    {
+      "test": "Client Login",
+      "success": true,
+      "details": "Login successful with client@test.com, token type: bearer",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:49.992050"
+    },
+    {
+      "test": "Tasker Login",
+      "success": true,
+      "details": "Login successful with tasker@test.com, token type: bearer",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.266760"
+    },
+    {
+      "test": "Client Token Validation",
+      "success": true,
+      "details": "Token is valid and user data retrieved",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.313353"
+    },
+    {
+      "test": "Tasker Token Validation",
+      "success": true,
+      "details": "Token is valid and user data retrieved",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.365358"
+    },
+    {
+      "test": "Email Reset API",
+      "success": false,
+      "details": "HTTP 404: {\"detail\":\"Not Found\"}",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.460344"
+    },
+    {
+      "test": "WhatsApp Reset API",
+      "success": false,
+      "details": "HTTP 404: {\"detail\":\"Not Found\"}",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.503971"
+    },
+    {
+      "test": "User Greeting Data",
+      "success": true,
+      "details": "User data available for greeting: Jean Dupont",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.503990"
+    },
+    {
+      "test": "Categories Load",
+      "success": true,
+      "details": "Retrieved 14 categories (expected: 14)",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.549414"
+    },
+    {
+      "test": "Category Structure",
+      "success": false,
+      "details": "Categories have proper EN/FR translations: False",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.549427"
+    },
+    {
+      "test": "Notifications Bell Data",
+      "success": true,
+      "details": "Unread count available: 15",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.596470"
+    },
+    {
+      "test": "AI Chat Response",
+      "success": false,
+      "details": "HTTP 422: {\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"session_id\"],\"msg\":\"Field required\",\"input\":{\"message\":\"Je cherche un plombier\",\"language\":\"fr\"},\"url\":\"https://errors.pydantic.dev/2.12/v/missing\"}]}",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.641398"
+    },
+    {
+      "test": "AI Quick Actions",
+      "success": false,
+      "details": "HTTP 422",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.687065"
+    },
+    {
+      "test": "Category Selection",
+      "success": false,
+      "details": "Cleaning category not found",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.730918"
+    },
+    {
+      "test": "Tasker Selection",
+      "success": true,
+      "details": "Selected tasker: Marie Kouassi (ID: 402fb413-3c73-4bf8-90e4-cf372cda3a7b)",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.779609"
+    },
+    {
+      "test": "Booking Submission",
+      "success": true,
+      "details": "Booking created successfully with ID: e32fffab-b01b-41d5-8fab-2aa18312266f",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.824770"
+    },
+    {
+      "test": "Booking Confirmation",
+      "success": true,
+      "details": "Booking confirmed with status: assigned",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.824780"
+    },
+    {
+      "test": "Bookings List",
+      "success": true,
+      "details": "Retrieved 37 bookings for client",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.871215"
+    },
+    {
+      "test": "Booking Details",
+      "success": true,
+      "details": "Retrieved details for booking: e32fffab-b01b-41d5-8fab-2aa18312266f",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.914691"
+    },
+    {
+      "test": "Tasker Dashboard",
+      "success": false,
+      "details": "HTTP 405: {\"detail\":\"Method Not Allowed\"}",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:50.960313"
+    },
+    {
+      "test": "Tasker Tasks",
+      "success": true,
+      "details": "Retrieved 37 tasks for tasker",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.012312"
+    },
+    {
+      "test": "View Profile (Client)",
+      "success": false,
+      "details": "HTTP 404",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.056640"
+    },
+    {
+      "test": "Edit Profile",
+      "success": true,
+      "details": "Profile update successful",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.099472"
+    },
+    {
+      "test": "Language Toggle",
+      "success": true,
+      "details": "Language toggle functionality available (client-side)",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.099481"
+    },
+    {
+      "test": "Navigation - Home tab data",
+      "success": true,
+      "details": "API endpoint accessible",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.142335"
+    },
+    {
+      "test": "Navigation - Taskers tab data",
+      "success": true,
+      "details": "API endpoint accessible",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.192263"
+    },
+    {
+      "test": "Navigation - Bookings tab data",
+      "success": true,
+      "details": "API endpoint accessible",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.238996"
+    },
+    {
+      "test": "Navigation - Profile tab data",
+      "success": true,
+      "details": "API endpoint accessible",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.281538"
+    },
+    {
+      "test": "Deep Linking",
+      "success": true,
+      "details": "Task deep link API accessible",
+      "response_data": null,
+      "timestamp": "2025-12-26T06:23:51.326027"
+    }
+  ]
+}
