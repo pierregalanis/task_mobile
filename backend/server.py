@@ -247,7 +247,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
 
 # ==================== PRODUCTION BACKEND PROXY ====================
-PROD_BACKEND = "https://service-finder-230.preview.emergentagent.com"
+PROD_BACKEND = "https://taskermate.preview.emergentagent.com"
 
 # Login proxy to production
 from fastapi import Form, Request
