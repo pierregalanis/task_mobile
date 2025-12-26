@@ -386,11 +386,16 @@ export const aiAPI = {
     // Generate a session ID if not provided (required by the backend)
     const effectiveSessionId = sessionId || `mobile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
+    console.log('AI Chat Request:', { message, session_id: effectiveSessionId });
+    
     const response = await api.post('/api/ai-assistant/chat', {
       message,
       session_id: effectiveSessionId,
       chat_history: chatHistory || [],
     });
+    
+    console.log('AI Chat Response:', response.data);
+    
     return response.data;
   },
 };
