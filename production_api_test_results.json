@@ -5,7 +5,7 @@
     "failed": 0,
     "success_rate": 100.0,
     "backend_url": "https://service-finder-230.preview.emergentagent.com",
-    "test_timestamp": "2025-12-14T04:07:30.940756"
+    "test_timestamp": "2025-12-26T06:22:12.250698"
   },
   "detailed_results": [
     {
@@ -16,7 +16,7 @@
         "status_code": 200,
         "has_token": true
       },
-      "timestamp": "2025-12-14T04:07:30.577211"
+      "timestamp": "2025-12-26T06:22:11.448625"
     },
     {
       "test": "Authentication (Tasker)",
@@ -26,7 +26,7 @@
         "status_code": 200,
         "has_token": true
       },
-      "timestamp": "2025-12-14T04:07:30.810351"
+      "timestamp": "2025-12-26T06:22:11.722091"
     },
     {
       "test": "Get Current User (Client)",
@@ -36,7 +36,7 @@
         "status_code": 200,
         "user_role": "client"
       },
-      "timestamp": "2025-12-14T04:07:30.818450"
+      "timestamp": "2025-12-26T06:22:11.811274"
     },
     {
       "test": "Get Current User (Tasker)",
@@ -46,17 +46,17 @@
         "status_code": 200,
         "user_role": "tasker"
       },
-      "timestamp": "2025-12-14T04:07:30.829663"
+      "timestamp": "2025-12-26T06:22:11.859726"
     },
     {
       "test": "Get Categories",
       "success": true,
-      "details": "Retrieved 13 categories. Has subcategories: True",
+      "details": "Retrieved 14 categories. Has subcategories: True",
       "response_data": {
         "status_code": 200,
-        "count": 13,
+        "count": 14,
         "sample": {
-          "id": "2a98920a-3536-4139-8f50-65c87574fae3",
+          "id": "822fe3ff-4a68-46a8-b0ff-630e6f2b3469",
           "name_en": "Home & Repairs",
           "name_fr": "Maison & R\u00e9parations",
           "icon": "\ud83c\udfe0",
@@ -96,19 +96,27 @@
             {
               "en": "Yard Work & Snow Removal",
               "fr": "Jardinage & d\u00e9neigement"
+            },
+            {
+              "en": "Plumbing",
+              "fr": "Plomberie"
+            },
+            {
+              "en": "Electrician",
+              "fr": "\u00c9lectricien"
             }
           ]
         }
       },
-      "timestamp": "2025-12-14T04:07:30.837404"
+      "timestamp": "2025-12-26T06:22:11.907663"
     },
     {
       "test": "Get Taskers Search",
       "success": true,
-      "details": "Retrieved 3 taskers. Has tasker_profile: True",
+      "details": "Retrieved 12 taskers. Has tasker_profile: True",
       "response_data": {
         "status_code": 200,
-        "count": 3,
+        "count": 12,
         "sample": {
           "email": "tasker@test.com",
           "full_name": "Marie Kouassi",
@@ -141,6 +149,13 @@
                 "hourly_rate": "1000",
                 "bio": "massage",
                 "max_travel_distance": "50"
+              },
+              {
+                "category": "Events & Entertainment",
+                "subcategory": "Media & Coverage",
+                "hourly_rate": 0.0,
+                "bio": "",
+                "max_travel_distance": 10.0
               }
             ],
             "certifications": [],
@@ -161,59 +176,59 @@
           }
         }
       },
-      "timestamp": "2025-12-14T04:07:30.845428"
+      "timestamp": "2025-12-26T06:22:11.953181"
     },
     {
       "test": "Get Tasks (Client)",
       "success": true,
-      "details": "Retrieved 26 tasks for Client",
+      "details": "Retrieved 35 tasks for Client",
       "response_data": {
         "status_code": 200,
-        "count": 26
+        "count": 35
       },
-      "timestamp": "2025-12-14T04:07:30.861633"
+      "timestamp": "2025-12-26T06:22:12.013083"
     },
     {
       "test": "Get Tasks (Tasker)",
       "success": true,
-      "details": "Retrieved 26 tasks for Tasker",
+      "details": "Retrieved 35 tasks for Tasker",
       "response_data": {
         "status_code": 200,
-        "count": 26
+        "count": 35
       },
-      "timestamp": "2025-12-14T04:07:30.869500"
+      "timestamp": "2025-12-26T06:22:12.068717"
     },
     {
       "test": "Create Task",
       "success": true,
-      "details": "Task created successfully with ID: a397e101-e4b9-4ee4-8608-92cfd8f73cfb",
+      "details": "Task created successfully with ID: 55e9a0fa-b27a-482a-99bd-00b368a48eec",
       "response_data": {
         "status_code": 201,
-        "task_id": "a397e101-e4b9-4ee4-8608-92cfd8f73cfb"
+        "task_id": "55e9a0fa-b27a-482a-99bd-00b368a48eec"
       },
-      "timestamp": "2025-12-14T04:07:30.922902"
+      "timestamp": "2025-12-26T06:22:12.118377"
     },
     {
       "test": "Get Notifications (Client)",
       "success": true,
-      "details": "Retrieved notifications in correct format. Count: 13, Unread: 12",
+      "details": "Retrieved notifications in correct format. Count: 17, Unread: 15",
       "response_data": {
         "status_code": 200,
-        "count": 13,
-        "unread": 12
+        "count": 17,
+        "unread": 15
       },
-      "timestamp": "2025-12-14T04:07:30.931948"
+      "timestamp": "2025-12-26T06:22:12.164089"
     },
     {
       "test": "Get Notifications (Tasker)",
       "success": true,
-      "details": "Retrieved notifications in correct format. Count: 1, Unread: 1",
+      "details": "Retrieved notifications in correct format. Count: 1, Unread: 0",
       "response_data": {
         "status_code": 200,
         "count": 1,
-        "unread": 1
+        "unread": 0
       },
-      "timestamp": "2025-12-14T04:07:30.940643"
+      "timestamp": "2025-12-26T06:22:12.250551"
     }
   ]
 }
