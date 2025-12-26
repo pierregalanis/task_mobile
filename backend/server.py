@@ -356,6 +356,129 @@ async def register_proxy(request: Request):
         logger.error(f"Local registration error: {e}")
         raise HTTPException(status_code=500, detail="Registration failed")
 
+# ==================== PASSWORD RESET PROXY ENDPOINTS ====================
+
+@api_router.post("/auth/password-reset/request")
+async def password_reset_request_proxy(request: Request):
+    """Proxy password reset request (email method) to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/auth/password-reset/request",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Password reset request proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.post("/auth/password-reset/request-whatsapp")
+async def password_reset_whatsapp_proxy(request: Request):
+    """Proxy password reset request (WhatsApp method) to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/auth/password-reset/request-whatsapp",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"WhatsApp password reset proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.post("/auth/password-reset/verify-code")
+async def password_reset_verify_code_proxy(request: Request):
+    """Proxy password reset code verification to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/auth/password-reset/verify-code",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Code verification proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+@api_router.post("/auth/password-reset/reset")
+async def password_reset_proxy(request: Request):
+    """Proxy password reset with token/code to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/auth/password-reset/reset",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Password reset proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
+
+# ==================== PAYMENT (PAYDUNYA) PROXY ENDPOINTS ====================
+
+@api_router.post("/payments/initialize")
+async def payment_initialize_proxy(request: Request):
+    """Proxy payment initialization to production backend (Paydunya)"""
+    auth_header = request.headers.get("Authorization", "")
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/payments/initialize",
+                json=body,
+                headers={"Authorization": auth_header, "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Payment initialize proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Payment service unavailable")
+
+@api_router.get("/payments/{payment_id}/status")
+async def payment_status_proxy(payment_id: str, request: Request):
+    """Proxy payment status check to production backend"""
+    auth_header = request.headers.get("Authorization", "")
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.get(
+                f"{PROD_BACKEND}/api/payments/{payment_id}/status",
+                headers={"Authorization": auth_header},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Payment status proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Payment service unavailable")
+
+@api_router.post("/payments/callback")
+async def payment_callback_proxy(request: Request):
+    """Proxy payment callback from Paydunya to production backend"""
+    body = await request.json()
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post(
+                f"{PROD_BACKEND}/api/payments/callback",
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Payment callback proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Payment service unavailable")
+
 @api_router.get("/categories")
 async def categories_proxy():
     """Proxy categories to production backend"""
