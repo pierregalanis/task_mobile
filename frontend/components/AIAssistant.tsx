@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
-import api from '../services/api';
+import { aiAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
@@ -32,7 +32,8 @@ export default function AIAssistant() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  // Generate session ID on component mount
+  const [sessionId, setSessionId] = useState<string>(`mobile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const scrollViewRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
