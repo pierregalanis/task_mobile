@@ -2,9 +2,9 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 import { Platform } from 'react-native';
 
-// Production Backend
+// Production Backend - Updated to new taskermate URL
 // Native apps connect directly, web uses local proxy to avoid CORS
-const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://service-finder-230.preview.emergentagent.com';
+const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://taskermate.preview.emergentagent.com';
 
 console.log('API URL:', API_BASE_URL || 'Local Proxy (Web)');
 
