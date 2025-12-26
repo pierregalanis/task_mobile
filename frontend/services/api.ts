@@ -96,6 +96,63 @@ export const authAPI = {
     const response = await api.get('/api/auth/me');
     return response.data;
   },
+
+  // Password Reset - Email method
+  async requestPasswordResetEmail(email: string) {
+    const response = await api.post('/api/auth/password-reset/request', { email });
+    return response.data;
+  },
+
+  // Password Reset - WhatsApp method
+  async requestPasswordResetWhatsApp(phone: string) {
+    const response = await api.post('/api/auth/password-reset/request-whatsapp', { phone });
+    return response.data;
+  },
+
+  // Verify WhatsApp reset code
+  async verifyResetCode(phone: string, code: string) {
+    const response = await api.post('/api/auth/password-reset/verify-code', { phone, code });
+    return response.data;
+  },
+
+  // Reset password with token (email method)
+  async resetPasswordWithToken(token: string, newPassword: string) {
+    const response = await api.post('/api/auth/password-reset/reset', { 
+      token, 
+      new_password: newPassword 
+    });
+    return response.data;
+  },
+
+  // Reset password with code (WhatsApp method)
+  async resetPasswordWithCode(phone: string, code: string, newPassword: string) {
+    const response = await api.post('/api/auth/password-reset/reset', { 
+      phone, 
+      code, 
+      new_password: newPassword 
+    });
+    return response.data;
+  },
+};
+
+// ==================== PAYMENT API (PAYDUNYA) ====================
+
+export const paymentAPI = {
+  // Initialize a payment
+  async initializePayment(taskId: string, amount: number, description: string) {
+    const response = await api.post('/api/payments/initialize', {
+      task_id: taskId,
+      amount,
+      description,
+    });
+    return response.data;
+  },
+
+  // Check payment status
+  async getPaymentStatus(paymentId: string) {
+    const response = await api.get(`/api/payments/${paymentId}/status`);
+    return response.data;
+  },
 };
 
 // ==================== TASKER API ====================
