@@ -11,11 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { taskAPI } from '../../services/api';
+import { taskAPI, categoryAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { getCategoryById, getCategoryName } from '../../constants/Categories';
+import { Category, getCategoryById, getCategoryName } from '../../constants/Categories';
 
 export default function BookingsScreen() {
   const router = useRouter();
