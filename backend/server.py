@@ -358,14 +358,14 @@ async def register_proxy(request: Request):
 
 # ==================== PASSWORD RESET PROXY ENDPOINTS ====================
 
-@api_router.post("/auth/password-reset/request")
+@api_router.post("/auth/forgot-password")
 async def password_reset_request_proxy(request: Request):
-    """Proxy password reset request (email method) to production backend"""
+    """Proxy password reset request (email or WhatsApp) to production backend"""
     body = await request.json()
     async with httpx.AsyncClient() as http_client:
         try:
             response = await http_client.post(
-                f"{PROD_BACKEND}/api/auth/password-reset/request",
+                f"{PROD_BACKEND}/api/auth/forgot-password",
                 json=body,
                 headers={"Content-Type": "application/json"},
                 timeout=30.0
@@ -375,31 +375,14 @@ async def password_reset_request_proxy(request: Request):
             logger.error(f"Password reset request proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
-@api_router.post("/auth/password-reset/request-whatsapp")
-async def password_reset_whatsapp_proxy(request: Request):
-    """Proxy password reset request (WhatsApp method) to production backend"""
-    body = await request.json()
-    async with httpx.AsyncClient() as http_client:
-        try:
-            response = await http_client.post(
-                f"{PROD_BACKEND}/api/auth/password-reset/request-whatsapp",
-                json=body,
-                headers={"Content-Type": "application/json"},
-                timeout=30.0
-            )
-            return JSONResponse(content=response.json(), status_code=response.status_code)
-        except Exception as e:
-            logger.error(f"WhatsApp password reset proxy error: {e}")
-            raise HTTPException(status_code=502, detail="Backend unavailable")
-
-@api_router.post("/auth/password-reset/verify-code")
+@api_router.post("/auth/verify-reset-code")
 async def password_reset_verify_code_proxy(request: Request):
     """Proxy password reset code verification to production backend"""
     body = await request.json()
     async with httpx.AsyncClient() as http_client:
         try:
             response = await http_client.post(
-                f"{PROD_BACKEND}/api/auth/password-reset/verify-code",
+                f"{PROD_BACKEND}/api/auth/verify-reset-code",
                 json=body,
                 headers={"Content-Type": "application/json"},
                 timeout=30.0
@@ -409,15 +392,22 @@ async def password_reset_verify_code_proxy(request: Request):
             logger.error(f"Code verification proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
 
-@api_router.post("/auth/password-reset/reset")
+@api_router.post("/auth/reset-password")
 async def password_reset_proxy(request: Request):
-    """Proxy password reset with token/code to production backend"""
+    """Proxy password reset with token to production backend"""
     body = await request.json()
     async with httpx.AsyncClient() as http_client:
         try:
             response = await http_client.post(
-                f"{PROD_BACKEND}/api/auth/password-reset/reset",
+                f"{PROD_BACKEND}/api/auth/reset-password",
                 json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+        except Exception as e:
+            logger.error(f"Password reset proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Backend unavailable")
                 headers={"Content-Type": "application/json"},
                 timeout=30.0
             )
