@@ -107,8 +107,8 @@ export default function ProfileScreen() {
           <MenuItem
             icon="help-circle"
             title={i18n.locale === 'fr' ? 'Aide & Support' : 'Help & Support'}
-            subtitle={i18n.locale === 'fr' ? 'Bientôt disponible' : 'Coming soon'}
-            onPress={() => {}}
+            subtitle={SUPPORT_EMAIL}
+            onPress={() => router.push('/support')}
           />
         </View>
 
