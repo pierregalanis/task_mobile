@@ -408,13 +408,6 @@ async def password_reset_proxy(request: Request):
         except Exception as e:
             logger.error(f"Password reset proxy error: {e}")
             raise HTTPException(status_code=502, detail="Backend unavailable")
-                headers={"Content-Type": "application/json"},
-                timeout=30.0
-            )
-            return JSONResponse(content=response.json(), status_code=response.status_code)
-        except Exception as e:
-            logger.error(f"Password reset proxy error: {e}")
-            raise HTTPException(status_code=502, detail="Backend unavailable")
 
 # ==================== PAYMENT (PAYDUNYA) PROXY ENDPOINTS ====================
 
