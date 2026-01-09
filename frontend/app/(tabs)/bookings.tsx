@@ -21,17 +21,37 @@ export default function BookingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 
   useEffect(() => {
-    fetchTasks();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch categories and tasks in parallel
+      const [categoriesData, tasksData] = await Promise.all([
+        categoryAPI.getCategories(),
+        user?.role === 'client' 
+          ? taskAPI.getClientTasks()
+          : taskAPI.getTaskerTasks()
+      ]);
+      setCategories(categoriesData);
+      setTasks(tasksData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const fetchTasks = async () => {
     try {
-      setLoading(true);
       const data = user?.role === 'client' 
         ? await taskAPI.getClientTasks()
         : await taskAPI.getTaskerTasks();
@@ -39,7 +59,6 @@ export default function BookingsScreen() {
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
