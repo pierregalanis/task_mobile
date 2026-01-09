@@ -97,36 +97,36 @@ export const authAPI = {
     return response.data;
   },
 
-  // Password Reset - Email method
+  // Password Reset - Email method (sends reset link to email)
   async requestPasswordResetEmail(email: string) {
-    const response = await api.post('/api/auth/password-reset/request', { email });
+    const response = await api.post('/api/auth/forgot-password', { email });
     return response.data;
   },
 
-  // Password Reset - WhatsApp method
+  // Password Reset - WhatsApp method (sends code via WhatsApp)
   async requestPasswordResetWhatsApp(phone: string) {
-    const response = await api.post('/api/auth/password-reset/request-whatsapp', { phone });
+    const response = await api.post('/api/auth/forgot-password', { phone, method: 'whatsapp' });
     return response.data;
   },
 
-  // Verify WhatsApp reset code
+  // Verify WhatsApp reset code (returns a token for password reset)
   async verifyResetCode(phone: string, code: string) {
-    const response = await api.post('/api/auth/password-reset/verify-code', { phone, code });
+    const response = await api.post('/api/auth/verify-reset-code', { phone, code });
     return response.data;
   },
 
-  // Reset password with token (email method)
+  // Reset password with token (from email link or WhatsApp verification)
   async resetPasswordWithToken(token: string, newPassword: string) {
-    const response = await api.post('/api/auth/password-reset/reset', { 
+    const response = await api.post('/api/auth/reset-password', { 
       token, 
       new_password: newPassword 
     });
     return response.data;
   },
 
-  // Reset password with code (WhatsApp method)
+  // Reset password with code (WhatsApp method - phone + code + new password)
   async resetPasswordWithCode(phone: string, code: string, newPassword: string) {
-    const response = await api.post('/api/auth/password-reset/reset', { 
+    const response = await api.post('/api/auth/reset-password', { 
       phone, 
       code, 
       new_password: newPassword 
