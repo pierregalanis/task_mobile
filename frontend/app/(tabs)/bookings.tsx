@@ -178,8 +178,8 @@ export default function BookingsScreen() {
           displayTasks.map((task) => {
             // Support both production (category_id) and local (category) field names
             const categoryId = task.category_id || task.category;
-            const category = getCategoryById(categoryId);
-            const categoryName = category ? getCategoryName(category, i18n.locale) : (task.title || categoryId);
+            const category = getCategoryById(categories, categoryId);
+            const categoryName = category ? getCategoryName(category, i18n.locale) : (task.title || categoryId || 'Service');
             
             // Support both production (task_date) and local (scheduled_date) field names
             const taskDate = task.task_date || task.scheduled_date;
