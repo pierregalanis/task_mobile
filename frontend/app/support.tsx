@@ -17,6 +17,8 @@ import { showMessage } from '../utils/alert';
 
 const SUPPORT_EMAIL = 'aboh@a4less.com';
 const SUPPORT_WHATSAPP = '+22177882922';
+const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
+const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
 
 export default function SupportScreen() {
   const router = useRouter();
