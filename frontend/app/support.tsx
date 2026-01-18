@@ -225,6 +225,31 @@ export default function SupportScreen() {
           </View>
         ))}
 
+        {/* Legal Section */}
+        <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
+          {isFrench ? 'Informations légales' : 'Legal Information'}
+        </Text>
+
+        <TouchableOpacity style={styles.legalCard} onPress={handleOpenPrivacyPolicy}>
+          <View style={styles.legalContent}>
+            <Ionicons name="shield-checkmark-outline" size={24} color={Colors.dark.primary} />
+            <Text style={styles.legalTitle}>
+              {isFrench ? 'Politique de confidentialité' : 'Privacy Policy'}
+            </Text>
+          </View>
+          <Ionicons name="open-outline" size={20} color={Colors.dark.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.legalCard} onPress={handleOpenTermsOfService}>
+          <View style={styles.legalContent}>
+            <Ionicons name="document-text-outline" size={24} color={Colors.dark.primary} />
+            <Text style={styles.legalTitle}>
+              {isFrench ? 'Conditions d\'utilisation' : 'Terms of Service'}
+            </Text>
+          </View>
+          <Ionicons name="open-outline" size={20} color={Colors.dark.textSecondary} />
+        </TouchableOpacity>
+
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appInfoTitle}>Soutrali</Text>
