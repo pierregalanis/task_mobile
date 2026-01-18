@@ -103,6 +103,28 @@ export default function SupportScreen() {
     }
   };
 
+  const handleOpenPrivacyPolicy = async () => {
+    try {
+      await Linking.openURL(PRIVACY_POLICY_URL);
+    } catch (error) {
+      showMessage(
+        isFrench ? 'Erreur' : 'Error',
+        isFrench ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+      );
+    }
+  };
+
+  const handleOpenTermsOfService = async () => {
+    try {
+      await Linking.openURL(TERMS_OF_SERVICE_URL);
+    } catch (error) {
+      showMessage(
+        isFrench ? 'Erreur' : 'Error',
+        isFrench ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+      );
+    }
+  };
+
   const faqItems = [
     {
       question: isFrench ? 'Comment réserver un service ?' : 'How do I book a service?',
