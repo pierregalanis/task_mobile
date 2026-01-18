@@ -5,26 +5,35 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "soutrali",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soutrali.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+      },
       "config": {
         "googleMapsApiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
       }
     },
     "android": {
       "package": "com.soutrali.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#000000"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ],
       "config": {
         "googleMaps": {
@@ -43,16 +52,23 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000"
+          "backgroundColor": "#000000"
         }
       ],
       [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Soutrali to use your location for GPS tracking and finding nearby taskers."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#22c55e"
         }
       ]
     ],
@@ -62,9 +78,26 @@
     "extra": {
       "eas": {
         "projectId": "soutrali-mobile"
-      },
-      "EXPO_PUBLIC_BACKEND_URL": "https://service-finder-230.preview.emergentagent.com/api",
-      "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
-    }
+      }
+    },
+    "owner": "soutrali",
+    "privacy": "public",
+    "platforms": ["ios", "android"],
+    "primaryColor": "#22c55e",
+    "splash": {
+      "image": "./assets/images/splash-image.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#22c55e"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }
