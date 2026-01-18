@@ -360,6 +360,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingLeft: 28,
   },
+  legalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  legalContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  legalTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.dark.text,
+  },
   appInfo: {
     alignItems: 'center',
     marginTop: 32,
