@@ -218,7 +218,7 @@ export default function TaskersScreen() {
                         {tasker.tasker_profile.services
                           .slice(0, 2)
                           .map((s: any) => {
-                            const category = getCategoryById(s.category);
+                            const category = getCategoryById(categories, s.category);
                             return category ? getCategoryName(category, i18n.locale) : s.category;
                           })
                           .join(', ')}
