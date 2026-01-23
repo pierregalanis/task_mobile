@@ -13,22 +13,36 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { taskerAPI } from '../../services/api';
+import { taskerAPI, categoryAPI } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { CATEGORIES, getCategoryName, getCategoryById } from '../../constants/Categories';
+import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
 
 export default function TaskersScreen() {
   const router = useRouter();
   const [taskers, setTaskers] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     fetchTaskers();
   }, [selectedCategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryAPI.getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchTaskers = async () => {
     try {
@@ -49,6 +63,7 @@ export default function TaskersScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    fetchCategories();
     fetchTaskers();
   };
 
