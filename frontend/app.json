@@ -82,7 +82,7 @@
     },
     "owner": "soutrali",
     "privacy": "public",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android", "web"],
     "primaryColor": "#22c55e",
     "splash": {
       "image": "./assets/images/splash-image.png",
