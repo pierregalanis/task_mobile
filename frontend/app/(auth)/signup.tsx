@@ -164,6 +164,16 @@ export default function SignupScreen() {
             </View>
           </View>
 
+          {/* Location Picker */}
+          <LocationPicker
+            latitude={location?.latitude || selectedCountry.latitude}
+            longitude={location?.longitude || selectedCountry.longitude}
+            onLocationSelect={handleLocationSelect}
+            country={country}
+            label={i18n.locale === 'fr' ? 'Votre emplacement' : 'Your Location'}
+            placeholder={i18n.locale === 'fr' ? 'Appuyez pour sélectionner votre emplacement' : 'Tap to select your location'}
+          />
+
           <View style={styles.form}>
             <Controller control={control} name="fullName"
               rules={{ required: i18n.locale === 'fr' ? 'Nom complet requis' : 'Full name is required' }}
