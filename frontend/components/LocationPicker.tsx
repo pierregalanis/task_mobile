@@ -235,40 +235,112 @@ export default function LocationPicker({
             </Text>
           </View>
 
-          {/* Map */}
+          {/* Map or Web Fallback */}
           <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-              initialRegion={getInitialRegion()}
-              onPress={handleMapPress}
-              showsUserLocation
-              showsMyLocationButton={false}
-            >
-              <Marker
-                coordinate={selectedLocation}
-                draggable
-                onDragEnd={(e) => handleMapPress(e)}
-              >
-                <View style={styles.markerContainer}>
-                  <Ionicons name="location" size={40} color={Colors.dark.primary} />
+            {Platform.OS === 'web' ? (
+              // Web fallback - show a simple location input
+              <View style={styles.webMapFallback}>
+                <Ionicons name="map" size={48} color={Colors.dark.textSecondary} />
+                <Text style={styles.webMapText}>
+                  {isFrench 
+                    ? 'Carte disponible sur l\'application mobile' 
+                    : 'Map available on mobile app'}
+                </Text>
+                <Text style={styles.webMapSubtext}>
+                  {isFrench 
+                    ? 'Entrez vos coordonnées manuellement:' 
+                    : 'Enter your coordinates manually:'}
+                </Text>
+                <View style={styles.coordInputs}>
+                  <View style={styles.coordInput}>
+                    <Text style={styles.coordLabel}>Latitude</Text>
+                    <TextInput
+                      style={styles.coordTextInput}
+                      value={selectedLocation.latitude.toString()}
+                      onChangeText={(text) => {
+                        const lat = parseFloat(text) || selectedLocation.latitude;
+                        setSelectedLocation(prev => ({ ...prev, latitude: lat }));
+                      }}
+                      keyboardType="numeric"
+                      placeholder="5.36"
+                      placeholderTextColor={Colors.dark.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.coordInput}>
+                    <Text style={styles.coordLabel}>Longitude</Text>
+                    <TextInput
+                      style={styles.coordTextInput}
+                      value={selectedLocation.longitude.toString()}
+                      onChangeText={(text) => {
+                        const lng = parseFloat(text) || selectedLocation.longitude;
+                        setSelectedLocation(prev => ({ ...prev, longitude: lng }));
+                      }}
+                      keyboardType="numeric"
+                      placeholder="-4.00"
+                      placeholderTextColor={Colors.dark.textSecondary}
+                    />
+                  </View>
                 </View>
-              </Marker>
-            </MapView>
+                <TouchableOpacity 
+                  style={styles.useCurrentLocationBtn}
+                  onPress={getCurrentLocation}
+                  disabled={gettingCurrentLocation}
+                >
+                  {gettingCurrentLocation ? (
+                    <ActivityIndicator size="small" color={Colors.dark.primary} />
+                  ) : (
+                    <>
+                      <Ionicons name="navigate" size={20} color={Colors.dark.primary} />
+                      <Text style={styles.useCurrentLocationText}>
+                        {isFrench ? 'Utiliser ma position' : 'Use my location'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : MapView ? (
+              // Native map
+              <>
+                <MapView
+                  ref={mapRef}
+                  style={styles.map}
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                  initialRegion={getInitialRegion()}
+                  onPress={handleMapPress}
+                  showsUserLocation
+                  showsMyLocationButton={false}
+                >
+                  <Marker
+                    coordinate={selectedLocation}
+                    draggable
+                    onDragEnd={(e: any) => handleMapPress(e)}
+                  >
+                    <View style={styles.markerContainer}>
+                      <Ionicons name="location" size={40} color={Colors.dark.primary} />
+                    </View>
+                  </Marker>
+                </MapView>
 
-            {/* Current Location Button */}
-            <TouchableOpacity 
-              style={styles.currentLocationButton}
-              onPress={getCurrentLocation}
-              disabled={gettingCurrentLocation}
-            >
-              {gettingCurrentLocation ? (
-                <ActivityIndicator size="small" color={Colors.dark.primary} />
-              ) : (
-                <Ionicons name="navigate" size={24} color={Colors.dark.primary} />
-              )}
-            </TouchableOpacity>
+                {/* Current Location Button */}
+                <TouchableOpacity 
+                  style={styles.currentLocationButton}
+                  onPress={getCurrentLocation}
+                  disabled={gettingCurrentLocation}
+                >
+                  {gettingCurrentLocation ? (
+                    <ActivityIndicator size="small" color={Colors.dark.primary} />
+                  ) : (
+                    <Ionicons name="navigate" size={24} color={Colors.dark.primary} />
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.webMapFallback}>
+                <Text style={styles.webMapText}>
+                  {isFrench ? 'Carte non disponible' : 'Map not available'}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Selected Address */}
