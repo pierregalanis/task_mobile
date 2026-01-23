@@ -116,7 +116,7 @@ export default function TaskersScreen() {
             {i18n.locale === 'fr' ? 'Tous' : 'All'}
           </Text>
         </TouchableOpacity>
-        {CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={[styles.filterChip, selectedCategory === category.id && styles.filterChipActive]}
