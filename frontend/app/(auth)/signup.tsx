@@ -16,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import LocationPicker from '../../components/LocationPicker';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
 
@@ -27,6 +28,12 @@ interface SignupFormData {
   confirmPassword: string;
 }
 
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
 export default function SignupScreen() {
   const router = useRouter();
   const { register } = useAuth();
@@ -34,6 +41,7 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'client' | 'tasker'>('client');
   const [country, setCountry] = useState<'ivory_coast' | 'senegal'>('ivory_coast');
+  const [location, setLocation] = useState<LocationData | null>(null);
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
     defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
@@ -65,18 +73,27 @@ export default function SignupScreen() {
 
   const selectedCountry = countryConfig[country];
 
+  const handleLocationSelect = (loc: LocationData) => {
+    setLocation(loc);
+  };
+
   const onSubmit = async (data: SignupFormData) => {
     try {
       setLoading(true);
+      
+      // Use selected location or default country location
+      const lat = location?.latitude || selectedCountry.latitude;
+      const lng = location?.longitude || selectedCountry.longitude;
+      
       await register({
         email: data.email,
         password: data.password,
         full_name: data.fullName,
         phone: data.phone,
         country: country,
-        city: selectedCountry.defaultCity,
-        latitude: selectedCountry.latitude,
-        longitude: selectedCountry.longitude,
+        city: location?.address?.split(',')[0] || selectedCountry.defaultCity,
+        latitude: lat,
+        longitude: lng,
         language: i18n.locale,
         role: role,
       });
