@@ -52,7 +52,7 @@ Soutrali is a mobile TaskRabbit clone for African markets, built with Expo/React
 - **Icons**: @expo/vector-icons (Ionicons)
 
 ### Backend API
-- **Base URL**: https://service-finder-230.preview.emergentagent.com/api
+- **Base URL**: https://launch-soutrali.preview.emergentagent.com/api
 - **Authentication**: JWT Bearer tokens
 - **Login endpoint**: POST /api/auth/login (x-www-form-urlencoded)
 - **Register endpoint**: POST /api/auth/register (JSON)
@@ -166,8 +166,8 @@ expo start --tunnel
 
 ### Environment Variables
 ```
-EXPO_PUBLIC_BACKEND_URL=https://service-finder-230.preview.emergentagent.com
-EXPO_PACKAGER_HOSTNAME=https://service-finder-230.preview.emergentagent.com
+EXPO_PUBLIC_BACKEND_URL=https://launch-soutrali.preview.emergentagent.com
+EXPO_PACKAGER_HOSTNAME=https://launch-soutrali.preview.emergentagent.com
 ```
 
 ### Testing Checklist

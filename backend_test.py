@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for Soutrali Mobile App
-Testing PRODUCTION backend at https://service-finder-230.preview.emergentagent.com
+Testing PRODUCTION backend at https://launch-soutrali.preview.emergentagent.com
 """
 
 import requests
@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Production backend URL from review request
-BASE_URL = "https://service-finder-230.preview.emergentagent.com"
+BASE_URL = "https://launch-soutrali.preview.emergentagent.com"
 
 # Test credentials from review request
 CLIENT_CREDENTIALS = {

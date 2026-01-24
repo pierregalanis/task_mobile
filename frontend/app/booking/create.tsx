@@ -260,7 +260,7 @@ export default function CreateBookingScreen() {
 
     try {
       setSearching(true);
-      const baseUrl = 'https://service-finder-230.preview.emergentagent.com';
+      const baseUrl = 'https://launch-soutrali.preview.emergentagent.com';
       
       const response = await fetch(
         `${baseUrl}/api/places/autocomplete?input=${encodeURIComponent(query)}&components=country:ci`
@@ -282,7 +282,7 @@ export default function CreateBookingScreen() {
   // Select a place from search results
   const selectPlace = async (placeId: string, description: string) => {
     try {
-      const baseUrl = 'https://service-finder-230.preview.emergentagent.com';
+      const baseUrl = 'https://launch-soutrali.preview.emergentagent.com';
       
       const response = await fetch(
         `${baseUrl}/api/places/details?place_id=${placeId}`
