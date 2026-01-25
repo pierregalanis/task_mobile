@@ -14,7 +14,11 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
@@ -33,7 +37,9 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -77,12 +83,17 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
-      }
+        "projectId": "9cc81117-c5db-4176-99e0-7e1b0c23ecb4"
+      },
+      "router": {}
     },
     "owner": "soutra",
     "privacy": "public",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "primaryColor": "#22c55e",
     "splash": {
       "image": "./assets/images/splash-image.png",
