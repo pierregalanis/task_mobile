@@ -17,8 +17,12 @@
         "UIBackgroundModes": [
           "location",
           "fetch",
+          "remote-notification",
+          "location",
+          "fetch",
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
