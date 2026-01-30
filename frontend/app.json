@@ -2,7 +2,7 @@
   "expo": {
     "name": "Soutrali",
     "slug": "soutrali",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "soutrali",
@@ -12,17 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.soutrali.app",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
         "UIBackgroundModes": [
           "location",
           "fetch",
-          "remote-notification",
-          "location",
-          "fetch",
           "remote-notification"
-        ],
-        "ITSAppUsesNonExemptEncryption": false
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8"
@@ -41,9 +38,7 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "VIBRATE"
       ],
       "config": {
         "googleMaps": {
@@ -92,7 +87,6 @@
       "router": {}
     },
     "owner": "soutra",
-    "privacy": "public",
     "platforms": [
       "ios",
       "android",

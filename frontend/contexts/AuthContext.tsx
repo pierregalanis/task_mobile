@@ -88,32 +88,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: RegisterData) => {
     try {
+      console.log('Registration attempt:', data.email);
       const response = await authAPI.register(data);
+      console.log('Registration successful');
       
-      // Handle both 'token' and 'access_token' response formats
+      // Production API returns user data without token
+      // User needs to login after registration
+      // The signup screen handles redirecting to login
+      
+      // If response includes a token (some backends auto-login), handle it
       const token = response.token || response.access_token;
-      await storage.saveToken(token);
-      
-      // Use user data from response if available (local fallback), otherwise fetch
-      let userData = response.user;
-      if (!userData) {
-        userData = await authAPI.getCurrentUser();
-      }
-      await storage.saveUser(userData);
-      setUser(userData);
-      
-      // Register for push notifications after successful registration
-      try {
-        const pushToken = await registerForPushNotificationsAsync();
-        if (pushToken) {
-          await savePushToken(pushToken);
-          console.log('Push notifications registered successfully');
+      if (token) {
+        await storage.saveToken(token);
+        
+        // Use user data from response if available, otherwise fetch
+        let userData = response.user || response;
+        if (!userData.id) {
+          userData = await authAPI.getCurrentUser();
         }
-      } catch (error) {
-        console.error('Failed to register push notifications:', error);
+        await storage.saveUser(userData);
+        setUser(userData);
+        
+        // Register for push notifications after successful registration
+        try {
+          const pushToken = await registerForPushNotificationsAsync();
+          if (pushToken) {
+            await savePushToken(pushToken);
+            console.log('Push notifications registered successfully');
+          }
+        } catch (error) {
+          console.error('Failed to register push notifications:', error);
+        }
       }
+      
+      // Return the response so signup screen knows registration succeeded
+      return response;
     } catch (error: any) {
       console.error('Register error:', error);
+      console.error('Register error details:', error.response?.data);
       throw new Error(error.response?.data?.detail || 'Registration failed');
     }
   };

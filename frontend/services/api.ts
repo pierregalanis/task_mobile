@@ -3,15 +3,21 @@ import { storage } from '../utils/storage';
 import { Platform } from 'react-native';
 
 // Production Backend - soutrali.net
-// Native apps connect directly, web uses local proxy to avoid CORS
-const API_BASE_URL = Platform.OS === 'web' ? '' : 'https://soutrali.net';
+// Native apps connect directly to production API
+// Web uses local proxy to avoid CORS issues
+const API_BASE_URL = Platform.OS === 'web' 
+  ? '' 
+  : 'https://soutrali.net';
 
+console.log('Platform:', Platform.OS);
 console.log('API URL:', API_BASE_URL || 'Local Proxy (Web)');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000, // 30 second timeout
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -53,6 +59,9 @@ export interface RegisterData {
   country: string;
   role: 'client' | 'tasker';
   language?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface User {
@@ -72,24 +81,42 @@ export interface User {
 
 export const authAPI = {
   async login(credentials: LoginCredentials) {
-    // Production backend uses form data
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
-    
-    const response = await api.post('/api/auth/login', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    
-    return {
-      token: response.data.access_token,
-      token_type: response.data.token_type || 'bearer',
-    };
+    try {
+      // Production backend uses form data
+      const formData = new URLSearchParams();
+      formData.append('username', credentials.email);
+      formData.append('password', credentials.password);
+      
+      console.log('Login attempt for:', credentials.email);
+      
+      const response = await api.post('/api/auth/login', formData, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+      
+      console.log('Login successful');
+      
+      return {
+        token: response.data.access_token,
+        token_type: response.data.token_type || 'bearer',
+      };
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+      console.error('Login error details:', error.response?.data);
+      throw error;
+    }
   },
 
   async register(data: RegisterData) {
-    const response = await api.post('/api/auth/register', data);
-    return response.data;
+    try {
+      console.log('Registration attempt for:', data.email);
+      const response = await api.post('/api/auth/register', data);
+      console.log('Registration successful');
+      return response.data;
+    } catch (error: any) {
+      console.error('Registration error:', error.message);
+      console.error('Registration error details:', error.response?.data);
+      throw error;
+    }
   },
 
   async getCurrentUser(): Promise<User> {
