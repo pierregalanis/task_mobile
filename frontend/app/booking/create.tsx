@@ -110,7 +110,7 @@ export default function CreateBookingScreen() {
   
   // Form state - Auto-fill title with service name
   const [title, setTitle] = useState(serviceName);
-  const [description, setDescription] = useState(''); // Leave empty for user input
+  const [description, setDescription] = useState('');
   const [taskDate, setTaskDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -161,7 +161,7 @@ export default function CreateBookingScreen() {
 
   // Calculate distance between two points
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Radius of Earth in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -207,7 +207,6 @@ export default function CreateBookingScreen() {
         longitude: location.coords.longitude,
       };
 
-      // Reverse geocode to get address using Google Maps API
       try {
         const geocodeResult = await reverseGeocode(
           location.coords.latitude,
@@ -228,7 +227,6 @@ export default function CreateBookingScreen() {
       setSelectedLocation(newLocation);
       setLocationError(false);
 
-      // Animate map to location
       if (mapRef.current) {
         mapRef.current.animateToRegion({
           latitude: newLocation.latitude,
@@ -250,7 +248,7 @@ export default function CreateBookingScreen() {
     }
   };
 
-  // Search places using backend proxy (avoids CORS issues)
+  // Search places using production backend
   const searchPlaces = async (query: string) => {
     if (!query || query.length < 3) {
       setSearchResults([]);
@@ -260,7 +258,7 @@ export default function CreateBookingScreen() {
 
     try {
       setSearching(true);
-      const baseUrl = 'https://launch-soutrali.preview.emergentagent.com';
+      const baseUrl = 'https://soutrali.net';
       
       const response = await fetch(
         `${baseUrl}/api/places/autocomplete?input=${encodeURIComponent(query)}&components=country:ci`
@@ -282,7 +280,7 @@ export default function CreateBookingScreen() {
   // Select a place from search results
   const selectPlace = async (placeId: string, description: string) => {
     try {
-      const baseUrl = 'https://launch-soutrali.preview.emergentagent.com';
+      const baseUrl = 'https://soutrali.net';
       
       const response = await fetch(
         `${baseUrl}/api/places/details?place_id=${placeId}`
@@ -303,7 +301,6 @@ export default function CreateBookingScreen() {
         setShowSuggestions(false);
         setLocationError(false);
         
-        // Animate map to location
         if (mapRef.current) {
           mapRef.current.animateToRegion({
             latitude: location.latitude,
@@ -328,7 +325,6 @@ export default function CreateBookingScreen() {
       longitude,
     };
 
-    // Try to reverse geocode using Google Maps API
     try {
       const geocodeResult = await reverseGeocode(latitude, longitude);
       
@@ -355,7 +351,6 @@ export default function CreateBookingScreen() {
       longitude,
     };
 
-    // Try to reverse geocode using Google Maps API
     try {
       const geocodeResult = await reverseGeocode(latitude, longitude);
       
@@ -386,9 +381,6 @@ export default function CreateBookingScreen() {
       newDate.setDate(selectedDate.getDate());
       setTaskDate(newDate);
     }
-    if (Platform.OS === 'ios') {
-      // iOS continues to show picker
-    }
   };
 
   // Time change handler
@@ -406,7 +398,6 @@ export default function CreateBookingScreen() {
 
   // Submit booking
   const handleSubmit = async () => {
-    // Validation
     if (!title.trim()) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
@@ -431,7 +422,6 @@ export default function CreateBookingScreen() {
       return;
     }
 
-    // Check if location is pinned (for native only)
     if (Platform.OS !== 'web' && !selectedLocation) {
       setLocationError(true);
       showMessage(
@@ -443,7 +433,6 @@ export default function CreateBookingScreen() {
       return;
     }
 
-    // Check distance validation
     if (distanceValid === false) {
       showMessage(
         i18n.locale === 'fr' ? 'Distance trop éloignée' : 'Too far away',
@@ -457,24 +446,23 @@ export default function CreateBookingScreen() {
     setLoading(true);
 
     try {
-      // Map fields to production backend format
       const bookingData = {
         title: title.trim(),
         description: description.trim(),
-        category_id: params.categoryId as string,  // Production uses category_id
+        category_id: params.categoryId as string,
         subcategory: (params.subcategoryId as string) || null,
         tasker_id: params.taskerId as string,
-        task_date: taskDate.toISOString(),  // Production uses task_date
+        task_date: taskDate.toISOString(),
         duration_hours: pricingType === 'hourly' ? duration : 1,
         address: address.trim(),
-        city: city.trim() || 'Abidjan',  // Default city if not provided
+        city: city.trim() || 'Abidjan',
         latitude: selectedLocation?.latitude || user?.latitude || 5.36,
         longitude: selectedLocation?.longitude || user?.longitude || -4.0,
         special_instructions: specialInstructions.trim() || null,
         pricing_type: pricingType,
         hourly_rate: pricingType === 'hourly' ? hourlyRate : (fixedPrice || 5000),
         fixed_price: pricingType === 'fixed' ? fixedPrice : null,
-        total_cost: calculateTotal(),  // Production uses total_cost
+        total_cost: calculateTotal(),
       };
 
       console.log('Booking data being sent:', JSON.stringify(bookingData, null, 2));
@@ -495,7 +483,6 @@ export default function CreateBookingScreen() {
     }
   };
 
-  // Format date for display
   const formatDate = (date: Date) => {
     return date.toLocaleDateString(i18n.locale === 'fr' ? 'fr-FR' : 'en-US', {
       weekday: 'short',
@@ -505,7 +492,6 @@ export default function CreateBookingScreen() {
     });
   };
 
-  // Format time for display
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString(i18n.locale === 'fr' ? 'fr-FR' : 'en-US', {
       hour: '2-digit',
@@ -513,7 +499,6 @@ export default function CreateBookingScreen() {
     });
   };
 
-  // Get minimum date (tomorrow)
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -521,7 +506,6 @@ export default function CreateBookingScreen() {
     return tomorrow;
   };
 
-  // Default map region (Abidjan)
   const defaultRegion = {
     latitude: selectedLocation?.latitude || 5.36,
     longitude: selectedLocation?.longitude || -4.00,
@@ -535,7 +519,6 @@ export default function CreateBookingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
@@ -552,7 +535,6 @@ export default function CreateBookingScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Service Info Card */}
           <View style={styles.serviceCard}>
             <View style={styles.serviceHeader}>
               <Ionicons name="briefcase" size={24} color={Colors.dark.primary} />
@@ -574,13 +556,11 @@ export default function CreateBookingScreen() {
             </View>
           </View>
 
-          {/* Form Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
             </Text>
 
-            {/* Title */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
                 {i18n.locale === 'fr' ? 'Titre' : 'Title'} <Text style={styles.required}>*</Text>
@@ -594,7 +574,6 @@ export default function CreateBookingScreen() {
               />
             </View>
 
-            {/* Description */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
                 {i18n.locale === 'fr' ? 'Description' : 'Description'} <Text style={styles.required}>*</Text>
@@ -611,7 +590,6 @@ export default function CreateBookingScreen() {
               />
             </View>
 
-            {/* Date & Time */}
             <View style={styles.row}>
               <View style={[styles.inputContainer, styles.halfWidth]}>
                 <Text style={styles.inputLabel}>
@@ -642,13 +620,8 @@ export default function CreateBookingScreen() {
               </View>
             </View>
 
-            {/* Date Picker Modal for iOS */}
             {Platform.OS === 'ios' && showDatePicker && (
-              <Modal
-                visible={showDatePicker}
-                transparent
-                animationType="slide"
-              >
+              <Modal visible={showDatePicker} transparent animationType="slide">
                 <View style={styles.pickerModal}>
                   <View style={styles.pickerContainer}>
                     <View style={styles.pickerHeader}>
@@ -671,7 +644,6 @@ export default function CreateBookingScreen() {
               </Modal>
             )}
 
-            {/* Date Picker for Android */}
             {Platform.OS === 'android' && showDatePicker && (
               <DateTimePicker
                 value={taskDate}
@@ -682,13 +654,8 @@ export default function CreateBookingScreen() {
               />
             )}
 
-            {/* Time Picker Modal for iOS */}
             {Platform.OS === 'ios' && showTimePicker && (
-              <Modal
-                visible={showTimePicker}
-                transparent
-                animationType="slide"
-              >
+              <Modal visible={showTimePicker} transparent animationType="slide">
                 <View style={styles.pickerModal}>
                   <View style={styles.pickerContainer}>
                     <View style={styles.pickerHeader}>
@@ -710,7 +677,6 @@ export default function CreateBookingScreen() {
               </Modal>
             )}
 
-            {/* Time Picker for Android */}
             {Platform.OS === 'android' && showTimePicker && (
               <DateTimePicker
                 value={taskDate}
@@ -720,7 +686,6 @@ export default function CreateBookingScreen() {
               />
             )}
 
-            {/* Web fallback for date/time */}
             {Platform.OS === 'web' && (showDatePicker || showTimePicker) && (
               <View style={styles.webPickerNotice}>
                 <Text style={styles.webPickerText}>
@@ -731,7 +696,6 @@ export default function CreateBookingScreen() {
               </View>
             )}
 
-            {/* Duration Dropdown - Only for hourly pricing */}
             {pricingType === 'hourly' && (
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>
@@ -751,12 +715,7 @@ export default function CreateBookingScreen() {
               </View>
             )}
 
-            {/* Duration Picker Modal */}
-            <Modal
-              visible={showDurationPicker}
-              transparent
-              animationType="slide"
-            >
+            <Modal visible={showDurationPicker} transparent animationType="slide">
               <TouchableOpacity 
                 style={styles.modalOverlay}
                 activeOpacity={1}
@@ -798,13 +757,11 @@ export default function CreateBookingScreen() {
             </Modal>
           </View>
 
-          {/* Location Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               {i18n.locale === 'fr' ? 'Emplacement' : 'Location'}
             </Text>
 
-            {/* Address Search */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
                 {i18n.locale === 'fr' ? 'Adresse' : 'Address'} <Text style={styles.required}>*</Text>
@@ -830,7 +787,6 @@ export default function CreateBookingScreen() {
                 {searching && <ActivityIndicator size="small" color={Colors.dark.primary} />}
               </View>
 
-              {/* Search Suggestions */}
               {showSuggestions && searchResults.length > 0 && (
                 <View style={styles.suggestionsContainer}>
                   {searchResults.slice(0, 5).map((result) => (
@@ -848,7 +804,6 @@ export default function CreateBookingScreen() {
               )}
             </View>
 
-            {/* City */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
                 {i18n.locale === 'fr' ? 'Ville' : 'City'} <Text style={styles.required}>*</Text>
@@ -862,7 +817,6 @@ export default function CreateBookingScreen() {
               />
             </View>
 
-            {/* Current Location Button */}
             <TouchableOpacity
               style={styles.currentLocationButton}
               onPress={getCurrentLocation}
@@ -879,7 +833,6 @@ export default function CreateBookingScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Map */}
             {Platform.OS !== 'web' && MapView ? (
               <View style={[styles.mapContainer, locationError && styles.mapContainerError]}>
                 <MapView
@@ -907,7 +860,6 @@ export default function CreateBookingScreen() {
                   )}
                 </MapView>
 
-                {/* Map Instructions */}
                 <View style={styles.mapInstructions}>
                   {selectedLocation ? (
                     <View style={styles.locationSelectedBadge}>
@@ -928,7 +880,6 @@ export default function CreateBookingScreen() {
                   )}
                 </View>
 
-                {/* Distance Validation */}
                 {distanceValid !== null && (
                   <View style={[
                     styles.distanceValidation,
@@ -981,7 +932,6 @@ export default function CreateBookingScreen() {
               </View>
             )}
 
-            {/* Special Instructions */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
                 {i18n.locale === 'fr' ? 'Instructions spéciales' : 'Special Instructions'}{' '}
@@ -1000,7 +950,6 @@ export default function CreateBookingScreen() {
             </View>
           </View>
 
-          {/* Price Summary */}
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>
               {i18n.locale === 'fr' ? 'Résumé du prix' : 'Price Summary'}
@@ -1023,7 +972,6 @@ export default function CreateBookingScreen() {
           </View>
         </ScrollView>
 
-        {/* Submit Button */}
         <View style={styles.buttonContainer}>
           <Button
             title={
@@ -1038,12 +986,7 @@ export default function CreateBookingScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Confirmation Modal */}
-      <Modal
-        visible={showConfirmation}
-        transparent
-        animationType="fade"
-      >
+      <Modal visible={showConfirmation} transparent animationType="fade">
         <View style={styles.confirmationOverlay}>
           <View style={styles.confirmationContainer}>
             <View style={styles.confirmationIconContainer}>

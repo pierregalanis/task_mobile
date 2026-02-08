@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+"import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +43,8 @@ export default function SignupScreen() {
   const [role, setRole] = useState<'client' | 'tasker'>('client');
   const [country, setCountry] = useState<'ivory_coast' | 'senegal'>('ivory_coast');
   const [location, setLocation] = useState<LocationData | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
     defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
@@ -52,20 +55,20 @@ export default function SignupScreen() {
   // Country config
   const countryConfig = {
     ivory_coast: {
-      name_fr: "Côte d'Ivoire",
-      name_en: "Ivory Coast",
-      flag: "🇨🇮",
-      phonePrefix: "+225",
-      defaultCity: "Abidjan",
+      name_fr: \"Côte d'Ivoire\",
+      name_en: \"Ivory Coast\",
+      flag: \"🇨🇮\",
+      phonePrefix: \"+225\",
+      defaultCity: \"Abidjan\",
       latitude: 5.36,
       longitude: -4.00,
     },
     senegal: {
-      name_fr: "Sénégal",
-      name_en: "Senegal",
-      flag: "🇸🇳",
-      phonePrefix: "+221",
-      defaultCity: "Dakar",
+      name_fr: \"Sénégal\",
+      name_en: \"Senegal\",
+      flag: \"🇸🇳\",
+      phonePrefix: \"+221\",
+      defaultCity: \"Dakar\",
       latitude: 14.7167,
       longitude: -17.4677,
     },
@@ -75,6 +78,11 @@ export default function SignupScreen() {
 
   const handleLocationSelect = (loc: LocationData) => {
     setLocation(loc);
+  };
+
+  const handleGoToLogin = () => {
+    setShowSuccessModal(false);
+    router.replace('/(auth)/login');
   };
 
   const onSubmit = async (data: SignupFormData) => {
@@ -97,11 +105,13 @@ export default function SignupScreen() {
         language: i18n.locale,
         role: role,
       });
-      showMessage(
-        i18n.locale === 'fr' ? 'Compte créé' : 'Account Created',
-        i18n.locale === 'fr' ? 'Vous pouvez maintenant vous connecter' : 'You can now log in'
-      );
-      router.replace('/(auth)/login');
+      
+      // Store the email for the success modal
+      setRegisteredEmail(data.email);
+      
+      // Show the success modal with email verification instructions
+      setShowSuccessModal(true);
+      
     } catch (error: any) {
       console.error('Signup error:', error);
       showMessage(
@@ -116,9 +126,9 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps=\"handled\">
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+            <Ionicons name=\"arrow-back\" size={24} color={Colors.dark.text} />
           </TouchableOpacity>
 
           <View style={styles.header}>
@@ -149,7 +159,7 @@ export default function SignupScreen() {
               >
                 <Text style={styles.countryFlag}>🇨🇮</Text>
                 <Text style={[styles.countryButtonText, country === 'ivory_coast' && styles.countryButtonTextActive]}>
-                  {i18n.locale === 'fr' ? "Côte d'Ivoire" : "Ivory Coast"}
+                  {i18n.locale === 'fr' ? \"Côte d'Ivoire\" : \"Ivory Coast\"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
@@ -158,7 +168,7 @@ export default function SignupScreen() {
               >
                 <Text style={styles.countryFlag}>🇸🇳</Text>
                 <Text style={[styles.countryButtonText, country === 'senegal' && styles.countryButtonTextActive]}>
-                  {i18n.locale === 'fr' ? "Sénégal" : "Senegal"}
+                  {i18n.locale === 'fr' ? \"Sénégal\" : \"Senegal\"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -175,38 +185,38 @@ export default function SignupScreen() {
           />
 
           <View style={styles.form}>
-            <Controller control={control} name="fullName"
+            <Controller control={control} name=\"fullName\"
               rules={{ required: i18n.locale === 'fr' ? 'Nom complet requis' : 'Full name is required' }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.fullName')} placeholder={i18n.locale === 'fr' ? 'Votre nom complet' : 'Your full name'} value={value} onChangeText={onChange} onBlur={onBlur} error={errors.fullName?.message} leftIcon={<Ionicons name="person-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <Input label={i18n.t('auth.signup.fullName')} placeholder={i18n.locale === 'fr' ? 'Votre nom complet' : 'Your full name'} value={value} onChangeText={onChange} onBlur={onBlur} error={errors.fullName?.message} leftIcon={<Ionicons name=\"person-outline\" size={20} color={Colors.dark.textSecondary} />} />
               )}
             />
 
-            <Controller control={control} name="email"
+            <Controller control={control} name=\"email\"
               rules={{ required: i18n.locale === 'fr' ? 'Email requis' : 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: i18n.locale === 'fr' ? 'Email invalide' : 'Invalid email' } }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.login.email')} placeholder={i18n.t('auth.login.emailPlaceholder')} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} leftIcon={<Ionicons name="mail-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <Input label={i18n.t('auth.login.email')} placeholder={i18n.t('auth.login.emailPlaceholder')} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType=\"email-address\" autoCapitalize=\"none\" error={errors.email?.message} leftIcon={<Ionicons name=\"mail-outline\" size={20} color={Colors.dark.textSecondary} />} />
               )}
             />
 
-            <Controller control={control} name="phone"
+            <Controller control={control} name=\"phone\"
               rules={{ required: i18n.locale === 'fr' ? 'Téléphone requis' : 'Phone is required' }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.phone')} placeholder={`${selectedCountry.phonePrefix} XX XX XX XX`} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="phone-pad" error={errors.phone?.message} leftIcon={<Ionicons name="call-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <Input label={i18n.t('auth.signup.phone')} placeholder={`${selectedCountry.phonePrefix} XX XX XX XX`} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType=\"phone-pad\" error={errors.phone?.message} leftIcon={<Ionicons name=\"call-outline\" size={20} color={Colors.dark.textSecondary} />} />
               )}
             />
 
-            <Controller control={control} name="password"
+            <Controller control={control} name=\"password\"
               rules={{ required: i18n.locale === 'fr' ? 'Mot de passe requis' : 'Password is required', minLength: { value: 6, message: i18n.locale === 'fr' ? 'Minimum 6 caractères' : 'Minimum 6 characters' } }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.login.password')} placeholder={i18n.t('auth.login.passwordPlaceholder')} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.password?.message} leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />} rightIcon={<TouchableOpacity onPress={() => setShowPassword(!showPassword)}><Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.dark.textSecondary} /></TouchableOpacity>} />
+                <Input label={i18n.t('auth.login.password')} placeholder={i18n.t('auth.login.passwordPlaceholder')} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.password?.message} leftIcon={<Ionicons name=\"lock-closed-outline\" size={20} color={Colors.dark.textSecondary} />} rightIcon={<TouchableOpacity onPress={() => setShowPassword(!showPassword)}><Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.dark.textSecondary} /></TouchableOpacity>} />
               )}
             />
 
-            <Controller control={control} name="confirmPassword"
+            <Controller control={control} name=\"confirmPassword\"
               rules={{ required: i18n.locale === 'fr' ? 'Confirmation requise' : 'Please confirm password', validate: value => value === password || (i18n.locale === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match') }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.confirmPassword')} placeholder={i18n.locale === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.confirmPassword?.message} leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <Input label={i18n.t('auth.signup.confirmPassword')} placeholder={i18n.locale === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.confirmPassword?.message} leftIcon={<Ionicons name=\"lock-closed-outline\" size={20} color={Colors.dark.textSecondary} />} />
               )}
             />
           </View>
@@ -221,6 +231,60 @@ export default function SignupScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Modal with Email Verification Instructions */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType=\"fade\"
+        onRequestClose={handleGoToLogin}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Success Icon */}
+            <View style={styles.successIconContainer}>
+              <Ionicons name=\"mail-outline\" size={48} color={Colors.dark.primary} />
+            </View>
+            
+            {/* Title */}
+            <Text style={styles.modalTitle}>
+              {i18n.locale === 'fr' ? 'Compte créé avec succès !' : 'Account Created Successfully!'}
+            </Text>
+            
+            {/* Email Verification Message */}
+            <Text style={styles.modalMessage}>
+              {i18n.locale === 'fr' 
+                ? `Un email de vérification a été envoyé à :`
+                : `A verification email has been sent to:`}
+            </Text>
+            
+            <Text style={styles.emailText}>{registeredEmail}</Text>
+            
+            <Text style={styles.modalInstructions}>
+              {i18n.locale === 'fr'
+                ? 'Veuillez vérifier votre boîte de réception et cliquer sur le lien de vérification pour activer votre compte.'
+                : 'Please check your inbox and click the verification link to activate your account.'}
+            </Text>
+            
+            {/* Spam Note */}
+            <View style={styles.spamNote}>
+              <Ionicons name=\"information-circle-outline\" size={16} color={Colors.dark.textSecondary} />
+              <Text style={styles.spamNoteText}>
+                {i18n.locale === 'fr'
+                  ? \"Si vous ne trouvez pas l'email, vérifiez votre dossier spam.\"
+                  : \"If you don't see the email, check your spam folder.\"}
+              </Text>
+            </View>
+            
+            {/* Go to Login Button */}
+            <TouchableOpacity style={styles.modalButton} onPress={handleGoToLogin}>
+              <Text style={styles.modalButtonText}>
+                {i18n.locale === 'fr' ? 'Aller à la connexion' : 'Go to Login'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -251,4 +315,85 @@ const styles = StyleSheet.create({
   loginContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4 },
   loginText: { color: Colors.dark.textSecondary, fontSize: 14 },
   loginLink: { color: Colors.dark.primary, fontSize: 14, fontWeight: '600' },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: 20,
+    padding: 28,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: `${Colors.dark.primary}20`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.dark.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emailText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark.primary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInstructions: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  spamNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${Colors.dark.textSecondary}15`,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 24,
+    gap: 8,
+  },
+  spamNoteText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    flex: 1,
+  },
+  modalButton: {
+    backgroundColor: Colors.dark.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: Colors.dark.background,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
