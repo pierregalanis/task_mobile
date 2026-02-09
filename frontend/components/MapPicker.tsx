@@ -7,22 +7,24 @@ import {
   Platform,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
 
-// Conditionally import MapView only for native platforms
 let MapView: any = null;
 let Marker: any = null;
 let PROVIDER_GOOGLE: any = null;
 
 if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-  PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
+  try {
+    const maps = require('react-native-maps');
+    MapView = maps.default;
+    Marker = maps.Marker;
+    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
+  } catch (e) {
+    console.log('react-native-maps not available');
+  }
 }
 
 interface Location {
@@ -42,7 +44,7 @@ export default function MapPicker({
   initialLocation,
   onLocationSelect,
   error = false,
-  country = 'CI', // Default to Ivory Coast
+  country = 'CI',
 }: MapPickerProps) {
   const [markerPosition, setMarkerPosition] = useState<Location | null>(
     initialLocation || null
@@ -60,7 +62,6 @@ export default function MapPicker({
     }
   }, [initialLocation]);
 
-  // Google Places Autocomplete Search
   const searchPlaces = async (query: string) => {
     if (!query || query.length < 3) {
       setSearchResults([]);
@@ -70,7 +71,6 @@ export default function MapPicker({
 
     try {
       setSearching(true);
-      // Using Google Places API
       const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
       
       const response = await fetch(
@@ -95,7 +95,6 @@ export default function MapPicker({
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
     
-    // Debounce search
     if (searchTimeout.current) {
       clearTimeout(searchTimeout.current);
     }
@@ -109,7 +108,6 @@ export default function MapPicker({
     try {
       const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
       
-      // Get place details to get coordinates
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GOOGLE_PLACES_API_KEY}`
       );
@@ -128,7 +126,6 @@ export default function MapPicker({
         setShowSuggestions(false);
         onLocationSelect(location);
         
-        // Animate map to location
         if (mapRef.current && Platform.OS !== 'web') {
           mapRef.current.animateToRegion({
             latitude: location.latitude,
@@ -172,7 +169,7 @@ export default function MapPicker({
   };
 
   const defaultRegion = {
-    latitude: markerPosition?.latitude || 5.36, // Abidjan
+    latitude: markerPosition?.latitude || 5.36,
     longitude: markerPosition?.longitude || -4.00,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
@@ -192,7 +189,6 @@ export default function MapPicker({
 
   return (
     <View style={[styles.container, error && styles.containerError]}>
-      {/* Search Box */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
         <TextInput
@@ -210,7 +206,6 @@ export default function MapPicker({
         {searching && <ActivityIndicator size="small" color={Colors.dark.primary} />}
       </View>
 
-      {/* Search Suggestions */}
       {showSuggestions && searchResults.length > 0 && (
         <View style={styles.suggestionsContainer}>
           {searchResults.slice(0, 5).map((result) => (
@@ -227,7 +222,6 @@ export default function MapPicker({
         </View>
       )}
 
-      {/* Map */}
       {MapView && (
         <MapView
           ref={mapRef}
@@ -238,7 +232,7 @@ export default function MapPicker({
           showsUserLocation={true}
           showsMyLocationButton={true}
         >
-          {markerPosition && (
+          {markerPosition && Marker && (
             <Marker
               coordinate={{
                 latitude: markerPosition.latitude,
@@ -255,14 +249,13 @@ export default function MapPicker({
         </MapView>
       )}
 
-      {/* Instructions */}
       <View style={styles.instructionsContainer}>
         {markerPosition ? (
           <>
             <View style={styles.successBadge}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.dark.success} />
               <Text style={styles.successText}>
-                {i18n.locale === 'fr' ? 'Emplacement sélectionné' : 'Location selected'}
+                {i18n.locale === 'fr' ? 'Emplacement selectionne' : 'Location selected'}
               </Text>
             </View>
             <Text style={styles.coordinatesText}>
@@ -286,7 +279,7 @@ export default function MapPicker({
           <Ionicons name="alert-circle" size={16} color={Colors.dark.error} />
           <Text style={styles.errorText}>
             {i18n.locale === 'fr'
-              ? 'Veuillez sélectionner un emplacement'
+              ? 'Veuillez selectionner un emplacement'
               : 'Please select a location'}
           </Text>
         </View>
