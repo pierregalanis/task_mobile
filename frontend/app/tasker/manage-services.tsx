@@ -16,7 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import api, { categoryAPI } from '../../services/api';
-import { CATEGORIES, getCategoryName, getSubcategoryName } from '../../constants/Categories';
+import { getCategoryName, getSubcategoryName } from '../../constants/Categories';
 import { showMessage, showConfirm } from '../../utils/alert';
 
 interface Service {
@@ -35,9 +35,9 @@ export default function ManageServicesScreen() {
   const [services, setServices] = useState<Service[]>(user?.tasker_profile?.services || []);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [categories, setCategories] = useState<any[]>(CATEGORIES);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   
-  // New service form state
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [newRate, setNewRate] = useState('');
@@ -50,12 +50,15 @@ export default function ManageServicesScreen() {
 
   const fetchCategories = async () => {
     try {
+      setCategoriesLoading(true);
       const data = await categoryAPI.getCategories();
       if (data?.length > 0) {
         setCategories(data);
       }
     } catch (error) {
-      console.log('Using default categories');
+      console.log('Error fetching categories:', error);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
@@ -65,7 +68,6 @@ export default function ManageServicesScreen() {
       const updatedServices = [...services];
       updatedServices[index] = updatedService;
       
-      // Use tasker-specific profile endpoint
       await api.put('/api/taskers/profile', {
         services: updatedServices,
       });
@@ -75,8 +77,8 @@ export default function ManageServicesScreen() {
       setExpandedIndex(null);
       
       showMessage(
-        i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Service mis à jour!' : 'Service updated!'
+        i18n.locale === 'fr' ? 'Succes' : 'Success',
+        i18n.locale === 'fr' ? 'Service mis a jour!' : 'Service updated!'
       );
     } catch (error: any) {
       console.error('Error saving service:', error);
@@ -89,7 +91,7 @@ export default function ManageServicesScreen() {
   const handleRemoveService = async (index: number) => {
     showMessage(
       i18n.locale === 'fr' ? 'Supprimer le service?' : 'Remove service?',
-      i18n.locale === 'fr' ? 'Cette action est irréversible.' : 'This action cannot be undone.',
+      i18n.locale === 'fr' ? 'Cette action est irreversible.' : 'This action cannot be undone.',
       [
         { text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
         {
@@ -165,15 +167,33 @@ export default function ManageServicesScreen() {
     return category?.subcategories || [];
   };
 
+  if (categoriesLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {i18n.locale === 'fr' ? 'Gerer mes services' : 'Manage Services'}
+          </Text>
+          <View style={styles.addBtn} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.dark.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {i18n.locale === 'fr' ? 'Gérer mes services' : 'Manage Services'}
+          {i18n.locale === 'fr' ? 'Gerer mes services' : 'Manage Services'}
         </Text>
         <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addBtn}>
           <Ionicons name="add" size={24} color={Colors.dark.primary} />
@@ -204,7 +224,7 @@ export default function ManageServicesScreen() {
               service={service}
               isExpanded={expandedIndex === index}
               onToggle={() => setExpandedIndex(expandedIndex === index ? null : index)}
-              onSave={(updated) => handleSaveService(index, updated)}
+              onSave={(updated: Service) => handleSaveService(index, updated)}
               onRemove={() => handleRemoveService(index)}
               loading={loading}
               categories={categories}
@@ -213,7 +233,6 @@ export default function ManageServicesScreen() {
         )}
       </ScrollView>
 
-      {/* Add Service Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -227,8 +246,7 @@ export default function ManageServicesScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              {/* Category Selection */}
-              <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Catégorie' : 'Category'}</Text>
+              <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Categorie' : 'Category'}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
                 {categories.map((cat) => (
                   <TouchableOpacity
@@ -244,18 +262,17 @@ export default function ManageServicesScreen() {
                 ))}
               </ScrollView>
 
-              {/* Subcategory Selection */}
               {selectedCategory && (
                 <>
-                  <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Sous-catégorie' : 'Subcategory'}</Text>
+                  <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Sous-categorie' : 'Subcategory'}</Text>
                   <View style={styles.subcategoryGrid}>
                     {getSelectedCategorySubcategories().map((sub: any) => (
                       <TouchableOpacity
-                        key={sub.id || sub.name_en}
-                        style={[styles.subcategoryChip, selectedSubcategory === (sub.id || sub.name_en) && styles.subcategoryChipActive]}
-                        onPress={() => setSelectedSubcategory(sub.id || sub.name_en)}
+                        key={sub.id || sub.en}
+                        style={[styles.subcategoryChip, selectedSubcategory === (sub.id || sub.en) && styles.subcategoryChipActive]}
+                        onPress={() => setSelectedSubcategory(sub.id || sub.en)}
                       >
-                        <Text style={[styles.subcategoryChipText, selectedSubcategory === (sub.id || sub.name_en) && styles.subcategoryChipTextActive]}>
+                        <Text style={[styles.subcategoryChipText, selectedSubcategory === (sub.id || sub.en) && styles.subcategoryChipTextActive]}>
                           {getSubcategoryName(sub, i18n.locale)}
                         </Text>
                       </TouchableOpacity>
@@ -264,7 +281,6 @@ export default function ManageServicesScreen() {
                 </>
               )}
 
-              {/* Rate */}
               <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Tarif horaire (XOF)' : 'Hourly Rate (XOF)'}</Text>
               <TextInput
                 style={styles.modalInput}
@@ -275,19 +291,17 @@ export default function ManageServicesScreen() {
                 keyboardType="numeric"
               />
 
-              {/* Bio */}
               <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Description du service' : 'Service Description'}</Text>
               <TextInput
                 style={[styles.modalInput, styles.textArea]}
                 value={newBio}
                 onChangeText={setNewBio}
-                placeholder={i18n.locale === 'fr' ? 'Décrivez votre expertise...' : 'Describe your expertise...'}
+                placeholder={i18n.locale === 'fr' ? 'Decrivez votre expertise...' : 'Describe your expertise...'}
                 placeholderTextColor={Colors.dark.textSecondary}
                 multiline
                 numberOfLines={3}
               />
 
-              {/* Max Distance */}
               <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Distance max (km)' : 'Max Distance (km)'}</Text>
               <TextInput
                 style={styles.modalInput}
@@ -319,14 +333,13 @@ export default function ManageServicesScreen() {
   );
 }
 
-// Service Card Component
 function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading, categories }: any) {
   const [rate, setRate] = useState(service.hourly_rate?.toString() || '');
   const [bio, setBio] = useState(service.bio || '');
   const [distance, setDistance] = useState(service.max_travel_distance?.toString() || '10');
 
   const category = categories.find((c: any) => c.id === service.category);
-  const subcategory = category?.subcategories?.find((s: any) => s.id === service.subcategory || s.name_en === service.subcategory);
+  const subcategory = category?.subcategories?.find((s: any) => s.id === service.subcategory || s.en === service.subcategory);
 
   return (
     <View style={styles.serviceCard}>
@@ -351,7 +364,7 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
       {isExpanded && (
         <View style={styles.serviceSettings}>
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? '💰 Tarif horaire:' : '💰 Hourly Rate:'}</Text>
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Tarif horaire:' : 'Hourly Rate:'}</Text>
             <TextInput
               style={styles.settingInput}
               value={rate}
@@ -363,20 +376,20 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? '📝 Description:' : '📝 Description:'}</Text>
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Description:' : 'Description:'}</Text>
             <TextInput
               style={[styles.settingInput, styles.textArea]}
               value={bio}
               onChangeText={setBio}
               multiline
               numberOfLines={3}
-              placeholder={i18n.locale === 'fr' ? 'Décrivez votre service...' : 'Describe your service...'}
+              placeholder={i18n.locale === 'fr' ? 'Decrivez votre service...' : 'Describe your service...'}
               placeholderTextColor={Colors.dark.textSecondary}
             />
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? '📍 Distance max:' : '📍 Max Distance:'}</Text>
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Distance max:' : 'Max Distance:'}</Text>
             <TextInput
               style={styles.settingInput}
               value={distance}
@@ -416,6 +429,7 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,7 +515,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.primary,
   },
   saveServiceBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.background },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
