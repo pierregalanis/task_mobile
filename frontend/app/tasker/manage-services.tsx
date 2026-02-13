@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,12 +18,14 @@ import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import api, { categoryAPI } from '../../services/api';
 import { getCategoryName, getSubcategoryName } from '../../constants/Categories';
-import { showMessage, showConfirm } from '../../utils/alert';
+import { showMessage } from '../../utils/alert';
 
 interface Service {
   category: string;
   subcategory: string;
+  pricing_type: 'hourly' | 'fixed';
   hourly_rate: number;
+  fixed_price: number;
   bio: string;
   max_travel_distance: number;
 }
@@ -30,17 +33,22 @@ interface Service {
 export default function ManageServicesScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
-  
+
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>(user?.tasker_profile?.services || []);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  
+
+  const [isAvailable, setIsAvailable] = useState(user?.tasker_profile?.is_available ?? true);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+  const [pricingType, setPricingType] = useState<'hourly' | 'fixed'>('hourly');
   const [newRate, setNewRate] = useState('');
+  const [newFixedPrice, setNewFixedPrice] = useState('');
   const [newBio, setNewBio] = useState('');
   const [newDistance, setNewDistance] = useState('10');
 
@@ -62,12 +70,38 @@ export default function ManageServicesScreen() {
     }
   };
 
+  const handleToggleAvailability = async (value: boolean) => {
+    try {
+      setAvailabilityLoading(true);
+      setIsAvailable(value);
+
+      await api.put('/api/taskers/profile', {
+        is_available: value,
+      });
+
+      await refreshUser();
+
+      showMessage(
+        i18n.locale === 'fr' ? 'Succes' : 'Success',
+        value
+          ? (i18n.locale === 'fr' ? 'Vous etes maintenant disponible' : 'You are now available for bookings')
+          : (i18n.locale === 'fr' ? 'Vous etes maintenant indisponible' : 'You are now unavailable for bookings')
+      );
+    } catch (error: any) {
+      console.error('Error toggling availability:', error);
+      setIsAvailable(!value);
+      showMessage('Error', error.response?.data?.detail || 'Failed to update availability');
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
   const handleSaveService = async (index: number, updatedService: Service) => {
     try {
       setLoading(true);
       const updatedServices = [...services];
       updatedServices[index] = updatedService;
-      
+
       await api.put('/api/taskers/profile', {
         services: updatedServices,
       });
@@ -75,7 +109,7 @@ export default function ManageServicesScreen() {
       setServices(updatedServices);
       await refreshUser();
       setExpandedIndex(null);
-      
+
       showMessage(
         i18n.locale === 'fr' ? 'Succes' : 'Success',
         i18n.locale === 'fr' ? 'Service mis a jour!' : 'Service updated!'
@@ -101,7 +135,7 @@ export default function ManageServicesScreen() {
             try {
               setLoading(true);
               const updatedServices = services.filter((_, i) => i !== index);
-              
+
               await api.put('/api/taskers/profile', {
                 services: updatedServices,
               });
@@ -120,8 +154,18 @@ export default function ManageServicesScreen() {
   };
 
   const handleAddService = async () => {
-    if (!selectedCategory || !selectedSubcategory || !newRate) {
-      showMessage('Error', 'Please fill all required fields');
+    if (!selectedCategory || !selectedSubcategory) {
+      showMessage('Error', i18n.locale === 'fr' ? 'Veuillez selectionner une categorie et sous-categorie' : 'Please select a category and subcategory');
+      return;
+    }
+
+    if (pricingType === 'hourly' && !newRate) {
+      showMessage('Error', i18n.locale === 'fr' ? 'Veuillez entrer un tarif horaire' : 'Please enter an hourly rate');
+      return;
+    }
+
+    if (pricingType === 'fixed' && !newFixedPrice) {
+      showMessage('Error', i18n.locale === 'fr' ? 'Veuillez entrer un prix fixe' : 'Please enter a fixed price');
       return;
     }
 
@@ -130,13 +174,15 @@ export default function ManageServicesScreen() {
       const newService: Service = {
         category: selectedCategory,
         subcategory: selectedSubcategory,
-        hourly_rate: parseInt(newRate),
+        pricing_type: pricingType,
+        hourly_rate: pricingType === 'hourly' ? parseInt(newRate) : 0,
+        fixed_price: pricingType === 'fixed' ? parseInt(newFixedPrice) : 0,
         bio: newBio,
         max_travel_distance: parseInt(newDistance) || 10,
       };
 
       const updatedServices = [...services, newService];
-      
+
       await api.put('/api/taskers/profile', {
         services: updatedServices,
       });
@@ -145,8 +191,8 @@ export default function ManageServicesScreen() {
       await refreshUser();
       setShowAddModal(false);
       resetNewServiceForm();
-      
-      showMessage('Success', 'Service added!');
+
+      showMessage('Success', i18n.locale === 'fr' ? 'Service ajoute!' : 'Service added!');
     } catch (error: any) {
       showMessage('Error', error.response?.data?.detail || 'Failed to add service');
     } finally {
@@ -157,7 +203,9 @@ export default function ManageServicesScreen() {
   const resetNewServiceForm = () => {
     setSelectedCategory('');
     setSelectedSubcategory('');
+    setPricingType('hourly');
     setNewRate('');
+    setNewFixedPrice('');
     setNewBio('');
     setNewDistance('10');
   };
@@ -201,6 +249,33 @@ export default function ManageServicesScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.availabilityCard}>
+          <View style={styles.availabilityInfo}>
+            <View style={[styles.availabilityDot, { backgroundColor: isAvailable ? Colors.dark.success : Colors.dark.error }]} />
+            <View style={styles.availabilityTextContainer}>
+              <Text style={styles.availabilityTitle}>
+                {i18n.locale === 'fr' ? 'Disponibilite' : 'Availability'}
+              </Text>
+              <Text style={styles.availabilityStatus}>
+                {isAvailable
+                  ? (i18n.locale === 'fr' ? 'Disponible pour les reservations' : 'Available for bookings')
+                  : (i18n.locale === 'fr' ? 'Indisponible pour les reservations' : 'Not available for bookings')
+                }
+              </Text>
+            </View>
+          </View>
+          {availabilityLoading ? (
+            <ActivityIndicator size="small" color={Colors.dark.primary} />
+          ) : (
+            <Switch
+              value={isAvailable}
+              onValueChange={handleToggleAvailability}
+              trackColor={{ false: Colors.dark.border, true: Colors.dark.primary }}
+              thumbColor={isAvailable ? Colors.dark.success : Colors.dark.textSecondary}
+            />
+          )}
+        </View>
+
         {services.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="construct-outline" size={64} color={Colors.dark.textSecondary} />
@@ -245,7 +320,7 @@ export default function ManageServicesScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Categorie' : 'Category'}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
                 {categories.map((cat) => (
@@ -281,15 +356,53 @@ export default function ManageServicesScreen() {
                 </>
               )}
 
-              <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Tarif horaire (XOF)' : 'Hourly Rate (XOF)'}</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={newRate}
-                onChangeText={setNewRate}
-                placeholder="5000"
-                placeholderTextColor={Colors.dark.textSecondary}
-                keyboardType="numeric"
-              />
+              <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Type de tarification' : 'Pricing Type'}</Text>
+              <View style={styles.pricingTypeRow}>
+                <TouchableOpacity
+                  style={[styles.pricingTypeBtn, pricingType === 'hourly' && styles.pricingTypeBtnActive]}
+                  onPress={() => setPricingType('hourly')}
+                >
+                  <Ionicons name="time-outline" size={20} color={pricingType === 'hourly' ? Colors.dark.background : Colors.dark.text} />
+                  <Text style={[styles.pricingTypeBtnText, pricingType === 'hourly' && styles.pricingTypeBtnTextActive]}>
+                    {i18n.locale === 'fr' ? 'Horaire' : 'Hourly'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pricingTypeBtn, pricingType === 'fixed' && styles.pricingTypeBtnActive]}
+                  onPress={() => setPricingType('fixed')}
+                >
+                  <Ionicons name="pricetag-outline" size={20} color={pricingType === 'fixed' ? Colors.dark.background : Colors.dark.text} />
+                  <Text style={[styles.pricingTypeBtnText, pricingType === 'fixed' && styles.pricingTypeBtnTextActive]}>
+                    {i18n.locale === 'fr' ? 'Prix fixe' : 'Fixed Price'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {pricingType === 'hourly' ? (
+                <>
+                  <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Tarif horaire (XOF)' : 'Hourly Rate (XOF)'}</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={newRate}
+                    onChangeText={setNewRate}
+                    placeholder="5000"
+                    placeholderTextColor={Colors.dark.textSecondary}
+                    keyboardType="numeric"
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Prix fixe (XOF)' : 'Fixed Price (XOF)'}</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={newFixedPrice}
+                    onChangeText={setNewFixedPrice}
+                    placeholder="25000"
+                    placeholderTextColor={Colors.dark.textSecondary}
+                    keyboardType="numeric"
+                  />
+                </>
+              )}
 
               <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Description du service' : 'Service Description'}</Text>
               <TextInput
@@ -334,18 +447,24 @@ export default function ManageServicesScreen() {
 }
 
 function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading, categories }: any) {
+  const [pricingType, setPricingType] = useState<'hourly' | 'fixed'>(service.pricing_type || 'hourly');
   const [rate, setRate] = useState(service.hourly_rate?.toString() || '');
+  const [fixedPrice, setFixedPrice] = useState(service.fixed_price?.toString() || '');
   const [bio, setBio] = useState(service.bio || '');
   const [distance, setDistance] = useState(service.max_travel_distance?.toString() || '10');
 
   const category = categories.find((c: any) => c.id === service.category);
   const subcategory = category?.subcategories?.find((s: any) => s.id === service.subcategory || s.en === service.subcategory);
 
+  const displayPrice = service.pricing_type === 'fixed'
+    ? service.fixed_price?.toLocaleString() + ' XOF'
+    : service.hourly_rate?.toLocaleString() + ' XOF/h';
+
   return (
     <View style={styles.serviceCard}>
       <TouchableOpacity style={styles.serviceHeader} onPress={onToggle}>
         <View style={styles.serviceInfo}>
-          <Text style={styles.serviceIcon}>{category?.icon || '📦'}</Text>
+          <Text style={styles.serviceIcon}>{category?.icon || ''}</Text>
           <View>
             <Text style={styles.serviceName}>
               {subcategory ? getSubcategoryName(subcategory, i18n.locale) : service.subcategory}
@@ -356,7 +475,14 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
           </View>
         </View>
         <View style={styles.serviceRight}>
-          <Text style={styles.serviceRate}>{service.hourly_rate?.toLocaleString()} XOF/h</Text>
+          <View style={[styles.pricingBadge, service.pricing_type === 'fixed' && styles.pricingBadgeFixed]}>
+            <Text style={styles.pricingBadgeText}>
+              {service.pricing_type === 'fixed'
+                ? (i18n.locale === 'fr' ? 'Fixe' : 'Fixed')
+                : (i18n.locale === 'fr' ? 'Horaire' : 'Hourly')}
+            </Text>
+          </View>
+          <Text style={styles.serviceRate}>{displayPrice}</Text>
           <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={Colors.dark.textSecondary} />
         </View>
       </TouchableOpacity>
@@ -364,19 +490,55 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
       {isExpanded && (
         <View style={styles.serviceSettings}>
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Tarif horaire:' : 'Hourly Rate:'}</Text>
-            <TextInput
-              style={styles.settingInput}
-              value={rate}
-              onChangeText={setRate}
-              keyboardType="numeric"
-              placeholder="XOF/hr"
-              placeholderTextColor={Colors.dark.textSecondary}
-            />
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Type de tarification' : 'Pricing Type'}</Text>
+            <View style={styles.pricingTypeRow}>
+              <TouchableOpacity
+                style={[styles.pricingTypeBtn, styles.pricingTypeBtnSmall, pricingType === 'hourly' && styles.pricingTypeBtnActive]}
+                onPress={() => setPricingType('hourly')}
+              >
+                <Text style={[styles.pricingTypeBtnText, pricingType === 'hourly' && styles.pricingTypeBtnTextActive]}>
+                  {i18n.locale === 'fr' ? 'Horaire' : 'Hourly'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pricingTypeBtn, styles.pricingTypeBtnSmall, pricingType === 'fixed' && styles.pricingTypeBtnActive]}
+                onPress={() => setPricingType('fixed')}
+              >
+                <Text style={[styles.pricingTypeBtnText, pricingType === 'fixed' && styles.pricingTypeBtnTextActive]}>
+                  {i18n.locale === 'fr' ? 'Prix fixe' : 'Fixed'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
+          {pricingType === 'hourly' ? (
+            <View style={styles.settingGroup}>
+              <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Tarif horaire (XOF)' : 'Hourly Rate (XOF)'}</Text>
+              <TextInput
+                style={styles.settingInput}
+                value={rate}
+                onChangeText={setRate}
+                keyboardType="numeric"
+                placeholder="5000"
+                placeholderTextColor={Colors.dark.textSecondary}
+              />
+            </View>
+          ) : (
+            <View style={styles.settingGroup}>
+              <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Prix fixe (XOF)' : 'Fixed Price (XOF)'}</Text>
+              <TextInput
+                style={styles.settingInput}
+                value={fixedPrice}
+                onChangeText={setFixedPrice}
+                keyboardType="numeric"
+                placeholder="25000"
+                placeholderTextColor={Colors.dark.textSecondary}
+              />
+            </View>
+          )}
+
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Description:' : 'Description:'}</Text>
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Description' : 'Description'}</Text>
             <TextInput
               style={[styles.settingInput, styles.textArea]}
               value={bio}
@@ -389,13 +551,13 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Distance max:' : 'Max Distance:'}</Text>
+            <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Distance max (km)' : 'Max Distance (km)'}</Text>
             <TextInput
               style={styles.settingInput}
               value={distance}
               onChangeText={setDistance}
               keyboardType="numeric"
-              placeholder="km"
+              placeholder="10"
               placeholderTextColor={Colors.dark.textSecondary}
             />
           </View>
@@ -408,7 +570,9 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
               style={[styles.saveServiceBtn, loading && { opacity: 0.7 }]}
               onPress={() => onSave({
                 ...service,
-                hourly_rate: parseInt(rate) || 0,
+                pricing_type: pricingType,
+                hourly_rate: pricingType === 'hourly' ? (parseInt(rate) || 0) : 0,
+                fixed_price: pricingType === 'fixed' ? (parseInt(fixedPrice) || 0) : 0,
                 bio,
                 max_travel_distance: parseInt(distance) || 10,
               })}
@@ -443,9 +607,44 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text },
   addBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   scrollView: { flex: 1, padding: 16 },
+  availabilityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  availabilityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  availabilityDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  availabilityTextContainer: {
+    flex: 1,
+  },
+  availabilityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark.text,
+  },
+  availabilityStatus: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    marginTop: 2,
+  },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text, marginTop: 16 },
-  emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8 },
+  emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
   addFirstBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -471,15 +670,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  serviceInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  serviceInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   serviceIcon: { fontSize: 28 },
   serviceName: { fontSize: 16, fontWeight: '600', color: Colors.dark.text },
   serviceCategory: { fontSize: 13, color: Colors.dark.textSecondary },
   serviceRight: { alignItems: 'flex-end', gap: 4 },
   serviceRate: { fontSize: 14, fontWeight: '600', color: Colors.dark.primary },
+  pricingBadge: {
+    backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  pricingBadgeFixed: {
+    backgroundColor: '#3b82f6',
+  },
+  pricingBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.dark.background,
+  },
   serviceSettings: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.dark.border,
     backgroundColor: Colors.dark.background,
@@ -515,6 +728,37 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.primary,
   },
   saveServiceBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.background },
+  pricingTypeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pricingTypeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card,
+    gap: 8,
+  },
+  pricingTypeBtnSmall: {
+    paddingVertical: 10,
+  },
+  pricingTypeBtnActive: {
+    backgroundColor: Colors.dark.primary,
+    borderColor: Colors.dark.primary,
+  },
+  pricingTypeBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.text,
+  },
+  pricingTypeBtnTextActive: {
+    color: Colors.dark.background,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
