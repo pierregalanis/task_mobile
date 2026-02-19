@@ -35,13 +35,13 @@ export default function BookingsScreen() {
       setLoading(true);
       // Fetch categories and tasks in parallel
       const [categoriesData, tasksData] = await Promise.all([
-        categoryAPI.getCategories(),
+        categoryAPI.getCategories().catch(() => []),
         user?.role === 'client' 
           ? taskAPI.getClientTasks()
           : taskAPI.getTaskerTasks()
       ]);
-      setCategories(categoriesData);
-      setTasks(tasksData);
+      setCategories(categoriesData || []);
+      setTasks(tasksData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -55,7 +55,7 @@ export default function BookingsScreen() {
       const data = user?.role === 'client' 
         ? await taskAPI.getClientTasks()
         : await taskAPI.getTaskerTasks();
-      setTasks(data);
+      setTasks(data || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -77,6 +77,15 @@ export default function BookingsScreen() {
     }
   };
 
+  const handleRejectTask = async (taskId: string) => {
+    try {
+      await taskAPI.rejectTask(taskId);
+      fetchTasks();
+    } catch (error) {
+      console.error('Error rejecting task:', error);
+    }
+  };
+
   const handleStatusUpdate = async (taskId: string, status: string) => {
     try {
       await taskAPI.updateTaskStatus(taskId, status);
@@ -90,6 +99,7 @@ export default function BookingsScreen() {
     switch (status) {
       case 'pending': return '#f59e0b';
       case 'accepted': return '#3b82f6';
+      case 'en_route': return '#8b5cf6';
       case 'in_progress': return '#8b5cf6';
       case 'completed': return Colors.dark.success;
       case 'cancelled': return Colors.dark.error;
@@ -197,6 +207,9 @@ export default function BookingsScreen() {
               const date = new Date(dateStr);
               return isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             };
+
+            // Show chat button for accepted, en_route, in_progress statuses
+            const showChatButton = ['accepted', 'en_route', 'in_progress'].includes(task.status);
             
             return (
               <TouchableOpacity
@@ -212,14 +225,6 @@ export default function BookingsScreen() {
                       <Text style={styles.statusBadgeText}>{getStatusText(task.status)}</Text>
                     </View>
                   </View>
-                  {task.status === 'accepted' && (
-                    <TouchableOpacity
-                      style={styles.chatButton}
-                      onPress={() => router.push(`/chat/${task.id}`)}
-                    >
-                      <Ionicons name="chatbubble-outline" size={20} color={Colors.dark.primary} />
-                    </TouchableOpacity>
-                  )}
                 </View>
 
                 <Text style={styles.taskCategory}>{categoryName}</Text>
@@ -255,15 +260,51 @@ export default function BookingsScreen() {
                   <Text style={styles.taskPrice}>{totalCost.toLocaleString()} XOF</Text>
                 </View>
 
-                {/* Action Buttons for Tasker */}
+                {/* Accept/Reject Buttons for Tasker */}
                 {user?.role === 'tasker' && task.status === 'pending' && (
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.rejectButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleRejectTask(task.id);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="close" size={18} color={Colors.dark.error} />
+                      <Text style={styles.rejectButtonText}>
+                        {i18n.locale === 'fr' ? 'Refuser' : 'Reject'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.acceptButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleAcceptTask(task.id);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="checkmark" size={18} color={Colors.dark.background} />
+                      <Text style={styles.acceptButtonText}>
+                        {i18n.locale === 'fr' ? 'Accepter' : 'Accept'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Chat Button - Show when task is accepted or in progress */}
+                {showChatButton && (
                   <TouchableOpacity
-                    style={styles.acceptButton}
-                    onPress={() => handleAcceptTask(task.id)}
+                    style={styles.chatActionButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/chat/${task.id}`);
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.acceptButtonText}>
-                      {i18n.locale === 'fr' ? 'Accepter la tâche' : 'Accept Task'}
+                    <Ionicons name="chatbubble-ellipses" size={18} color={Colors.dark.primary} />
+                    <Text style={styles.chatActionButtonText}>
+                      {i18n.locale === 'fr' ? 'Discuter' : 'Chat'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -272,21 +313,27 @@ export default function BookingsScreen() {
                 {user?.role === 'tasker' && task.status === 'accepted' && (
                   <TouchableOpacity
                     style={styles.enRouteButton}
-                    onPress={() => router.push(`/tracking/${task.id}?mode=tasker`)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/tracking/${task.id}?mode=tasker`);
+                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="navigate" size={18} color={Colors.dark.background} />
                     <Text style={styles.enRouteButtonText}>
-                      {i18n.locale === 'fr' ? 'En route' : 'En Route'}
+                      {i18n.locale === 'fr' ? 'En route' : 'On My Way'}
                     </Text>
                   </TouchableOpacity>
                 )}
 
                 {/* Track Route Button for Client */}
-                {user?.role === 'client' && task.status === 'en_route' && (
+                {user?.role === 'client' && ['en_route', 'in_progress'].includes(task.status) && (
                   <TouchableOpacity
                     style={styles.trackButton}
-                    onPress={() => router.push(`/tracking/${task.id}?mode=client`)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/tracking/${task.id}?mode=client`);
+                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="location" size={18} color={Colors.dark.background} />
@@ -300,9 +347,13 @@ export default function BookingsScreen() {
                 {user?.role === 'tasker' && task.status === 'in_progress' && (
                   <TouchableOpacity
                     style={styles.completeButton}
-                    onPress={() => handleStatusUpdate(task.id, 'completed')}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleStatusUpdate(task.id, 'completed');
+                    }}
                     activeOpacity={0.7}
                   >
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.dark.background} />
                     <Text style={styles.completeButtonText}>
                       {i18n.locale === 'fr' ? 'Marquer comme terminée' : 'Mark as Completed'}
                     </Text>
@@ -423,14 +474,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.dark.background,
   },
-  chatButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.dark.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   taskCategory: {
     fontSize: 14,
     color: Colors.dark.primary,
@@ -476,20 +519,62 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.dark.primary,
   },
-  acceptButton: {
+  actionButtonsRow: {
+    flexDirection: 'row',
     marginTop: 16,
+    gap: 12,
+  },
+  rejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.dark.error,
+  },
+  rejectButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark.error,
+  },
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
     backgroundColor: Colors.dark.primary,
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   acceptButtonText: {
     fontSize: 14,
     fontWeight: '700',
     color: Colors.dark.background,
   },
+  chatActionButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    backgroundColor: Colors.dark.card,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary,
+  },
+  chatActionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.primary,
+  },
   enRouteButton: {
-    marginTop: 16,
+    marginTop: 12,
     backgroundColor: '#8b5cf6',
     padding: 12,
     borderRadius: 12,
@@ -504,7 +589,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.background,
   },
   trackButton: {
-    marginTop: 16,
+    marginTop: 12,
     backgroundColor: '#f59e0b',
     padding: 12,
     borderRadius: 12,
@@ -519,11 +604,14 @@ const styles = StyleSheet.create({
     color: Colors.dark.background,
   },
   completeButton: {
-    marginTop: 16,
+    marginTop: 12,
     backgroundColor: Colors.dark.success,
     padding: 12,
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   completeButtonText: {
     fontSize: 14,

@@ -13,11 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskAPI, reviewAPI } from '../../services/api';
+import { taskAPI, reviewAPI, categoryAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
+import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
 import { Button } from '../../components/Button';
 import { showMessage, showConfirm } from '../../utils/alert';
 
@@ -27,6 +27,7 @@ export default function TaskDetailsScreen() {
   const { user } = useAuth();
   
   const [task, setTask] = useState<any>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   
@@ -48,11 +49,16 @@ export default function TaskDetailsScreen() {
   const fetchTaskDetails = async () => {
     try {
       setLoading(true);
-      // Get all tasks and find the one we need
-      const tasks = user?.role === 'client' 
-        ? await taskAPI.getClientTasks()
-        : await taskAPI.getTaskerTasks();
-      const foundTask = tasks.find((t: any) => t.id === id);
+      // Fetch categories and tasks in parallel
+      const [categoriesData, tasks] = await Promise.all([
+        categoryAPI.getCategories().catch(() => []),
+        user?.role === 'client' 
+          ? taskAPI.getClientTasks()
+          : taskAPI.getTaskerTasks()
+      ]);
+      
+      setCategories(categoriesData || []);
+      const foundTask = tasks?.find((t: any) => t.id === id);
       if (foundTask) {
         setTask(foundTask);
       }
@@ -242,8 +248,8 @@ export default function TaskDetailsScreen() {
     );
   }
 
-  const category = getCategoryById(task.category);
-  const subcategory = task.subcategory ? getSubcategoryById(task.category, task.subcategory) : null;
+  const category = getCategoryById(categories, task.category);
+  const subcategory = task.subcategory ? getSubcategoryById(category, task.subcategory) : null;
   const categoryName = category ? getCategoryName(category, i18n.locale) : task.category;
   const subcategoryName = subcategory ? getSubcategoryName(subcategory, i18n.locale) : null;
 

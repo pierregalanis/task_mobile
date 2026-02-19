@@ -1,6 +1,9 @@
 export interface Subcategory {
-  en: string;
-  fr: string;
+  id?: string;
+  name_en?: string;
+  name_fr?: string;
+  en?: string;
+  fr?: string;
 }
 
 export interface Category {
@@ -11,23 +14,42 @@ export interface Category {
   subcategories: Subcategory[];
 }
 
-// Categories are now loaded dynamically from the API
-// This file provides helper functions for working with categories
+// Default empty categories array for fallback
+export const CATEGORIES: Category[] = [];
 
+// Get category by ID from a categories array
 export const getCategoryById = (categories: Category[], id: string): Category | undefined => {
+  if (!categories || !Array.isArray(categories)) return undefined;
   return categories.find((cat) => cat.id === id);
 };
 
+// Get subcategory by ID from a category
+export const getSubcategoryById = (category: Category | undefined, subcategoryId: string): Subcategory | undefined => {
+  if (!category || !category.subcategories || !Array.isArray(category.subcategories)) return undefined;
+  return category.subcategories.find((sub) => 
+    sub.id === subcategoryId || sub.name_en === subcategoryId || sub.en === subcategoryId
+  );
+};
+
+// Get subcategory by index (legacy support)
 export const getSubcategoryByIndex = (category: Category, index: number): Subcategory | undefined => {
   return category?.subcategories?.[index];
 };
 
-export const getCategoryName = (category: Category, locale: string): string => {
-  return locale === 'fr' ? category.name_fr : category.name_en;
+// Get category display name
+export const getCategoryName = (category: Category | undefined, locale: string): string => {
+  if (!category) return '';
+  return locale === 'fr' ? (category.name_fr || category.name_en) : (category.name_en || category.name_fr);
 };
 
-export const getSubcategoryName = (subcategory: Subcategory, locale: string): string => {
-  return locale === 'fr' ? subcategory.fr : subcategory.en;
+// Get subcategory display name
+export const getSubcategoryName = (subcategory: Subcategory | undefined, locale: string): string => {
+  if (!subcategory) return '';
+  // Support both new format (name_en/name_fr) and old format (en/fr)
+  if (locale === 'fr') {
+    return subcategory.name_fr || subcategory.fr || subcategory.name_en || subcategory.en || '';
+  }
+  return subcategory.name_en || subcategory.en || subcategory.name_fr || subcategory.fr || '';
 };
 
 // Country configuration
