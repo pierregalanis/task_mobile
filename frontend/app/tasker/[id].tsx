@@ -8,15 +8,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskerAPI, reviewAPI, favoriteAPI } from '../../services/api';
+import { taskerAPI, reviewAPI, favoriteAPI, imageAPI, PortfolioImage } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
 import { categoryAPI } from '../../services/api';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function TaskerProfileScreen() {
   const router = useRouter();
@@ -28,6 +31,15 @@ export default function TaskerProfileScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
+  
+  // Per-service portfolio images state
+  const [servicePortfolios, setServicePortfolios] = useState<Record<string, PortfolioImage[]>>({});
+  const [loadingPortfolios, setLoadingPortfolios] = useState(false);
+  
+  // Image viewer modal
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -44,11 +56,51 @@ export default function TaskerProfileScreen() {
       setTasker(taskerData);
       setCategories(categoriesData || []);
       setReviews(reviewsData || []);
+      
+      // Fetch portfolio images for each service
+      if (taskerData?.tasker_profile?.services) {
+        fetchServicePortfolios(taskerData.tasker_profile.services);
+      }
     } catch (error) {
       console.error('Error fetching tasker:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchServicePortfolios = async (services: any[]) => {
+    try {
+      setLoadingPortfolios(true);
+      const portfolioPromises = services.map(async (service: any) => {
+        try {
+          const images = await imageAPI.getWorkPortfolioByService(service.category, service.subcategory);
+          return { 
+            key: `${service.category}-${service.subcategory}`, 
+            images: images || [] 
+          };
+        } catch (error) {
+          console.log(`No portfolio for ${service.category}-${service.subcategory}`);
+          return { key: `${service.category}-${service.subcategory}`, images: [] };
+        }
+      });
+      
+      const results = await Promise.all(portfolioPromises);
+      const portfolioMap: Record<string, PortfolioImage[]> = {};
+      results.forEach(result => {
+        portfolioMap[result.key] = result.images;
+      });
+      setServicePortfolios(portfolioMap);
+    } catch (error) {
+      console.error('Error fetching service portfolios:', error);
+    } finally {
+      setLoadingPortfolios(false);
+    }
+  };
+
+  const openImageViewer = (images: string[], index: number) => {
+    setViewerImages(images);
+    setViewerIndex(index);
+    setShowImageViewer(true);
   };
 
   const fetchTaskerProfile = async () => {
@@ -85,7 +137,6 @@ export default function TaskerProfileScreen() {
     setSelectedService(service);
     setShowServiceModal(false);
     
-    // Get service display name
     const category = getCategoryById(categories, service.category);
     const subcategory = getSubcategoryById(category, service.subcategory);
     const displayName = subcategory 
@@ -188,7 +239,7 @@ export default function TaskerProfileScreen() {
           </View>
         )}
 
-        {/* Services Section */}
+        {/* Services Section with Per-Service Portfolio */}
         {tasker.tasker_profile?.services && tasker.tasker_profile.services.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Services' : 'Services'}</Text>
@@ -197,6 +248,8 @@ export default function TaskerProfileScreen() {
               const subcategory = service.subcategory ? getSubcategoryById(category, service.subcategory) : null;
               const categoryName = category ? getCategoryName(category, i18n.locale) : service.category;
               const subcategoryName = subcategory ? getSubcategoryName(subcategory, i18n.locale) : service.subcategory;
+              const portfolioKey = `${service.category}-${service.subcategory}`;
+              const portfolioImages = servicePortfolios[portfolioKey] || [];
               
               return (
                 <View key={index} style={styles.serviceCard}>
@@ -228,22 +281,60 @@ export default function TaskerProfileScreen() {
                       </>
                     )}
                   </View>
+                  
+                  {/* Per-Service Portfolio Images */}
+                  {portfolioImages.length > 0 && (
+                    <View style={styles.servicePortfolio}>
+                      <Text style={styles.servicePortfolioLabel}>
+                        <Ionicons name="images-outline" size={14} color={Colors.dark.textSecondary} />
+                        {' '}{i18n.locale === 'fr' ? 'Travaux réalisés' : 'Work samples'}
+                      </Text>
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        style={styles.servicePortfolioScroll}
+                      >
+                        {portfolioImages.map((img, imgIndex) => (
+                          <TouchableOpacity
+                            key={img.id}
+                            onPress={() => openImageViewer(
+                              portfolioImages.map(p => p.image_url),
+                              imgIndex
+                            )}
+                            activeOpacity={0.8}
+                          >
+                            <Image 
+                              source={{ uri: img.image_url }} 
+                              style={styles.servicePortfolioImage} 
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               );
             })}
           </View>
         )}
 
-        {/* Portfolio Section */}
+        {/* Legacy Portfolio Section - Show only if no per-service images exist */}
         {tasker.tasker_profile?.portfolio_images &&
-          tasker.tasker_profile.portfolio_images.length > 0 && (
+          tasker.tasker_profile.portfolio_images.length > 0 &&
+          Object.keys(servicePortfolios).every(key => servicePortfolios[key].length === 0) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 {i18n.locale === 'fr' ? 'Portfolio' : 'Portfolio'}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
                 {tasker.tasker_profile.portfolio_images.map((image: string, index: number) => (
-                  <Image key={index} source={{ uri: image }} style={styles.portfolioImage} />
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => openImageViewer(tasker.tasker_profile.portfolio_images, index)}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: image }} style={styles.portfolioImage} />
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
@@ -342,6 +433,48 @@ export default function TaskerProfileScreen() {
               })}
             </ScrollView>
           </View>
+        </View>
+      </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={showImageViewer}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImageViewer(false)}
+      >
+        <View style={styles.imageViewerOverlay}>
+          <TouchableOpacity 
+            style={styles.imageViewerClose} 
+            onPress={() => setShowImageViewer(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: viewerIndex * SCREEN_WIDTH, y: 0 }}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setViewerIndex(newIndex);
+            }}
+          >
+            {viewerImages.map((imageUrl, idx) => (
+              <View key={idx} style={styles.imageViewerContainer}>
+                <Image 
+                  source={{ uri: imageUrl }} 
+                  style={styles.imageViewerImage}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+          
+          <Text style={styles.imageViewerCounter}>
+            {viewerIndex + 1} / {viewerImages.length}
+          </Text>
         </View>
       </Modal>
     </SafeAreaView>
@@ -518,6 +651,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.dark.primary,
   },
+  // Per-Service Portfolio Styles
+  servicePortfolio: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
+  },
+  servicePortfolioLabel: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    marginBottom: 8,
+  },
+  servicePortfolioScroll: {
+    marginHorizontal: -4,
+  },
+  servicePortfolioImage: {
+    width: 100,
+    height: 75,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  // Legacy Portfolio Styles
   portfolioScroll: {
     marginHorizontal: -24,
     paddingHorizontal: 24,
@@ -629,5 +784,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.dark.primary,
+  },
+  // Image Viewer Modal Styles
+  imageViewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerClose: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageViewerContainer: {
+    width: SCREEN_WIDTH,
+    height: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  imageViewerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  imageViewerCounter: {
+    position: 'absolute',
+    bottom: 60,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -451,6 +451,76 @@ export const pushTokenAPI = {
   },
 };
 
+// ==================== IMAGE API ====================
+
+export const imageAPI = {
+  // Upload profile picture
+  async uploadProfileImage(imageUri: string) {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'profile_image.jpg',
+    } as any);
+
+    const response = await api.post('/api/images/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  // Upload work portfolio image for a specific service
+  async uploadWorkPortfolioImage(
+    imageUri: string,
+    serviceCategory: string,
+    serviceSubcategory: string,
+    description?: string
+  ) {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'work_image.jpg',
+    } as any);
+    formData.append('service_category', serviceCategory);
+    formData.append('service_subcategory', serviceSubcategory);
+    if (description) {
+      formData.append('description', description);
+    }
+
+    const response = await api.post('/api/images/work-portfolio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  // Get all work portfolio images for current user
+  async getWorkPortfolio() {
+    const response = await api.get('/api/images/work-portfolio');
+    return response.data;
+  },
+
+  // Get work portfolio images filtered by service
+  async getWorkPortfolioByService(category: string, subcategory: string) {
+    const response = await api.get('/api/images/work-portfolio/by-service', {
+      params: { category, subcategory },
+    });
+    return response.data;
+  },
+
+  // Get a tasker's work portfolio (public)
+  async getTaskerWorkPortfolio(taskerId: string) {
+    const response = await api.get(`/api/images/work-portfolio/${taskerId}`);
+    return response.data;
+  },
+
+  // Delete a work portfolio image
+  async deleteWorkPortfolioImage(imageId: string) {
+    const response = await api.delete(`/api/images/work-portfolio/${imageId}`);
+    return response.data;
+  },
+};
+
 // ==================== AI ASSISTANT API ====================
 // Using the mobile-optimized AI assistant with full app context
 

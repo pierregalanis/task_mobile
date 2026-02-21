@@ -9,14 +9,17 @@ import {
   ActivityIndicator,
   Modal,
   Switch,
+  Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { categoryAPI, taskerAPI } from '../../services/api';
+import { categoryAPI, taskerAPI, imageAPI } from '../../services/api';
 import { getCategoryName, getSubcategoryName } from '../../constants/Categories';
 import { showMessage } from '../../utils/alert';
 
@@ -28,6 +31,13 @@ interface Service {
   fixed_price: number;
   bio: string;
   max_travel_distance: number;
+}
+
+interface PortfolioImage {
+  id: string;
+  url: string;
+  thumbnail_url?: string;
+  description?: string;
 }
 
 export default function ManageServicesScreen() {
@@ -456,6 +466,11 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
   const [fixedPrice, setFixedPrice] = useState(service.fixed_price?.toString() || '');
   const [bio, setBio] = useState(service.bio || '');
   const [distance, setDistance] = useState(service.max_travel_distance?.toString() || '10');
+  
+  // Portfolio state
+  const [portfolioImages, setPortfolioImages] = useState<PortfolioImage[]>([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const category = categories.find((c: any) => c.id === service.category);
   const subcategory = category?.subcategories?.find((s: any) => s.id === service.subcategory || s.en === service.subcategory);
@@ -463,6 +478,99 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
   const displayPrice = service.pricing_type === 'fixed'
     ? service.fixed_price?.toLocaleString() + ' XOF'
     : service.hourly_rate?.toLocaleString() + ' XOF/h';
+
+  // Fetch portfolio images when expanded
+  useEffect(() => {
+    if (isExpanded) {
+      fetchPortfolioImages();
+    }
+  }, [isExpanded]);
+
+  const fetchPortfolioImages = async () => {
+    try {
+      setPortfolioLoading(true);
+      const response = await imageAPI.getWorkPortfolioByService(service.category, service.subcategory);
+      setPortfolioImages(response.work_portfolio || []);
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+      setPortfolioImages([]);
+    } finally {
+      setPortfolioLoading(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert(
+          i18n.locale === 'fr' ? 'Permission requise' : 'Permission required',
+          i18n.locale === 'fr' ? 'Veuillez autoriser l\'accès à la galerie' : 'Please allow access to your photo library'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', i18n.locale === 'fr' ? 'Erreur lors de la sélection' : 'Failed to pick image');
+    }
+  };
+
+  const uploadImage = async (imageUri: string) => {
+    try {
+      setUploadingImage(true);
+      await imageAPI.uploadWorkPortfolioImage(
+        imageUri,
+        service.category,
+        service.subcategory,
+        ''
+      );
+      await fetchPortfolioImages();
+      Alert.alert(
+        i18n.locale === 'fr' ? 'Succès' : 'Success',
+        i18n.locale === 'fr' ? 'Image ajoutée!' : 'Image uploaded!'
+      );
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', error.response?.data?.detail || (i18n.locale === 'fr' ? 'Erreur lors du téléchargement' : 'Failed to upload image'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    Alert.alert(
+      i18n.locale === 'fr' ? 'Supprimer l\'image?' : 'Delete image?',
+      i18n.locale === 'fr' ? 'Cette action est irréversible.' : 'This action cannot be undone.',
+      [
+        { text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
+        {
+          text: i18n.locale === 'fr' ? 'Supprimer' : 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await imageAPI.deleteWorkPortfolioImage(imageId);
+              await fetchPortfolioImages();
+            } catch (error) {
+              console.error('Error deleting image:', error);
+              Alert.alert('Error', i18n.locale === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete image');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.serviceCard}>
@@ -493,6 +601,56 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
 
       {isExpanded && (
         <View style={styles.serviceSettings}>
+          {/* Portfolio Section */}
+          <View style={styles.portfolioSection}>
+            <View style={styles.portfolioHeader}>
+              <Text style={styles.settingLabel}>
+                {i18n.locale === 'fr' ? 'Photos de travaux' : 'Work Portfolio'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.addPhotoBtn} 
+                onPress={handlePickImage}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator size="small" color={Colors.dark.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="camera" size={16} color={Colors.dark.primary} />
+                    <Text style={styles.addPhotoBtnText}>
+                      {i18n.locale === 'fr' ? 'Ajouter' : 'Add'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            {portfolioLoading ? (
+              <ActivityIndicator size="small" color={Colors.dark.primary} style={{ marginVertical: 16 }} />
+            ) : portfolioImages.length === 0 ? (
+              <View style={styles.noPhotosContainer}>
+                <Ionicons name="images-outline" size={32} color={Colors.dark.textSecondary} />
+                <Text style={styles.noPhotosText}>
+                  {i18n.locale === 'fr' ? 'Aucune photo' : 'No photos yet'}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
+                {portfolioImages.map((img) => (
+                  <View key={img.id} style={styles.portfolioImageContainer}>
+                    <Image source={{ uri: img.thumbnail_url || img.url }} style={styles.portfolioImage} />
+                    <TouchableOpacity 
+                      style={styles.deleteImageBtn}
+                      onPress={() => handleDeleteImage(img.id)}
+                    >
+                      <Ionicons name="close-circle" size={24} color={Colors.dark.error} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+
           <View style={styles.settingGroup}>
             <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Type de tarification' : 'Pricing Type'}</Text>
             <View style={styles.pricingTypeRow}>
@@ -832,4 +990,62 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   modalSaveBtnText: { fontSize: 16, fontWeight: '600', color: Colors.dark.background },
+  // Portfolio styles
+  portfolioSection: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+  },
+  portfolioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary,
+  },
+  addPhotoBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.dark.primary,
+  },
+  noPhotosContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+  },
+  noPhotosText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    marginTop: 8,
+  },
+  portfolioScroll: {
+    marginHorizontal: -4,
+  },
+  portfolioImageContainer: {
+    position: 'relative',
+    marginHorizontal: 4,
+  },
+  portfolioImage: {
+    width: 100,
+    height: 75,
+    borderRadius: 8,
+  },
+  deleteImageBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: Colors.dark.background,
+    borderRadius: 12,
+  },
 });
