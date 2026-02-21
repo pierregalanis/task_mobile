@@ -9,7 +9,7 @@ import i18n from '../../utils/i18n';
 import { storage } from '../../utils/storage';
 import { showConfirm } from '../../utils/alert';
 
-const SUPPORT_EMAIL = 'aboh@a4less.com';
+const SUPPORT_EMAIL = 'help@soutrali.net';
 
 export default function ProfileScreen() {
   const router = useRouter();

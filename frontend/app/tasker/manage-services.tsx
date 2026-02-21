@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import api, { categoryAPI } from '../../services/api';
+import { categoryAPI, taskerAPI } from '../../services/api';
 import { getCategoryName, getSubcategoryName } from '../../constants/Categories';
 import { showMessage } from '../../utils/alert';
 
@@ -75,7 +75,8 @@ export default function ManageServicesScreen() {
       setAvailabilityLoading(true);
       setIsAvailable(value);
 
-      await api.put('/api/taskers/profile', {
+      // Use JSON endpoint for proper sync with website
+      await taskerAPI.updateProfileJson({
         is_available: value,
       });
 
@@ -102,7 +103,8 @@ export default function ManageServicesScreen() {
       const updatedServices = [...services];
       updatedServices[index] = updatedService;
 
-      await api.put('/api/taskers/profile', {
+      // Use JSON endpoint for proper sync with website
+      await taskerAPI.updateProfileJson({
         services: updatedServices,
       });
 
@@ -136,7 +138,8 @@ export default function ManageServicesScreen() {
               setLoading(true);
               const updatedServices = services.filter((_, i) => i !== index);
 
-              await api.put('/api/taskers/profile', {
+              // Use JSON endpoint for proper sync with website
+              await taskerAPI.updateProfileJson({
                 services: updatedServices,
               });
 
@@ -183,7 +186,8 @@ export default function ManageServicesScreen() {
 
       const updatedServices = [...services, newService];
 
-      await api.put('/api/taskers/profile', {
+      // Use JSON endpoint for proper sync with website
+      await taskerAPI.updateProfileJson({
         services: updatedServices,
       });
 

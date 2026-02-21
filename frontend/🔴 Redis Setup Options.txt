@@ -1,0 +1,49 @@
+🔴 Redis Setup Options
+Option 1: Upstash (Recommended - Free Tier)
+
+Free: 10,000 commands/day
+Serverless (no maintenance)
+URL: https://upstash.com/
+Option 2: Redis Cloud
+
+Free: 30MB storage
+URL: https://redis.io/try-free/
+Option 3: AWS ElastiCache
+
+Pay-as-you-go
+Best for production at scale
+🟡 AWS Credentials Needed for S3
+To enable AWS S3 image storage, you need:
+
+Credential	Description	Where to Get
+AWS_ACCESS_KEY_ID	Your AWS access key	IAM Console → Users → Security Credentials
+AWS_SECRET_ACCESS_KEY	Your AWS secret key	Same as above (shown only once when created)
+AWS_REGION	Region for your bucket	e.g., us-east-1, eu-west-1
+S3_BUCKET_NAME	Your S3 bucket name	S3 Console → Create Bucket
+❓ Quick Questions:
+For Redis: Would you like to use Upstash (free, easiest) or do you already have a Redis instance?
+
+For AWS S3:
+
+Do you already have an AWS account?
+If yes, do you have an S3 bucket created, or should I guide you through creating one?
+Once you provide the credentials, I'll add them to your .env file and everything will auto-enable on restart.
+
+Example of what I need from you:
+
+# Redis (from Upstash or Redis Cloud)
+REDIS_URL=redis://default:your_password@your-host.upstash.io:6379
+
+# AWS (from IAM Console)
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=soutrali-uploads
+Feb 19, 07:44 PM
+
+Copy
+with the S3 set up taskers and clients will be able to upload pictures ?
+
+Please give me another alternative to twilo for whatsapp business and text messages for forgotten password
+
+and instructions for redis

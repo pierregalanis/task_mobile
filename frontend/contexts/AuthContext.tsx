@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, LoginCredentials, RegisterData, User } from '../services/api';
 import { storage } from '../utils/storage';
-import { registerForPushNotificationsAsync, savePushToken } from '../services/notifications';
+import { registerForPushNotificationsAsync, savePushToken, removePushToken } from '../services/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -132,6 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Unregister push token before logging out
+      try {
+        await removePushToken();
+        console.log('Push token unregistered');
+      } catch (error) {
+        console.error('Error removing push token:', error);
+      }
+      
       await storage.clearAll();
       setUser(null);
     } catch (error) {

@@ -199,6 +199,22 @@ export const taskerAPI = {
     const response = await api.get(`/api/users/${userId}`);
     return response.data;
   },
+
+  // Get current tasker's own profile (recommended for mobile)
+  async getMyProfile() {
+    const response = await api.get('/api/taskers/profile/me');
+    return response.data;
+  },
+
+  // Update tasker profile with JSON (recommended for mobile - ensures sync with website)
+  async updateProfileJson(profileData: {
+    services?: any[];
+    bio?: string;
+    is_available?: boolean;
+  }) {
+    const response = await api.put('/api/taskers/profile/json', profileData);
+    return response.data;
+  },
 };
 
 // ==================== CATEGORY API ====================
@@ -225,12 +241,20 @@ export const taskAPI = {
     return response.data;
   },
 
+  // Get client's own tasks
   async getClientTasks() {
-    const response = await api.get('/api/tasks');
+    const response = await api.get('/api/tasks/my-tasks');
     return response.data;
   },
 
+  // Get available tasks for tasker
   async getTaskerTasks() {
+    const response = await api.get('/api/tasks/available');
+    return response.data;
+  },
+  
+  // Get all tasks (legacy - fallback)
+  async getAllTasks() {
     const response = await api.get('/api/tasks');
     return response.data;
   },
@@ -391,16 +415,38 @@ export const notificationAPI = {
 // ==================== PUSH TOKEN API ====================
 
 export const pushTokenAPI = {
-  async registerToken(token: string, platform: string = 'ios') {
-    const response = await api.post('/api/push-tokens', {
-      token: token,
+  // Register FCM token for push notifications
+  async registerToken(token: string, platform: string = 'ios', deviceName?: string) {
+    const response = await api.post('/api/push/register-token', {
+      fcm_token: token,
       device_type: platform,
+      device_name: deviceName || `${platform} device`,
     });
     return response.data;
   },
 
-  async unregisterToken(token: string) {
-    const response = await api.delete(`/api/push-tokens/${token}`);
+  // Unregister token on logout
+  async unregisterToken() {
+    const response = await api.delete('/api/push/unregister-token');
+    return response.data;
+  },
+
+  // Get notification preferences
+  async getPreferences() {
+    const response = await api.get('/api/push/preferences');
+    return response.data;
+  },
+
+  // Update notification preferences
+  async updatePreferences(preferences: {
+    task_applications?: boolean;
+    task_updates?: boolean;
+    messages?: boolean;
+    payments?: boolean;
+    reviews?: boolean;
+    marketing?: boolean;
+  }) {
+    const response = await api.put('/api/push/preferences', preferences);
     return response.data;
   },
 };

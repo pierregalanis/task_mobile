@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import api from './api';
+import { pushTokenAPI } from './api';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -38,6 +38,7 @@ export async function registerForPushNotificationsAsync() {
       return;
     }
     
+    // Get FCM token for Firebase Cloud Messaging
     token = (await Notifications.getExpoPushTokenAsync({
       projectId: 'your-project-id' // This will use the default Expo project ID
     })).data;
@@ -52,13 +53,25 @@ export async function registerForPushNotificationsAsync() {
 
 export async function savePushToken(token: string) {
   try {
-    await api.post('/api/push-tokens', {
+    // Use the new FCM token registration endpoint
+    await pushTokenAPI.registerToken(
       token,
-      device_type: Platform.OS,
-    });
+      Platform.OS,
+      `${Platform.OS} ${Device.modelName || 'device'}`
+    );
     console.log('Push token saved to backend');
   } catch (error) {
     console.error('Error saving push token:', error);
+  }
+}
+
+export async function removePushToken() {
+  try {
+    // Unregister token on logout
+    await pushTokenAPI.unregisterToken();
+    console.log('Push token removed from backend');
+  } catch (error) {
+    console.error('Error removing push token:', error);
   }
 }
 
@@ -77,10 +90,14 @@ export function setupNotificationListeners(navigation: any) {
     // Navigate based on notification type
     if (data.type === 'new_message' && data.task_id) {
       navigation.navigate('chat', { id: data.task_id });
-    } else if (data.type === 'new_booking' || data.type === 'task_accepted') {
+    } else if (data.type === 'task_application' || data.type === 'task_accepted' || data.type === 'task_rejected') {
       navigation.navigate('(tabs)', { screen: 'bookings' });
     } else if (data.type === 'en_route' || data.type === 'arrived') {
       navigation.navigate('(tabs)', { screen: 'bookings' });
+    } else if (data.type === 'payment_received') {
+      navigation.navigate('(tabs)', { screen: 'bookings' });
+    } else if (data.type === 'new_review') {
+      navigation.navigate('(tabs)', { screen: 'profile' });
     }
   });
 
