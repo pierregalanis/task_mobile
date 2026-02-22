@@ -1,18 +1,3 @@
-info
-
-code
-Code
-
-preview
-Preview
-
-Deploy
-Loading...
-Robot
-Hey gforce, Quick input needed :
-Ask Question
-Agent will continue working after your reply
-Here's the complete select-service.tsx file - copy and paste ready:
 
 import React, { useState, useEffect } from 'react';
 import {
