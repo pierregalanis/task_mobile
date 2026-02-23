@@ -15,8 +15,8 @@ import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
 import { showMessage } from '../utils/alert';
 
-const SUPPORT_EMAIL = 'aboh@a4less.com';
-const SUPPORT_WHATSAPP = '+22177882922';
+const SUPPORT_EMAIL = 'help@soutrali.net';
+const SUPPORT_WHATSAPP = '+12487879259';
 const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
 const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
 
