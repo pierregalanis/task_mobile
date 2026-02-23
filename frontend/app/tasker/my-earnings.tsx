@@ -20,11 +20,12 @@ export default function MyEarningsScreen() {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<any[]>([]);
   const [earnings, setEarnings] = useState({
     total: 0,
     thisMonth: 0,
     lastMonth: 0,
+    pendingPayment: 0,
   });
 
   useEffect(() => {
@@ -35,14 +36,26 @@ export default function MyEarningsScreen() {
     try {
       const allTasks = await taskAPI.getTaskerTasks();
       
-      // Filter completed tasks with payment
-      const paidTasks = (allTasks || []).filter(
-        (t: any) => t.status === 'completed' && (t.payment_status === 'paid' || t.final_price > 0)
+      // Get ALL completed tasks (both paid and unpaid)
+      const completed = (allTasks || []).filter(
+        (t: any) => t.status === 'completed'
       );
       
-      setTasks(paidTasks);
+      // Sort by date (most recent first)
+      completed.sort((a: any, b: any) => {
+        const dateA = new Date(a.completed_at || a.task_date || a.scheduled_date);
+        const dateB = new Date(b.completed_at || b.task_date || b.scheduled_date);
+        return dateB.getTime() - dateA.getTime();
+      });
       
-      // Calculate earnings
+      setCompletedTasks(completed);
+      
+      // Only count revenue from PAID tasks (is_paid=true)
+      const paidTasks = completed.filter(
+        (t: any) => t.is_paid === true || t.payment_status === 'paid'
+      );
+      
+      // Calculate earnings from PAID tasks only
       const now = new Date();
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -53,8 +66,8 @@ export default function MyEarningsScreen() {
       let lastMonth = 0;
       
       paidTasks.forEach((task: any) => {
-        const amount = task.final_price || task.estimated_total || 0;
-        const taskDate = new Date(task.completed_at || task.scheduled_date);
+        const amount = task.final_price || task.total_cost || task.estimated_total || 0;
+        const taskDate = new Date(task.completed_at || task.task_date || task.scheduled_date);
         
         total += amount;
         
@@ -65,7 +78,14 @@ export default function MyEarningsScreen() {
         }
       });
       
-      setEarnings({ total, thisMonth, lastMonth });
+      // Calculate pending payment (completed but not paid)
+      const unpaidTasks = completed.filter(
+        (t: any) => t.is_paid !== true && t.payment_status !== 'paid'
+      );
+      const pendingPayment = unpaidTasks.reduce((sum: number, t: any) => 
+        sum + (t.final_price || t.total_cost || t.estimated_total || 0), 0);
+      
+      setEarnings({ total, thisMonth, lastMonth, pendingPayment });
     } catch (error) {
       console.error('Error fetching earnings:', error);
     } finally {
@@ -78,11 +98,16 @@ export default function MyEarningsScreen() {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString(i18n.locale === 'fr' ? 'fr-FR' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
+  };
+
+  const isTaskPaid = (task: any) => {
+    return task.is_paid === true || task.payment_status === 'paid';
   };
 
   if (loading) {
@@ -110,7 +135,7 @@ export default function MyEarningsScreen() {
         {/* Total Earnings Card */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>
-            {i18n.locale === 'fr' ? 'Revenus totaux' : 'Total Earnings'}
+            {i18n.locale === 'fr' ? 'Revenus totaux (payés)' : 'Total Earnings (paid)'}
           </Text>
           <Text style={styles.totalAmount}>{formatCurrency(earnings.total)}</Text>
           <View style={styles.periodRow}>
@@ -130,40 +155,82 @@ export default function MyEarningsScreen() {
           </View>
         </View>
 
+        {/* Pending Payment Card (if any) */}
+        {earnings.pendingPayment > 0 && (
+          <View style={styles.pendingCard}>
+            <View style={styles.pendingIcon}>
+              <Ionicons name="time-outline" size={24} color="#f59e0b" />
+            </View>
+            <View style={styles.pendingInfo}>
+              <Text style={styles.pendingLabel}>
+                {i18n.locale === 'fr' ? 'Paiements en attente' : 'Pending Payments'}
+              </Text>
+              <Text style={styles.pendingAmount}>{formatCurrency(earnings.pendingPayment)}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Earnings History */}
         <View style={styles.historySection}>
           <Text style={styles.sectionTitle}>
-            {i18n.locale === 'fr' ? 'Historique' : 'History'}
+            {i18n.locale === 'fr' ? 'Historique des tâches' : 'Task History'}
           </Text>
 
-          {tasks.length === 0 ? (
+          {completedTasks.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="wallet-outline" size={48} color={Colors.dark.textSecondary} />
               <Text style={styles.emptyText}>
-                {i18n.locale === 'fr' ? 'Aucun revenu pour le moment' : 'No earnings yet'}
+                {i18n.locale === 'fr' ? 'Aucune tâche terminée' : 'No completed tasks yet'}
               </Text>
             </View>
           ) : (
-            tasks.map((task, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.earningCard}
-                onPress={() => router.push(`/task/${task.id}`)}
-              >
-                <View style={styles.earningIcon}>
-                  <Ionicons name="checkmark-circle" size={24} color={Colors.dark.success} />
-                </View>
-                <View style={styles.earningInfo}>
-                  <Text style={styles.earningTitle}>{task.title}</Text>
-                  <Text style={styles.earningDate}>
-                    {formatDate(task.completed_at || task.scheduled_date)}
+            completedTasks.map((task, index) => {
+              const isPaid = isTaskPaid(task);
+              const amount = task.final_price || task.total_cost || task.estimated_total || 0;
+              
+              return (
+                <TouchableOpacity
+                  key={task.id || index}
+                  style={styles.earningCard}
+                  onPress={() => router.push(`/task/${task.id}`)}
+                >
+                  <View style={styles.earningIcon}>
+                    <Ionicons 
+                      name={isPaid ? "checkmark-circle" : "time-outline"} 
+                      size={24} 
+                      color={isPaid ? Colors.dark.success : '#f59e0b'} 
+                    />
+                  </View>
+                  <View style={styles.earningInfo}>
+                    <Text style={styles.earningTitle}>{task.title}</Text>
+                    <Text style={styles.earningDate}>
+                      {formatDate(task.completed_at || task.task_date || task.scheduled_date)}
+                    </Text>
+                    {/* Payment Status Badge */}
+                    <View style={[
+                      styles.statusBadge,
+                      { backgroundColor: isPaid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' }
+                    ]}>
+                      <Text style={[
+                        styles.statusText,
+                        { color: isPaid ? Colors.dark.success : '#f59e0b' }
+                      ]}>
+                        {isPaid 
+                          ? (i18n.locale === 'fr' ? 'Payé' : 'Paid')
+                          : (i18n.locale === 'fr' ? 'En attente' : 'Pending')
+                        }
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[
+                    styles.earningAmount,
+                    { color: isPaid ? Colors.dark.success : '#f59e0b' }
+                  ]}>
+                    {isPaid ? '+' : ''}{formatCurrency(amount)}
                   </Text>
-                </View>
-                <Text style={styles.earningAmount}>
-                  +{formatCurrency(task.final_price || task.estimated_total || 0)}
-                </Text>
-              </TouchableOpacity>
-            ))
+                </TouchableOpacity>
+              );
+            })
           )}
         </View>
       </ScrollView>
@@ -190,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.primary,
     borderRadius: 20,
     padding: 24,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   totalLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   totalAmount: {
@@ -219,7 +286,34 @@ const styles = StyleSheet.create({
     color: Colors.dark.background,
     marginTop: 4,
   },
-  historySection: { flex: 1 },
+  pendingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  pendingIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  pendingInfo: { flex: 1 },
+  pendingLabel: { fontSize: 13, color: Colors.dark.textSecondary },
+  pendingAmount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+    marginTop: 2,
+  },
+  historySection: { flex: 1, marginBottom: 24 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -242,9 +336,19 @@ const styles = StyleSheet.create({
   earningInfo: { flex: 1 },
   earningTitle: { fontSize: 15, fontWeight: '500', color: Colors.dark.text },
   earningDate: { fontSize: 13, color: Colors.dark.textSecondary, marginTop: 2 },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   earningAmount: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.dark.success,
   },
 });

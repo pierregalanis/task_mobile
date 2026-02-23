@@ -19,10 +19,10 @@ import i18n from '../utils/i18n';
 interface Notification {
   id: string;
   type: string;
-  title: string;
-  message: string;
   task_id?: string;
-  read: boolean;
+  task_title?: string;
+  message?: string | null;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -59,7 +59,7 @@ export default function NotificationsScreen() {
     try {
       await notificationAPI.markAsRead(notificationId);
       setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -69,7 +69,7 @@ export default function NotificationsScreen() {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationAPI.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -77,13 +77,180 @@ export default function NotificationsScreen() {
 
   const handleNotificationPress = (notification: Notification) => {
     // Mark as read
-    if (!notification.read) {
+    if (!notification.is_read) {
       handleMarkAsRead(notification.id);
     }
     
     // Navigate based on notification type
     if (notification.task_id) {
       router.push(`/task/${notification.task_id}`);
+    }
+  };
+
+  // Generate notification text based on type and task_title
+  const getNotificationText = (notification: Notification): { title: string; message: string } => {
+    const { type, task_title, message } = notification;
+    const title = task_title || (i18n.locale === 'fr' ? 'votre tâche' : 'your task');
+    
+    // If message exists, use it
+    if (message) {
+      return {
+        title: getNotificationTitle(type),
+        message: message,
+      };
+    }
+    
+    // Generate text based on type
+    if (i18n.locale === 'fr') {
+      switch (type) {
+        case 'task_accepted':
+          return {
+            title: 'Tâche acceptée',
+            message: `Votre tâche "${title}" a été acceptée !`,
+          };
+        case 'task_rejected':
+          return {
+            title: 'Tâche refusée',
+            message: `Votre tâche "${title}" a été refusée.`,
+          };
+        case 'task_completed':
+          return {
+            title: 'Tâche terminée',
+            message: `La tâche "${title}" a été complétée.`,
+          };
+        case 'tasker_on_way':
+          return {
+            title: 'Tâcheron en route',
+            message: `Votre tâcheron est en route pour "${title}" !`,
+          };
+        case 'new_message':
+          return {
+            title: 'Nouveau message',
+            message: `Nouveau message concernant "${title}".`,
+          };
+        case 'payment_confirmed':
+          return {
+            title: 'Paiement confirmé',
+            message: `Paiement confirmé pour "${title}".`,
+          };
+        case 'review_received':
+          return {
+            title: 'Nouvel avis',
+            message: `Vous avez reçu un avis pour "${title}" !`,
+          };
+        case 'new_task':
+          return {
+            title: 'Nouvelle demande',
+            message: `Vous avez une nouvelle demande : "${title}".`,
+          };
+        case 'task_started':
+          return {
+            title: 'Tâche commencée',
+            message: `Le travail a commencé pour "${title}".`,
+          };
+        case 'task_cancelled':
+          return {
+            title: 'Tâche annulée',
+            message: `La tâche "${title}" a été annulée.`,
+          };
+        default:
+          return {
+            title: 'Notification',
+            message: `Mise à jour pour "${title}"`,
+          };
+      }
+    } else {
+      // English
+      switch (type) {
+        case 'task_accepted':
+          return {
+            title: 'Task Accepted',
+            message: `Your task "${title}" has been accepted!`,
+          };
+        case 'task_rejected':
+          return {
+            title: 'Task Declined',
+            message: `Your task "${title}" was declined.`,
+          };
+        case 'task_completed':
+          return {
+            title: 'Task Completed',
+            message: `Task "${title}" has been completed.`,
+          };
+        case 'tasker_on_way':
+          return {
+            title: 'Tasker On The Way',
+            message: `Your tasker is on the way for "${title}"!`,
+          };
+        case 'new_message':
+          return {
+            title: 'New Message',
+            message: `New message regarding "${title}".`,
+          };
+        case 'payment_confirmed':
+          return {
+            title: 'Payment Confirmed',
+            message: `Payment confirmed for "${title}".`,
+          };
+        case 'review_received':
+          return {
+            title: 'Review Received',
+            message: `You received a review for "${title}"!`,
+          };
+        case 'new_task':
+          return {
+            title: 'New Request',
+            message: `You have a new task request: "${title}".`,
+          };
+        case 'task_started':
+          return {
+            title: 'Task Started',
+            message: `Work has started for "${title}".`,
+          };
+        case 'task_cancelled':
+          return {
+            title: 'Task Cancelled',
+            message: `Task "${title}" has been cancelled.`,
+          };
+        default:
+          return {
+            title: 'Notification',
+            message: `Update for task "${title}"`,
+          };
+      }
+    }
+  };
+
+  // Get notification title for display
+  const getNotificationTitle = (type: string): string => {
+    if (i18n.locale === 'fr') {
+      switch (type) {
+        case 'task_accepted': return 'Tâche acceptée';
+        case 'task_rejected': return 'Tâche refusée';
+        case 'task_completed': return 'Tâche terminée';
+        case 'tasker_on_way': return 'Tâcheron en route';
+        case 'new_message': return 'Nouveau message';
+        case 'payment_confirmed': return 'Paiement confirmé';
+        case 'review_received': return 'Nouvel avis';
+        case 'new_task': return 'Nouvelle demande';
+        case 'task_started': return 'Tâche commencée';
+        case 'task_cancelled': return 'Tâche annulée';
+        default: return 'Notification';
+      }
+    } else {
+      switch (type) {
+        case 'task_accepted': return 'Task Accepted';
+        case 'task_rejected': return 'Task Declined';
+        case 'task_completed': return 'Task Completed';
+        case 'tasker_on_way': return 'Tasker On The Way';
+        case 'new_message': return 'New Message';
+        case 'payment_confirmed': return 'Payment Confirmed';
+        case 'review_received': return 'Review Received';
+        case 'new_task': return 'New Request';
+        case 'task_started': return 'Task Started';
+        case 'task_cancelled': return 'Task Cancelled';
+        default: return 'Notification';
+      }
     }
   };
 
@@ -97,10 +264,18 @@ export default function NotificationsScreen() {
         return { name: 'play-circle', color: '#8b5cf6' };
       case 'task_completed':
         return { name: 'trophy', color: '#f59e0b' };
+      case 'tasker_on_way':
+        return { name: 'car', color: '#3b82f6' };
       case 'new_message':
         return { name: 'chatbubble', color: '#3b82f6' };
+      case 'payment_confirmed':
+        return { name: 'wallet', color: Colors.dark.success };
+      case 'review_received':
+        return { name: 'star', color: '#f59e0b' };
       case 'new_task':
         return { name: 'briefcase', color: Colors.dark.primary };
+      case 'task_cancelled':
+        return { name: 'close-circle', color: Colors.dark.error };
       default:
         return { name: 'notifications', color: Colors.dark.primary };
     }
@@ -157,7 +332,7 @@ export default function NotificationsScreen() {
     return groups;
   }, {});
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
     return (
@@ -225,12 +400,14 @@ export default function NotificationsScreen() {
               <Text style={styles.dateHeader}>{date}</Text>
               {notifs.map((notification: Notification) => {
                 const icon = getNotificationIcon(notification.type);
+                const notifText = getNotificationText(notification);
+                
                 return (
                   <TouchableOpacity
                     key={notification.id}
                     style={[
                       styles.notificationCard,
-                      !notification.read && styles.unreadCard,
+                      !notification.is_read && styles.unreadCard,
                     ]}
                     onPress={() => handleNotificationPress(notification)}
                     activeOpacity={0.7}
@@ -240,13 +417,13 @@ export default function NotificationsScreen() {
                     </View>
                     <View style={styles.notificationContent}>
                       <View style={styles.notificationHeader}>
-                        <Text style={[styles.notificationTitle, !notification.read && styles.unreadTitle]}>
-                          {notification.title ? (notification.title.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.title) : 'Notification'}
+                        <Text style={[styles.notificationTitle, !notification.is_read && styles.unreadTitle]}>
+                          {notifText.title}
                         </Text>
-                        {!notification.read && <View style={styles.unreadDot} />}
+                        {!notification.is_read && <View style={styles.unreadDot} />}
                       </View>
                       <Text style={styles.notificationMessage} numberOfLines={2}>
-                        {notification.message ? (notification.message.split('/')[i18n.locale === 'fr' ? 0 : 1]?.trim() || notification.message) : ''}
+                        {notifText.message}
                       </Text>
                       <Text style={styles.notificationTime}>
                         {formatTimeAgo(notification.created_at)}

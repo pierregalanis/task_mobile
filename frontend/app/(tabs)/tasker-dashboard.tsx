@@ -103,11 +103,17 @@ export default function TaskerDashboardScreen() {
       
       // Calculate stats from tasks
       const completedTasks = taskList.filter((t: any) => t.status === 'completed');
-      const totalEarnings = completedTasks.reduce((sum: number, t: any) => 
-        sum + (t.final_price || t.estimated_total || 0), 0);
       
-      // Get rating from user profile or calculate from reviews
-      const rating = user?.tasker_profile?.rating || 0;
+      // Only count revenue from PAID tasks (is_paid=true)
+      // Per website API: task must have is_paid=true to count as revenue
+      const paidTasks = completedTasks.filter((t: any) => 
+        t.is_paid === true || t.payment_status === 'paid'
+      );
+      const totalEarnings = paidTasks.reduce((sum: number, t: any) => 
+        sum + (t.final_price || t.total_cost || t.estimated_total || 0), 0);
+      
+      // Get rating from user profile or tasker_profile
+      const rating = user?.tasker_profile?.average_rating || user?.tasker_profile?.rating || 0;
       const totalReviews = user?.tasker_profile?.total_reviews || 0;
       
       setStats({

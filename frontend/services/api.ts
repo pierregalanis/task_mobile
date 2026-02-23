@@ -77,6 +77,15 @@ export interface User {
   tasker_profile?: any;
 }
 
+export interface PortfolioImage {
+  id: string;
+  image_url: string;
+  category: string;
+  subcategory: string;
+  description?: string;
+  created_at: string;
+}
+
 // ==================== AUTH API ====================
 
 export const authAPI = {
@@ -180,12 +189,45 @@ export const paymentAPI = {
     const response = await api.get(`/api/payments/${paymentId}/status`);
     return response.data;
   },
+
+  // Get payment history for tasker
+  async getPaymentHistory() {
+    const response = await api.get('/api/payments/history');
+    return response.data;
+  },
+
+  // Get revenue summary for tasker
+  async getRevenueSummary() {
+    const response = await api.get('/api/payments/revenue');
+    return response.data;
+  },
 };
 
 // ==================== TASKER API ====================
 
 export const taskerAPI = {
-  async getTaskers(params?: any) {
+  /**
+   * Search for taskers with optional filters
+   * Only returns taskers who have at least one service configured
+   * 
+   * @param params.category_id - Filter by category ID (e.g., "cleaning")
+   * @param params.subcategory - Filter by specific subcategory name (must match tasker's service)
+   * @param params.is_available - Filter by availability
+   * @param params.country - Filter by country
+   * @param params.city - Filter by city
+   * @param params.skip - Pagination offset (default: 0)
+   * @param params.limit - Max results (default: 50, max: 100)
+   */
+  async getTaskers(params?: {
+    category_id?: string;
+    subcategory?: string;
+    service?: string;
+    is_available?: boolean;
+    country?: string;
+    city?: string;
+    skip?: number;
+    limit?: number;
+  }) {
     const response = await api.get('/api/taskers/search', { params });
     return response.data;
   },
@@ -264,6 +306,8 @@ export const taskAPI = {
     return response.data;
   },
 
+  // ==================== TASK ACTIONS ====================
+
   async acceptTask(taskId: string) {
     const response = await api.post(`/api/tasks/${taskId}/accept`);
     return response.data;
@@ -273,6 +317,27 @@ export const taskAPI = {
     const response = await api.post(`/api/tasks/${taskId}/reject`);
     return response.data;
   },
+
+  async cancelTask(taskId: string, reason?: string) {
+    const response = await api.post(`/api/tasks/${taskId}/cancel`, { reason });
+    return response.data;
+  },
+
+  // Complete task - use query param to match website
+  async completeTask(taskId: string) {
+    const response = await api.put(`/api/tasks/${taskId}/status?new_status=completed`);
+    return response.data;
+  },
+
+  // Update task status (generic)
+  async updateTaskStatus(taskId: string, status: string, cancellationReason?: string) {
+    const response = await api.put(`/api/tasks/${taskId}/status?new_status=${status}`, {
+      cancellation_reason: cancellationReason,
+    });
+    return response.data;
+  },
+
+  // ==================== TIMER ====================
 
   async startTimer(taskId: string) {
     const response = await api.post(`/api/tasks/${taskId}/start-timer`);
@@ -284,50 +349,56 @@ export const taskAPI = {
     return response.data;
   },
 
-  async updateTaskStatus(taskId: string, status: string, cancellationReason?: string) {
-    const response = await api.put(`/api/tasks/${taskId}/status`, {
-      status,
-      cancellation_reason: cancellationReason,
-    });
+  async getTimerStatus(taskId: string) {
+    const response = await api.get(`/api/tasks/${taskId}/timer-status`);
     return response.data;
   },
 
-  async cancelTask(taskId: string, reason?: string) {
-    const response = await api.post(`/api/tasks/${taskId}/cancel`, { reason });
+  // ==================== GPS TRACKING ====================
+
+  // Start GPS tracking (tasker clicks "En Route")
+  async startTracking(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/start-tracking`);
     return response.data;
   },
 
-  async completeTask(taskId: string, paymentMethod?: string) {
-    const response = await api.post(`/api/tasks/${taskId}/complete`, {
-      payment_method: paymentMethod,
-    });
-    return response.data;
-  },
-
-  // GPS Tracking
-  async startJourney(taskId: string, latitude: number, longitude: number) {
-    const response = await api.post(`/api/tasks/${taskId}/start-journey`, {
-      latitude,
-      longitude,
-    });
-    return response.data;
-  },
-
+  // Update tasker location (called every 10-15 seconds)
   async updateLocation(taskId: string, latitude: number, longitude: number) {
-    const response = await api.put(`/api/tasks/${taskId}/location`, {
+    const response = await api.post(`/api/tasks/${taskId}/update-location`, {
       latitude,
       longitude,
     });
     return response.data;
   },
 
+  // Stop GPS tracking
+  async stopTracking(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/stop-tracking`);
+    return response.data;
+  },
+
+  // Get current tasker location (for client to track)
   async getTaskLocation(taskId: string) {
     const response = await api.get(`/api/tasks/${taskId}/location`);
     return response.data;
   },
 
+  // Legacy methods (keeping for backward compatibility)
+  async startJourney(taskId: string, latitude: number, longitude: number) {
+    const response = await api.post(`/api/tasks/${taskId}/start-tracking`);
+    return response.data;
+  },
+
   async markArrival(taskId: string) {
     const response = await api.post(`/api/tasks/${taskId}/arrive`);
+    return response.data;
+  },
+
+  // ==================== PAYMENT ====================
+
+  // Confirm cash payment received (tasker action)
+  async markPaidCash(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/mark-paid-cash`);
     return response.data;
   },
 };
@@ -342,6 +413,12 @@ export const reviewAPI = {
 
   async createReview(reviewData: any) {
     const response = await api.post('/api/reviews', reviewData);
+    return response.data;
+  },
+
+  // Check if client can leave a review for a task
+  async canReview(taskId: string) {
+    const response = await api.get(`/api/reviews/task/${taskId}/can-review`);
     return response.data;
   },
 };
@@ -363,20 +440,25 @@ export const favoriteAPI = {
 // ==================== CHAT API ====================
 
 export const chatAPI = {
-  async sendMessage(taskId: string, receiverId: string, message: string) {
-    const response = await api.post(`/api/messages/${taskId}`, {
-      content: message,
+  // Send a message (matches website endpoint)
+  async sendMessage(taskId: string, receiverId: string, content: string) {
+    const response = await api.post('/api/messages', {
+      task_id: taskId,
+      receiver_id: receiverId,
+      content,
     });
     return response.data;
   },
 
+  // Get messages for a task (matches website endpoint)
   async getMessages(taskId: string) {
-    const response = await api.get(`/api/messages/${taskId}`);
+    const response = await api.get(`/api/messages/task/${taskId}`);
     return response.data;
   },
 
-  async getUnreadCount(taskId: string) {
-    const response = await api.get(`/api/messages/${taskId}/unread`);
+  // Get unread message count
+  async getUnreadCount() {
+    const response = await api.get('/api/messages/unread');
     return response.data;
   },
 };
@@ -401,13 +483,15 @@ export const notificationAPI = {
     return { unread_count: 0, count: 0 };
   },
 
+  // Mark single notification as read
   async markAsRead(notificationId: string) {
-    const response = await api.put(`/api/notifications/${notificationId}/read`);
+    const response = await api.post(`/api/notifications/${notificationId}/read`);
     return response.data;
   },
 
+  // Mark all notifications as read
   async markAllAsRead() {
-    const response = await api.post('/api/notifications/read-all');
+    const response = await api.post('/api/notifications/mark-all-read');
     return response.data;
   },
 };
@@ -501,7 +585,7 @@ export const imageAPI = {
   },
 
   // Get work portfolio images filtered by service
-  async getWorkPortfolioByService(category: string, subcategory: string) {
+  async getWorkPortfolioByService(category: string, subcategory: string): Promise<PortfolioImage[]> {
     const response = await api.get('/api/images/work-portfolio/by-service', {
       params: { category, subcategory },
     });

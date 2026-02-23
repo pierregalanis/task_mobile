@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -144,7 +143,7 @@ const SUBCATEGORY_ICONS: { [key: string]: string } = {
 // Get icon for subcategory - tries multiple name formats
 const getSubcategoryIcon = (subcategory: any, categoryIcon: string): string => {
   // Try English name first
-  const enName = subcategory.en || subcategory.name_en || '';
+  const enName = subcategory.en || subcategory.name_en || subcategory.name || '';
   if (SUBCATEGORY_ICONS[enName]) {
     return SUBCATEGORY_ICONS[enName];
   }
@@ -185,7 +184,9 @@ export default function SelectServiceScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.dark.primary} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.dark.primary} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -193,26 +194,66 @@ export default function SelectServiceScreen() {
   if (!category) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>Catégorie non trouvée</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>
+              {i18n.locale === 'fr' ? 'Service' : 'Service'}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.dark.error} />
+          <Text style={styles.errorText}>
+            {i18n.locale === 'fr' ? 'Catégorie non trouvée' : 'Category not found'}
+          </Text>
+          <TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>
+            <Text style={styles.goBackButtonText}>
+              {i18n.locale === 'fr' ? 'Retour' : 'Go Back'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
   const getCategoryName = (cat: any) => {
-    return i18n.locale === 'fr' ? cat.name_fr : cat.name_en;
+    return i18n.locale === 'fr' ? (cat.name_fr || cat.name) : (cat.name_en || cat.name);
   };
 
   const getSubcategoryName = (sub: any) => {
-    return i18n.locale === 'fr' ? sub.fr : sub.en;
+    return i18n.locale === 'fr' ? (sub.fr || sub.name_fr || sub.name) : (sub.en || sub.name_en || sub.name);
   };
 
-  const handleServiceSelect = (subcategoryIndex: number, subcategoryName: string) => {
+  // Get the English subcategory name (for API filtering - must match tasker's service data)
+  const getSubcategoryNameEn = (sub: any) => {
+    return sub.en || sub.name_en || sub.name || '';
+  };
+
+  // Get the subcategory ID - use actual ID if available, otherwise use English name
+  const getSubcategoryId = (sub: any) => {
+    return sub.id || sub.en || sub.name_en || sub.name;
+  };
+
+  const handleServiceSelect = (subcategory: any) => {
+    const subcategoryId = getSubcategoryId(subcategory);
+    const subcategoryDisplayName = getSubcategoryName(subcategory);
+    
+    // Get English names for API filtering (must match what taskers store in their services)
+    const categoryNameEn = category.name_en || category.name;
+    const subcategoryNameEn = getSubcategoryNameEn(subcategory);
+    
     router.push({
       pathname: '/booking/select-tasker',
       params: {
         categoryId: category.id,
-        subcategoryId: subcategoryIndex.toString(),
-        serviceName: subcategoryName,
+        subcategoryId: subcategoryId,
+        serviceName: subcategoryDisplayName,
+        // Pass English names for API filtering
+        categoryName: categoryNameEn,
+        subcategoryName: subcategoryNameEn,
       },
     });
   };
@@ -229,7 +270,7 @@ export default function SelectServiceScreen() {
             {getCategoryName(category)}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {category.subcategories.length} {i18n.locale === 'fr' ? 'services disponibles' : 'services available'}
+            {category.subcategories?.length || 0} {i18n.locale === 'fr' ? 'services disponibles' : 'services available'}
           </Text>
         </View>
       </View>
@@ -240,27 +281,36 @@ export default function SelectServiceScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {category.subcategories.map((subcategory: any, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.serviceCard}
-            onPress={() => handleServiceSelect(index, getSubcategoryName(subcategory))}
-            activeOpacity={0.7}
-          >
-            <View style={styles.serviceIcon}>
-              <Text style={styles.serviceIconText}>{getSubcategoryIcon(subcategory, category.icon)}</Text>
-            </View>
-            <View style={styles.serviceInfo}>
-              <Text style={styles.serviceName}>
-                {getSubcategoryName(subcategory)}
-              </Text>
-              <Text style={styles.serviceDescription}>
-                {i18n.locale === 'fr' ? 'Appuyez pour voir les tâcherons disponibles' : 'Tap to see available taskers'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
-          </TouchableOpacity>
-        ))}
+        {category.subcategories?.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="folder-open-outline" size={64} color={Colors.dark.textSecondary} />
+            <Text style={styles.emptyText}>
+              {i18n.locale === 'fr' ? 'Aucun service disponible' : 'No services available'}
+            </Text>
+          </View>
+        ) : (
+          category.subcategories?.map((subcategory: any, index: number) => (
+            <TouchableOpacity
+              key={subcategory.id || index}
+              style={styles.serviceCard}
+              onPress={() => handleServiceSelect(subcategory)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.serviceIcon}>
+                <Text style={styles.serviceIconText}>{getSubcategoryIcon(subcategory, category.icon)}</Text>
+              </View>
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceName}>
+                  {getSubcategoryName(subcategory)}
+                </Text>
+                <Text style={styles.serviceDescription}>
+                  {i18n.locale === 'fr' ? 'Appuyez pour voir les tâcherons disponibles' : 'Tap to see available taskers'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -270,6 +320,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -342,10 +397,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.dark.textSecondary,
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
   errorText: {
     fontSize: 16,
-    color: Colors.dark.error,
+    color: Colors.dark.textSecondary,
     textAlign: 'center',
-    marginTop: 32,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  goBackButton: {
+    backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  goBackButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark.background,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.dark.textSecondary,
+    marginTop: 16,
   },
 });

@@ -8,7 +8,7 @@ import { taskAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { showMessage, showConfirm } from '../../utils/alert';
+import { showMessage } from '../../utils/alert';
 
 // Maps are only available on native platforms
 const isWeb = Platform.OS === 'web';
@@ -33,7 +33,7 @@ if (!isWeb) {
 }
 
 // Status types for tracking
-type TrackingStatus = 'pending' | 'accepted' | 'en_route' | 'arrived' | 'in_progress' | 'completed';
+type TrackingStatus = 'assigned' | 'pending' | 'accepted' | 'en_route' | 'arrived' | 'in_progress' | 'completed';
 
 export default function TrackingScreen() {
   const router = useRouter();
@@ -67,11 +67,11 @@ export default function TrackingScreen() {
 
   // Set up polling for client to get tasker location
   useEffect(() => {
-    if (isClient && id) {
+    if (isClient && id && (trackingStatus === 'en_route' || trackingStatus === 'in_progress')) {
       const interval = setInterval(pollTaskerLocation, 5000); // Poll every 5 seconds
       return () => clearInterval(interval);
     }
-  }, [id, isClient]);
+  }, [id, isClient, trackingStatus]);
 
   // Handle app state changes (background/foreground)
   useEffect(() => {
@@ -90,38 +90,44 @@ export default function TrackingScreen() {
   // Cleanup location subscription on unmount
   useEffect(() => {
     return () => {
-      if (locationSubscriptionRef.current) {
-        locationSubscriptionRef.current.remove();
-      }
+      stopContinuousTracking();
     };
   }, []);
 
   const fetchTask = async () => {
     try {
-      const data = await taskAPI.getTask(id as string);
-      setTask(data);
+      // Fetch task from the list since getTask might need different handling
+      const tasks = isClient 
+        ? await taskAPI.getClientTasks()
+        : await taskAPI.getTaskerTasks();
       
-      // Set tracking status based on task status
-      setTrackingStatus(data.status as TrackingStatus);
+      const foundTask = tasks?.find((t: any) => t.id === id);
       
-      // If tasker location is in task data
-      if (data.tasker_latitude && data.tasker_longitude) {
-        setTaskerLocation({ 
-          latitude: data.tasker_latitude, 
-          longitude: data.tasker_longitude 
-        });
+      if (foundTask) {
+        setTask(foundTask);
+        
+        // Set tracking status based on task status
+        setTrackingStatus(foundTask.status as TrackingStatus);
+        
+        // If tasker location is in task data
+        if (foundTask.tasker_latitude && foundTask.tasker_longitude) {
+          setTaskerLocation({ 
+            latitude: foundTask.tasker_latitude, 
+            longitude: foundTask.tasker_longitude 
+          });
+        }
+        
+        // If client location is in task data
+        if (foundTask.latitude && foundTask.longitude) {
+          setClientLocation({
+            latitude: foundTask.latitude,
+            longitude: foundTask.longitude
+          });
+        }
+        
+        // Check if tracking is active
+        setIsTracking(['en_route', 'in_progress'].includes(foundTask.status));
       }
-      
-      // If client location is in task data
-      if (data.latitude && data.longitude) {
-        setClientLocation({
-          latitude: data.latitude,
-          longitude: data.longitude
-        });
-      }
-      
-      // Check if tracking is active
-      setIsTracking(['en_route', 'arrived'].includes(data.status));
       
     } catch (error) {
       console.error('Error fetching task:', error);
@@ -155,7 +161,7 @@ export default function TrackingScreen() {
     if (!id) return;
     try {
       const data = await taskAPI.getTaskLocation(id as string);
-      if (data.latitude && data.longitude) {
+      if (data?.latitude && data?.longitude) {
         const newLocation = { latitude: data.latitude, longitude: data.longitude };
         setTaskerLocation(newLocation);
         
@@ -176,9 +182,12 @@ export default function TrackingScreen() {
       }
       
       // Also refresh task status
-      const taskData = await taskAPI.getTask(id as string);
-      setTrackingStatus(taskData.status as TrackingStatus);
-      setTask(taskData);
+      const tasks = await taskAPI.getClientTasks();
+      const taskData = tasks?.find((t: any) => t.id === id);
+      if (taskData) {
+        setTrackingStatus(taskData.status as TrackingStatus);
+        setTask(taskData);
+      }
       
     } catch (error) {
       console.log('Error polling location:', error);
@@ -222,8 +231,8 @@ export default function TrackingScreen() {
 
   // === TASKER ACTIONS ===
 
-  // Start Journey - Tasker begins heading to client
-  const handleStartJourney = async () => {
+  // Start Tracking - Tasker begins heading to client
+  const handleStartTracking = async () => {
     try {
       setActionLoading('start');
       
@@ -240,7 +249,11 @@ export default function TrackingScreen() {
         accuracy: Location.Accuracy.High,
       });
 
-      await taskAPI.startJourney(
+      // Start tracking on the server
+      await taskAPI.startTracking(id as string);
+      
+      // Send initial location
+      await taskAPI.updateLocation(
         id as string, 
         location.coords.latitude, 
         location.coords.longitude
@@ -263,7 +276,7 @@ export default function TrackingScreen() {
       
       fetchTask();
     } catch (error: any) {
-      console.error('Error starting journey:', error);
+      console.error('Error starting tracking:', error);
       showMessage(
         isFrench ? 'Erreur' : 'Error',
         error.response?.data?.detail || (isFrench ? 'Impossible de démarrer' : 'Failed to start')
@@ -277,15 +290,13 @@ export default function TrackingScreen() {
   const startContinuousTracking = async () => {
     try {
       // Remove existing subscription
-      if (locationSubscriptionRef.current) {
-        locationSubscriptionRef.current.remove();
-      }
+      stopContinuousTracking();
 
       locationSubscriptionRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // Update every 5 seconds
-          distanceInterval: 10, // Or when moved 10 meters
+          timeInterval: 10000, // Update every 10 seconds
+          distanceInterval: 20, // Or when moved 20 meters
         },
         async (location) => {
           const newLocation = {
@@ -312,10 +323,19 @@ export default function TrackingScreen() {
   };
 
   // Stop tracking
-  const stopContinuousTracking = () => {
+  const stopContinuousTracking = async () => {
     if (locationSubscriptionRef.current) {
       locationSubscriptionRef.current.remove();
       locationSubscriptionRef.current = null;
+    }
+    
+    // Notify server to stop tracking
+    if (id && isTracking) {
+      try {
+        await taskAPI.stopTracking(id as string);
+      } catch (e) {
+        console.log('Error stopping tracking on server:', e);
+      }
     }
   };
 
@@ -349,17 +369,20 @@ export default function TrackingScreen() {
     try {
       setActionLoading('work');
       
+      // Stop GPS tracking
+      stopContinuousTracking();
+      
+      // Start the work timer
       await taskAPI.startTimer(id as string);
       setTrackingStatus('in_progress');
-      stopContinuousTracking(); // Stop location tracking once work starts
       
       showMessage(
         isFrench ? 'Travail commencé!' : 'Work started!',
         isFrench ? 'Le chronomètre est en marche' : 'Timer is running'
       );
       
-      // Navigate back to dashboard
-      router.replace('/(tabs)/tasker-dashboard');
+      // Navigate to task details
+      router.replace(`/task/${id}`);
     } catch (error: any) {
       console.error('Error starting work:', error);
       showMessage(
@@ -373,7 +396,10 @@ export default function TrackingScreen() {
 
   // Open Maps for directions
   const openMapsForDirections = () => {
-    if (!task?.latitude || !task?.longitude) {
+    const destLat = task?.latitude || clientLocation?.latitude;
+    const destLng = task?.longitude || clientLocation?.longitude;
+    
+    if (!destLat || !destLng) {
       showMessage(
         isFrench ? 'Erreur' : 'Error',
         isFrench ? 'Adresse non disponible' : 'Address not available'
@@ -381,8 +407,8 @@ export default function TrackingScreen() {
       return;
     }
 
-    const destination = `${task.latitude},${task.longitude}`;
-    const label = encodeURIComponent(task.address || 'Destination');
+    const destination = `${destLat},${destLng}`;
+    const label = encodeURIComponent(task?.address || 'Destination');
     
     // Open in Google Maps or Apple Maps based on platform
     const url = Platform.select({
@@ -401,10 +427,11 @@ export default function TrackingScreen() {
     });
   };
 
-  // Call client
-  const callClient = () => {
-    if (task?.client_phone) {
-      Linking.openURL(`tel:${task.client_phone}`);
+  // Call client/tasker
+  const callPerson = () => {
+    const phone = isTasker ? task?.client_phone : task?.tasker_phone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
     } else {
       showMessage(
         isFrench ? 'Non disponible' : 'Not available',
@@ -416,6 +443,16 @@ export default function TrackingScreen() {
   // Get status display info
   const getStatusInfo = () => {
     switch (trackingStatus) {
+      case 'assigned':
+      case 'pending':
+        return {
+          color: '#f59e0b',
+          icon: 'hourglass',
+          text: isFrench ? 'En attente' : 'Pending',
+          description: isFrench 
+            ? 'La tâche n\'a pas encore été acceptée' 
+            : 'Task has not been accepted yet',
+        };
       case 'accepted':
         return {
           color: '#3b82f6',
@@ -452,6 +489,15 @@ export default function TrackingScreen() {
             ? 'La tâche est en cours' 
             : 'Task is being performed',
         };
+      case 'completed':
+        return {
+          color: Colors.dark.success,
+          icon: 'checkmark-done',
+          text: isFrench ? 'Terminée' : 'Completed',
+          description: isFrench 
+            ? 'La tâche est terminée' 
+            : 'Task is complete',
+        };
       default:
         return {
           color: Colors.dark.textSecondary,
@@ -467,6 +513,31 @@ export default function TrackingScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.dark.primary} />
       </View>
+    );
+  }
+
+  if (!task) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {isFrench ? 'Suivi' : 'Tracking'}
+          </Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.dark.error} />
+          <Text style={styles.errorText}>
+            {isFrench ? 'Tâche non trouvée' : 'Task not found'}
+          </Text>
+          <TouchableOpacity style={styles.goBackBtn} onPress={() => router.back()}>
+            <Text style={styles.goBackBtnText}>{isFrench ? 'Retour' : 'Go Back'}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -516,7 +587,7 @@ export default function TrackingScreen() {
             style={styles.map}
             provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
             initialRegion={defaultRegion}
-            showsUserLocation={isClient}
+            showsUserLocation={true}
             showsMyLocationButton={false}
           >
             {/* Tasker Marker */}
@@ -584,6 +655,14 @@ export default function TrackingScreen() {
             </View>
           </View>
         )}
+
+        {/* Live indicator for tracking */}
+        {isTracking && (
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+        )}
       </View>
 
       {/* Info Card */}
@@ -592,7 +671,7 @@ export default function TrackingScreen() {
           <Text style={styles.taskTitle}>{task?.title}</Text>
           <View style={styles.taskMeta}>
             <Ionicons name="location" size={16} color={Colors.dark.textSecondary} />
-            <Text style={styles.taskAddress} numberOfLines={2}>{task?.address}</Text>
+            <Text style={styles.taskAddress} numberOfLines={2}>{task?.address || 'N/A'}</Text>
           </View>
           {task?.client_name && isTasker && (
             <View style={styles.taskMeta}>
@@ -619,7 +698,7 @@ export default function TrackingScreen() {
                   {isFrench ? 'Directions' : 'Directions'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={callClient}>
+              <TouchableOpacity style={styles.quickAction} onPress={callPerson}>
                 <Ionicons name="call" size={24} color={Colors.dark.primary} />
                 <Text style={styles.quickActionText}>
                   {isFrench ? 'Appeler' : 'Call'}
@@ -640,7 +719,7 @@ export default function TrackingScreen() {
             {trackingStatus === 'accepted' && (
               <TouchableOpacity
                 style={[styles.mainActionBtn, { backgroundColor: '#8b5cf6' }]}
-                onPress={handleStartJourney}
+                onPress={handleStartTracking}
                 disabled={actionLoading === 'start'}
               >
                 {actionLoading === 'start' ? (
@@ -715,6 +794,14 @@ export default function TrackingScreen() {
                 </Text>
               </View>
             )}
+            {trackingStatus === 'in_progress' && (
+              <View style={[styles.arrivalBanner, { backgroundColor: '#f59e0b' }]}>
+                <Ionicons name="construct" size={24} color={Colors.dark.background} />
+                <Text style={styles.arrivalText}>
+                  {isFrench ? 'Travail en cours' : 'Work in progress'}
+                </Text>
+              </View>
+            )}
             
             {/* Client quick actions */}
             <View style={styles.clientActions}>
@@ -727,17 +814,15 @@ export default function TrackingScreen() {
                   {isFrench ? 'Message' : 'Message'}
                 </Text>
               </TouchableOpacity>
-              {task?.tasker_phone && (
-                <TouchableOpacity 
-                  style={styles.clientActionBtn}
-                  onPress={() => Linking.openURL(`tel:${task.tasker_phone}`)}
-                >
-                  <Ionicons name="call" size={20} color={Colors.dark.primary} />
-                  <Text style={styles.clientActionText}>
-                    {isFrench ? 'Appeler' : 'Call'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity 
+                style={styles.clientActionBtn}
+                onPress={callPerson}
+              >
+                <Ionicons name="call" size={20} color={Colors.dark.primary} />
+                <Text style={styles.clientActionText}>
+                  {isFrench ? 'Appeler' : 'Call'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -756,6 +841,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     backgroundColor: Colors.dark.background 
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.dark.textSecondary,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  goBackBtn: {
+    backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  goBackBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark.background,
   },
   header: { 
     flexDirection: 'row', 
@@ -871,6 +979,29 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 12,
     color: Colors.dark.textSecondary,
+  },
+  liveIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
+  liveText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
   infoCard: { 
     padding: 20, 
