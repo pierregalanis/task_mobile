@@ -9,17 +9,28 @@ import {
   Modal,
   TextInput,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskAPI, reviewAPI, categoryAPI } from '../../services/api';
+import { taskAPI, reviewAPI, categoryAPI, disputeAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
 import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
+
+// Dispute reasons
+const DISPUTE_REASONS = [
+  { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualité' },
+  { id: 'incomplete', en: 'Task Not Completed', fr: 'Tâche non terminée' },
+  { id: 'overcharge', en: 'Overcharged', fr: 'Surfacturation' },
+  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: 'Le tâcheron ne s\'est pas présenté' },
+  { id: 'damage', en: 'Property Damage', fr: 'Dommages matériels' },
+  { id: 'other', en: 'Other', fr: 'Autre' },
+];
 
 export default function TaskDetailsScreen() {
   const router = useRouter();
@@ -46,6 +57,12 @@ export default function TaskDetailsScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+
+  // Dispute Modal State
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
@@ -74,25 +91,39 @@ export default function TaskDetailsScreen() {
   const fetchTaskDetails = async () => {
     try {
       setLoading(true);
-      const [categoriesData, tasks] = await Promise.all([
+      const [categoriesData, taskData] = await Promise.all([
         categoryAPI.getCategories().catch(() => []),
-        isClient 
-          ? taskAPI.getClientTasks()
-          : taskAPI.getTaskerTasks()
+        taskAPI.getTask(id as string).catch(() => null),
       ]);
       
       setCategories(categoriesData || []);
-      const foundTask = tasks?.find((t: any) => t.id === id);
-      if (foundTask) {
-        setTask(foundTask);
+      
+      if (taskData) {
+        setTask(taskData);
         // Check timer status
-        if (foundTask.timer_started && !foundTask.timer_stopped) {
+        if (taskData.timer_started && !taskData.timer_stopped) {
           setTimerRunning(true);
-          // Calculate elapsed time if timer_started_at exists
-          if (foundTask.timer_started_at) {
-            const startTime = new Date(foundTask.timer_started_at).getTime();
+          if (taskData.timer_started_at) {
+            const startTime = new Date(taskData.timer_started_at).getTime();
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             setTimerSeconds(elapsed > 0 ? elapsed : 0);
+          }
+        }
+      } else {
+        // Fallback to list endpoint if direct fetch fails
+        const tasks = isClient 
+          ? await taskAPI.getClientTasks()
+          : await taskAPI.getTaskerTasks();
+        const foundTask = tasks?.find((t: any) => t.id === id);
+        if (foundTask) {
+          setTask(foundTask);
+          if (foundTask.timer_started && !foundTask.timer_stopped) {
+            setTimerRunning(true);
+            if (foundTask.timer_started_at) {
+              const startTime = new Date(foundTask.timer_started_at).getTime();
+              const elapsed = Math.floor((Date.now() - startTime) / 1000);
+              setTimerSeconds(elapsed > 0 ? elapsed : 0);
+            }
           }
         }
       }
@@ -122,7 +153,7 @@ export default function TaskDetailsScreen() {
       case 'accepted': return '#3b82f6';
       case 'en_route': return '#8b5cf6';
       case 'in_progress': return '#8b5cf6';
-      case 'completed': return '#f59e0b'; // Awaiting payment
+      case 'completed': return '#f59e0b';
       case 'cancelled': return Colors.dark.error;
       default: return Colors.dark.textSecondary;
     }
@@ -323,7 +354,7 @@ export default function TaskDetailsScreen() {
       setSubmittingReview(true);
       await reviewAPI.createReview({
         task_id: task.id,
-        tasker_id: task.tasker_id,
+        tasker_id: task.tasker_id || task.assigned_tasker_id,
         rating,
         comment: reviewComment,
       });
@@ -346,11 +377,47 @@ export default function TaskDetailsScreen() {
     }
   };
 
+  const handleSubmitDispute = async () => {
+    if (!disputeReason) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Veuillez sélectionner une raison' : 'Please select a reason'
+      );
+      return;
+    }
+    if (!disputeDescription.trim()) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Veuillez décrire le problème' : 'Please describe the issue'
+      );
+      return;
+    }
+
+    try {
+      setSubmittingDispute(true);
+      await disputeAPI.createDispute(task.id, disputeReason, disputeDescription);
+      setShowDisputeModal(false);
+      setDisputeReason('');
+      setDisputeDescription('');
+      showMessage(
+        i18n.locale === 'fr' ? 'Litige soumis' : 'Dispute Submitted',
+        i18n.locale === 'fr' ? 'Notre équipe examinera votre demande sous peu.' : 'Our team will review your request shortly.'
+      );
+    } catch (error: any) {
+      console.error('Error submitting dispute:', error);
+      const errorMsg = error.response?.data?.detail || 
+        (i18n.locale === 'fr' ? 'Impossible de soumettre le litige' : 'Failed to submit dispute');
+      showMessage(i18n.locale === 'fr' ? 'Erreur' : 'Error', errorMsg);
+    } finally {
+      setSubmittingDispute(false);
+    }
+  };
+
   const handleRebook = () => {
     router.push({
       pathname: '/booking/create',
       params: {
-        taskerId: task.tasker_id,
+        taskerId: task.tasker_id || task.assigned_tasker_id,
         categoryId: task.category || task.category_id,
         subcategoryId: task.subcategory || '',
         serviceName: task.title,
@@ -362,8 +429,9 @@ export default function TaskDetailsScreen() {
   };
 
   const handleViewTaskerProfile = () => {
-    if (task.tasker_id) {
-      router.push(`/tasker/${task.tasker_id}`);
+    const taskerId = task.tasker_id || task.assigned_tasker_id;
+    if (taskerId) {
+      router.push(`/tasker/${taskerId}`);
     }
   };
 
@@ -443,6 +511,13 @@ export default function TaskDetailsScreen() {
   const isPaid = task.is_paid === true;
   const status = task.status;
 
+  // Tasker details from enriched API response
+  const taskerId = task.tasker_id || task.assigned_tasker_id;
+  const taskerName = task.tasker_name || 'Tasker';
+  const taskerProfileImage = task.tasker_profile_image;
+  const taskerRating = task.tasker_rating;
+  const taskerTotalReviews = task.tasker_total_reviews;
+
   // Status checks
   const isPending = status === 'assigned' || status === 'pending';
   const isAccepted = status === 'accepted';
@@ -460,11 +535,13 @@ export default function TaskDetailsScreen() {
   const showStopTimerButton = isTasker && isInProgress && timerRunning;
   const showCompleteButton = isTasker && isInProgress;
   const showTrackTasker = isClient && (isEnRoute || isInProgress);
-  const showChat = isActive;
+  const showChat = isActive || isCompleted;
   const showPaymentSection = isTasker && isCompleted && !isPaid;
   const showPaidBadge = isCompleted && isPaid;
   const showReview = isClient && isCompleted && !task.review_submitted;
   const showCancel = isPending || isAccepted;
+  // Show dispute for completed tasks or active tasks (in case tasker didn't show)
+  const showDispute = isClient && (isCompleted || isActive) && !task.has_dispute;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -696,35 +773,68 @@ export default function TaskDetailsScreen() {
           </View>
         </View>
 
-        {/* Person Card (Tasker for Client / Client for Tasker) */}
-        <TouchableOpacity 
-          style={styles.personCard} 
-          onPress={isClient ? handleViewTaskerProfile : undefined}
-          activeOpacity={isClient ? 0.7 : 1}
-          disabled={!isClient}
-        >
-          <View style={styles.personAvatar}>
-            <Ionicons name="person" size={32} color={Colors.dark.textSecondary} />
-          </View>
-          <View style={styles.personInfo}>
-            <Text style={styles.personLabel}>
-              {isClient 
-                ? (i18n.locale === 'fr' ? 'Tâcheron assigné' : 'Assigned Tasker')
-                : (i18n.locale === 'fr' ? 'Client' : 'Client')
-              }
-            </Text>
-            <Text style={styles.personName}>
-              {isClient ? (task.tasker_name || 'Tasker') : (task.client_name || 'Client')}
-            </Text>
-            {isClient && task.tasker_rating && (
-              <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color="#f59e0b" />
-                <Text style={styles.ratingText}>{task.tasker_rating}</Text>
+        {/* Assigned Tasker Card (for Client) */}
+        {isClient && taskerId && (
+          <TouchableOpacity 
+            style={styles.personCard} 
+            onPress={handleViewTaskerProfile}
+            activeOpacity={0.7}
+          >
+            {taskerProfileImage ? (
+              <Image 
+                source={{ uri: taskerProfileImage }} 
+                style={styles.personAvatarImage}
+              />
+            ) : (
+              <View style={styles.personAvatar}>
+                <Ionicons name="person" size={32} color={Colors.dark.textSecondary} />
               </View>
             )}
+            <View style={styles.personInfo}>
+              <Text style={styles.personLabel}>
+                {i18n.locale === 'fr' ? 'Tâcheron assigné' : 'Assigned Tasker'}
+              </Text>
+              <Text style={styles.personName}>{taskerName}</Text>
+              {taskerRating && taskerRating > 0 && (
+                <View style={styles.ratingRow}>
+                  <Ionicons name="star" size={14} color="#f59e0b" />
+                  <Text style={styles.ratingText}>
+                    {taskerRating.toFixed(1)}
+                    {taskerTotalReviews ? ` (${taskerTotalReviews})` : ''}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Client Card (for Tasker) */}
+        {isTasker && (
+          <View style={styles.personCard}>
+            {task.client_profile_image ? (
+              <Image 
+                source={{ uri: task.client_profile_image }} 
+                style={styles.personAvatarImage}
+              />
+            ) : (
+              <View style={styles.personAvatar}>
+                <Ionicons name="person" size={32} color={Colors.dark.textSecondary} />
+              </View>
+            )}
+            <View style={styles.personInfo}>
+              <Text style={styles.personLabel}>
+                {i18n.locale === 'fr' ? 'Client' : 'Client'}
+              </Text>
+              <Text style={styles.personName}>
+                {task.client_name || 'Client'}
+              </Text>
+              {task.client_phone && (
+                <Text style={styles.personPhone}>{task.client_phone}</Text>
+              )}
+            </View>
           </View>
-          {isClient && <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />}
-        </TouchableOpacity>
+        )}
 
         {/* Payment Section for Tasker (completed but unpaid) */}
         {showPaymentSection && (
@@ -891,7 +1001,7 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Réserver à nouveau' : 'Rebook This Service'}
+                  {i18n.locale === 'fr' ? 'Réserver à nouveau' : 'Book Again'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
                   {i18n.locale === 'fr' ? 'Réserver le même service' : 'Book the same service again'}
@@ -902,7 +1012,7 @@ export default function TaskDetailsScreen() {
           )}
 
           {/* View Tasker Profile (Client only) */}
-          {isClient && task.tasker_id && (
+          {isClient && taskerId && (
             <TouchableOpacity style={styles.actionButton} onPress={handleViewTaskerProfile} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#6366f1' }]}>
                 <Ionicons name="person" size={20} color={Colors.dark.background} />
@@ -916,6 +1026,28 @@ export default function TaskDetailsScreen() {
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Raise Dispute (Client only, completed or active) */}
+          {showDispute && (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.disputeActionButton]} 
+              onPress={() => setShowDisputeModal(true)} 
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIconContainer, { backgroundColor: '#ef4444' }]}>
+                <Ionicons name="alert-circle" size={20} color={Colors.dark.background} />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={[styles.actionTitle, { color: '#ef4444' }]}>
+                  {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
+                </Text>
+                <Text style={styles.actionSubtitle}>
+                  {i18n.locale === 'fr' ? 'Signaler un problème avec cette tâche' : 'Report an issue with this task'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ef4444" />
             </TouchableOpacity>
           )}
 
@@ -1063,6 +1195,102 @@ export default function TaskDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Dispute Modal */}
+      <Modal visible={showDisputeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowDisputeModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.dark.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.disputeInfo}>
+              {i18n.locale === 'fr' 
+                ? 'Notre équipe examinera votre demande et vous contactera sous 24-48 heures.'
+                : 'Our team will review your request and contact you within 24-48 hours.'}
+            </Text>
+
+            {/* Reason Selection */}
+            <View style={styles.reasonSection}>
+              <Text style={styles.commentLabel}>
+                {i18n.locale === 'fr' ? 'Raison du litige' : 'Dispute Reason'} *
+              </Text>
+              <ScrollView 
+                horizontal={false} 
+                style={styles.reasonList}
+                nestedScrollEnabled
+              >
+                {DISPUTE_REASONS.map((reason) => (
+                  <TouchableOpacity
+                    key={reason.id}
+                    style={[
+                      styles.reasonOption,
+                      disputeReason === (i18n.locale === 'fr' ? reason.fr : reason.en) && styles.reasonSelected,
+                    ]}
+                    onPress={() => setDisputeReason(i18n.locale === 'fr' ? reason.fr : reason.en)}
+                  >
+                    <Text style={[
+                      styles.reasonText,
+                      disputeReason === (i18n.locale === 'fr' ? reason.fr : reason.en) && styles.reasonTextSelected,
+                    ]}>
+                      {i18n.locale === 'fr' ? reason.fr : reason.en}
+                    </Text>
+                    {disputeReason === (i18n.locale === 'fr' ? reason.fr : reason.en) && (
+                      <Ionicons name="checkmark-circle" size={20} color={Colors.dark.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Description */}
+            <View style={styles.commentSection}>
+              <Text style={styles.commentLabel}>
+                {i18n.locale === 'fr' ? 'Décrivez le problème' : 'Describe the Issue'} *
+              </Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder={i18n.locale === 'fr' ? 'Expliquez le problème en détail...' : 'Explain the issue in detail...'}
+                placeholderTextColor={Colors.dark.textSecondary}
+                value={disputeDescription}
+                onChangeText={setDisputeDescription}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.cancelButtons}>
+              <TouchableOpacity 
+                style={styles.cancelModalButton} 
+                onPress={() => setShowDisputeModal(false)}
+              >
+                <Text style={styles.cancelModalButtonText}>
+                  {i18n.locale === 'fr' ? 'Annuler' : 'Cancel'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.disputeSubmitButton, submittingDispute && styles.disabledButton]} 
+                onPress={handleSubmitDispute}
+                disabled={submittingDispute}
+              >
+                {submittingDispute ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Text style={styles.confirmCancelModalButtonText}>
+                    {i18n.locale === 'fr' ? 'Soumettre' : 'Submit'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1136,7 +1364,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.dark.background,
   },
-  // Waiting Card
   waitingCard: {
     flexDirection: 'row',
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -1159,7 +1386,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.dark.textSecondary,
   },
-  // Timer Card
   timerCard: {
     flexDirection: 'row',
     backgroundColor: Colors.dark.card,
@@ -1223,7 +1449,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.dark.error,
   },
-  // Accept/Reject Card
   acceptRejectCard: {
     backgroundColor: Colors.dark.card,
     borderRadius: 12,
@@ -1279,7 +1504,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.dark.background,
   },
-  // Task Info Card
   card: {
     backgroundColor: Colors.dark.card,
     borderRadius: 16,
@@ -1367,7 +1591,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.dark.primary,
   },
-  // Person Card
   personCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1387,6 +1610,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
+  personAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 16,
+  },
   personInfo: {
     flex: 1,
   },
@@ -1400,6 +1629,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.dark.text,
   },
+  personPhone: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    marginTop: 2,
+  },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1410,7 +1644,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.dark.text,
   },
-  // Payment Card
   paymentCard: {
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderRadius: 12,
@@ -1472,7 +1705,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.dark.background,
   },
-  // Paid Card
   paidCard: {
     flexDirection: 'row',
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -1495,7 +1727,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.dark.text,
   },
-  // Actions
   actionsContainer: {
     marginTop: 8,
   },
@@ -1526,6 +1757,9 @@ const styles = StyleSheet.create({
   cancelActionButton: {
     borderColor: Colors.dark.error,
   },
+  disputeActionButton: {
+    borderColor: '#ef4444',
+  },
   actionIconContainer: {
     width: 40,
     height: 40,
@@ -1547,7 +1781,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     marginTop: 2,
   },
-  // Modals
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -1559,12 +1792,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
@@ -1641,5 +1875,49 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  // Dispute Modal Styles
+  disputeInfo: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  reasonSection: {
+    marginBottom: 16,
+  },
+  reasonList: {
+    maxHeight: 200,
+  },
+  reasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.dark.background,
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  reasonSelected: {
+    borderColor: Colors.dark.primary,
+    backgroundColor: `${Colors.dark.primary}15`,
+  },
+  reasonText: {
+    fontSize: 14,
+    color: Colors.dark.text,
+    flex: 1,
+  },
+  reasonTextSelected: {
+    color: Colors.dark.primary,
+    fontWeight: '600',
+  },
+  disputeSubmitButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
   },
 });

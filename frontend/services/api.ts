@@ -626,5 +626,33 @@ export const aiAPI = {
     return response.data;
   },
 };
+// ==================== DISPUTE API ====================
+
+export const disputeAPI = {
+  // Create a dispute for a completed task
+  async createDispute(taskId: string, reason: string, description: string) {
+    const formData = new FormData();
+    formData.append('task_id', taskId);
+    formData.append('reason', reason);
+    formData.append('description', description);
+    
+    const response = await api.post('/api/disputes', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  // Get user's disputes
+  async getMyDisputes() {
+    const response = await api.get('/api/disputes');
+    return response.data;
+  },
+
+  // Get specific dispute
+  async getDispute(disputeId: string) {
+    const response = await api.get(`/api/disputes/${disputeId}`);
+    return response.data;
+  },
+};
 
 export default api;
