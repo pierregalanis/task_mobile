@@ -47,10 +47,24 @@ export default function ChatScreen() {
 
   const fetchTaskInfo = async () => {
     try {
+      // First try to get task directly by ID for complete data
+      try {
+        const directTask = await taskAPI.getTask(taskId as string);
+        if (directTask) {
+          console.log('Task fetched directly:', JSON.stringify(directTask, null, 2));
+          setTask(directTask);
+          return;
+        }
+      } catch (directError) {
+        console.log('Direct task fetch failed, falling back to task list:', directError);
+      }
+      
+      // Fallback to task list
       const tasks = isClient 
         ? await taskAPI.getClientTasks()
         : await taskAPI.getTaskerTasks();
       const currentTask = tasks?.find((t: any) => t.id === taskId);
+      console.log('Task from list:', JSON.stringify(currentTask, null, 2));
       setTask(currentTask);
     } catch (error) {
       console.error('Error fetching task info:', error);
@@ -79,12 +93,26 @@ export default function ChatScreen() {
     if (!newMessage.trim() || !task) return;
 
     // Get the receiver ID based on user role
-    const receiverId = isClient ? task.tasker_id : task.client_id;
+    // Check multiple possible field names for tasker/client IDs
+    let receiverId: string | undefined;
+    
+    if (isClient) {
+      // Client sending to tasker - check all possible field names
+      receiverId = task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to;
+      console.log('Client sending message - Task object:', JSON.stringify(task, null, 2));
+      console.log('Resolved tasker ID:', receiverId);
+    } else {
+      // Tasker sending to client - check all possible field names
+      receiverId = task.client_id || task.user_id || task.client?.id || task.created_by;
+      console.log('Tasker sending message - Task object:', JSON.stringify(task, null, 2));
+      console.log('Resolved client ID:', receiverId);
+    }
 
     if (!receiverId) {
+      console.error('Unable to determine receiver ID from task:', task);
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        isFrench ? 'Impossible d\'envoyer le message' : 'Unable to send message'
+        isFrench ? 'Impossible d\'envoyer le message - destinataire introuvable' : 'Unable to send message - recipient not found'
       );
       return;
     }
@@ -97,6 +125,7 @@ export default function ChatScreen() {
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
       console.error('Error sending message:', error);
+      console.error('Error response:', error.response?.data);
       showMessage(
         isFrench ? 'Erreur' : 'Error',
         error.response?.data?.detail || (isFrench ? 'Échec de l\'envoi' : 'Failed to send')

@@ -120,13 +120,39 @@ export function usePushNotifications() {
     console.log('Notification response:', response);
     
     const data = response.notification.request.content.data;
+    console.log('Notification data:', JSON.stringify(data, null, 2));
     
-    // Navigate based on notification data
-    if (data?.task_id) {
-      router.push(`/task/${data.task_id}`);
-    } else if (data?.screen) {
-      router.push(data.screen as string);
+    // Check notification type for routing
+    const notificationType = data?.type?.toLowerCase() || '';
+    
+    // Message/Chat notification types - navigate to chat
+    const chatTypes = ['new_message', 'message', 'chat', 'chat_message'];
+    const isChatNotification = chatTypes.includes(notificationType) || data?.screen === 'chat';
+    
+    if (isChatNotification && data?.task_id) {
+      // Navigate to chat screen for message notifications
+      console.log('Navigating to chat for task:', data.task_id);
+      router.push(`/chat/${data.task_id}`);
+      return;
     }
+    
+    // Task-related notifications - navigate to task details
+    if (data?.task_id) {
+      console.log('Navigating to task:', data.task_id);
+      router.push(`/task/${data.task_id}`);
+      return;
+    }
+    
+    // Custom screen navigation
+    if (data?.screen) {
+      console.log('Navigating to screen:', data.screen);
+      router.push(data.screen as string);
+      return;
+    }
+    
+    // Fallback - go to notifications list
+    console.log('No specific route, navigating to notifications');
+    router.push('/notifications');
   }, [router]);
 
   // Set up listeners on mount
