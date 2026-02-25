@@ -6,18 +6,187 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { taskAPI, notificationAPI, reviewAPI } from '../../services/api';
+import { LinearGradient } from 'expo-linear-gradient';
+import { taskAPI, notificationAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { showMessage, showConfirm } from '../../utils/alert';
-import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName } from '../../constants/Categories';
+
+const { width } = Dimensions.get('window');
+
+// Skeleton Loading Component
+const SkeletonBox = ({ width: w, height, style }: { width: number | string; height: number; style?: any }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, []);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <Animated.View
+      style={[{ width: w, height, backgroundColor: Colors.dark.border, borderRadius: 8, opacity }, style]}
+    />
+  );
+};
+
+// Skeleton Stats Card
+const SkeletonStatCard = () => (
+  <View style={[styles.statCard, { backgroundColor: Colors.dark.card }]}>
+    <SkeletonBox width={24} height={24} style={{ borderRadius: 12 }} />
+    <SkeletonBox width={40} height={28} style={{ marginTop: 8 }} />
+    <SkeletonBox width={50} height={12} style={{ marginTop: 6 }} />
+  </View>
+);
+
+// Skeleton Task Card
+const SkeletonTaskCard = () => (
+  <View style={styles.taskCard}>
+    <View style={styles.taskHeader}>
+      <SkeletonBox width={150} height={18} style={{}} />
+      <SkeletonBox width={70} height={24} style={{ borderRadius: 12 }} />
+    </View>
+    <SkeletonBox width={200} height={14} style={{ marginTop: 12 }} />
+    <SkeletonBox width={120} height={14} style={{ marginTop: 8 }} />
+    <View style={[styles.taskFooter, { marginTop: 16 }]}>
+      <SkeletonBox width={80} height={20} style={{}} />
+      <SkeletonBox width={100} height={40} style={{ borderRadius: 20 }} />
+    </View>
+  </View>
+);
+
+// Animated Stat Card
+const AnimatedStatCard = ({ 
+  icon, 
+  iconColor, 
+  bgColor, 
+  value, 
+  label, 
+  subLabel, 
+  index, 
+  onPress 
+}: any) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay: index * 100, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, delay: index * 100, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start();
+  };
+
+  return (
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.statCard, { backgroundColor: bgColor }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View style={styles.statIconContainer}>
+          <Ionicons name={icon} size={20} color={iconColor} />
+        </View>
+        <Text style={[styles.statNumber, { color: iconColor }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+        {subLabel && <Text style={styles.statSubLabel}>{subLabel}</Text>}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Animated Task Card Component
+const AnimatedTaskCard = ({ children, index, style }: any) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay: index * 80, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, delay: index * 80, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }, style]}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// Pulsing Timer Component
+const PulsingTimer = ({ time, isActive }: { time: string; isActive: boolean }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isActive) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      );
+      const glow = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      glow.start();
+      return () => { pulse.stop(); glow.stop(); };
+    }
+  }, [isActive]);
+
+  const glowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.8],
+  });
+
+  return (
+    <Animated.View style={[styles.timerDisplayContainer, { transform: [{ scale: pulseAnim }] }]}>
+      {isActive && (
+        <Animated.View style={[styles.timerGlow, { opacity: glowOpacity }]} />
+      )}
+      <View style={styles.timerDisplay}>
+        <View style={styles.timerIconContainer}>
+          <Ionicons name="stopwatch" size={28} color="#fff" />
+        </View>
+        <Text style={styles.timerText}>{time}</Text>
+      </View>
+    </Animated.View>
+  );
+};
 
 export default function TaskerDashboardScreen() {
   const router = useRouter();
@@ -29,7 +198,6 @@ export default function TaskerDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
-  // Stats
   const [stats, setStats] = useState({
     rating: 0,
     totalReviews: 0,
@@ -37,12 +205,22 @@ export default function TaskerDashboardScreen() {
     totalEarnings: 0,
   });
   
-  // Timer state
   const [activeTaskTimer, setActiveTaskTimer] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Animations
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const notificationScale = useRef(new Animated.Value(1)).current;
+  const welcomeSlide = useRef(new Animated.Value(-30)).current;
 
-  // Fetch data when screen comes into focus
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerFade, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(welcomeSlide, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       if (user?.role === 'tasker') {
@@ -53,40 +231,29 @@ export default function TaskerDashboardScreen() {
 
   useEffect(() => {
     if (user?.role === 'tasker') {
-      // Poll for new tasks every 30 seconds
       const pollInterval = setInterval(fetchData, 30000);
       return () => clearInterval(pollInterval);
     }
   }, [user]);
 
-  // Timer effect
   useEffect(() => {
     if (activeTaskTimer) {
       timerRef.current = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
     } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
       setElapsedTime(0);
     }
-    
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [activeTaskTimer]);
 
-  // Check for active timer on load
   useEffect(() => {
     const activeTask = tasks.find(t => t.status === 'in_progress' && t.timer_started_at);
     if (activeTask) {
       setActiveTaskTimer(activeTask.id);
       const startTime = new Date(activeTask.timer_started_at).getTime();
-      const now = Date.now();
-      setElapsedTime(Math.floor((now - startTime) / 1000));
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }
   }, [tasks]);
 
@@ -101,27 +268,15 @@ export default function TaskerDashboardScreen() {
       setTasks(taskList);
       setUnreadCount(unreadData?.unread_count || 0);
       
-      // Calculate stats from tasks
       const completedTasks = taskList.filter((t: any) => t.status === 'completed');
-      
-      // Only count revenue from PAID tasks (is_paid=true)
-      // Per website API: task must have is_paid=true to count as revenue
-      const paidTasks = completedTasks.filter((t: any) => 
-        t.is_paid === true || t.payment_status === 'paid'
-      );
+      const paidTasks = completedTasks.filter((t: any) => t.is_paid === true || t.payment_status === 'paid');
       const totalEarnings = paidTasks.reduce((sum: number, t: any) => 
         sum + (t.final_price || t.total_cost || t.estimated_total || 0), 0);
       
-      // Get rating from user profile or tasker_profile
       const rating = user?.tasker_profile?.average_rating || user?.tasker_profile?.rating || 0;
       const totalReviews = user?.tasker_profile?.total_reviews || 0;
       
-      setStats({
-        rating: rating,
-        totalReviews: totalReviews,
-        completedTasks: completedTasks.length,
-        totalEarnings: totalEarnings,
-      });
+      setStats({ rating, totalReviews, completedTasks: completedTasks.length, totalEarnings });
     } catch (error) {
       console.error('Error fetching tasker data:', error);
     } finally {
@@ -130,26 +285,24 @@ export default function TaskerDashboardScreen() {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+  const handleRefresh = () => { setRefreshing(true); fetchData(); };
+
+  const handleNotificationPress = () => {
+    Animated.sequence([
+      Animated.timing(notificationScale, { toValue: 0.8, duration: 100, useNativeDriver: true }),
+      Animated.spring(notificationScale, { toValue: 1, friction: 3, useNativeDriver: true }),
+    ]).start();
+    router.push('/notifications');
   };
 
   const handleAcceptTask = async (taskId: string) => {
     try {
       setActionLoading(taskId);
       await taskAPI.acceptTask(taskId);
-      showMessage(
-        i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Tâche acceptée!' : 'Task accepted!'
-      );
+      showMessage(i18n.locale === 'fr' ? 'Succès' : 'Success', i18n.locale === 'fr' ? 'Tâche acceptée!' : 'Task accepted!');
       fetchData();
     } catch (error: any) {
-      console.error('Error accepting task:', error);
-      showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'accepter la tâche' : 'Failed to accept task')
-      );
+      showMessage(i18n.locale === 'fr' ? 'Erreur' : 'Error', error.response?.data?.detail || 'Failed to accept task');
     } finally {
       setActionLoading(null);
     }
@@ -158,29 +311,19 @@ export default function TaskerDashboardScreen() {
   const handleRejectTask = async (taskId: string) => {
     showConfirm(
       i18n.locale === 'fr' ? 'Refuser la tâche?' : 'Reject task?',
-      i18n.locale === 'fr' ? 'Êtes-vous sûr de vouloir refuser cette tâche?' : 'Are you sure you want to reject this task?',
+      i18n.locale === 'fr' ? 'Êtes-vous sûr?' : 'Are you sure?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.rejectTask(taskId);
-          showMessage(
-            i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected',
-            i18n.locale === 'fr' ? 'Le client sera notifié.' : 'The client will be notified.'
-          );
+          showMessage(i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected', '');
           fetchData();
         } catch (error: any) {
-          console.error('Error rejecting task:', error);
-          showMessage(
-            i18n.locale === 'fr' ? 'Erreur' : 'Error',
-            error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de refuser la tâche' : 'Failed to reject task')
-          );
+          showMessage('Error', error.response?.data?.detail || 'Failed');
         } finally {
           setActionLoading(null);
         }
-      },
-      undefined,
-      i18n.locale === 'fr' ? 'Oui, refuser' : 'Yes, reject',
-      i18n.locale === 'fr' ? 'Non' : 'No'
+      }
     );
   };
 
@@ -190,17 +333,10 @@ export default function TaskerDashboardScreen() {
       await taskAPI.startTimer(taskId);
       setActiveTaskTimer(taskId);
       setElapsedTime(0);
-      showMessage(
-        i18n.locale === 'fr' ? 'Chronomètre démarré' : 'Timer Started',
-        i18n.locale === 'fr' ? 'Le client a été notifié que vous avez commencé.' : 'The client has been notified that you started.'
-      );
+      showMessage(i18n.locale === 'fr' ? 'Chronomètre démarré' : 'Timer Started', '');
       fetchData();
     } catch (error: any) {
-      console.error('Error starting timer:', error);
-      showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de démarrer le chronomètre' : 'Failed to start timer')
-      );
+      showMessage('Error', error.response?.data?.detail || 'Failed');
     } finally {
       setActionLoading(null);
     }
@@ -208,32 +344,22 @@ export default function TaskerDashboardScreen() {
 
   const handleStopTimer = async (taskId: string) => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Terminer le travail?' : 'Finish work?',
-      i18n.locale === 'fr' ? 'Êtes-vous sûr de vouloir arrêter le chronomètre et terminer la tâche?' : 'Are you sure you want to stop the timer and complete the task?',
+      i18n.locale === 'fr' ? 'Terminer?' : 'Finish work?',
+      i18n.locale === 'fr' ? 'Arrêter le chronomètre?' : 'Stop timer and complete?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.stopTimer(taskId);
           setActiveTaskTimer(null);
           setElapsedTime(0);
-          showMessage(
-            i18n.locale === 'fr' ? 'Travail terminé!' : 'Work completed!',
-            i18n.locale === 'fr' ? 'Le client a été notifié.' : 'The client has been notified.'
-          );
+          showMessage(i18n.locale === 'fr' ? 'Terminé!' : 'Completed!', '');
           fetchData();
         } catch (error: any) {
-          console.error('Error stopping timer:', error);
-          showMessage(
-            i18n.locale === 'fr' ? 'Erreur' : 'Error',
-            error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'arrêter le chronomètre' : 'Failed to stop timer')
-          );
+          showMessage('Error', error.response?.data?.detail || 'Failed');
         } finally {
           setActionLoading(null);
         }
-      },
-      undefined,
-      i18n.locale === 'fr' ? 'Oui, terminer' : 'Yes, finish',
-      i18n.locale === 'fr' ? 'Non' : 'No'
+      }
     );
   };
 
@@ -247,10 +373,7 @@ export default function TaskerDashboardScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(i18n.locale === 'fr' ? 'fr-FR' : 'en-US', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   };
 
@@ -260,8 +383,6 @@ export default function TaskerDashboardScreen() {
       case 'accepted': return '#3b82f6';
       case 'in_progress': return '#8b5cf6';
       case 'completed': return Colors.dark.success;
-      case 'cancelled':
-      case 'rejected': return Colors.dark.error;
       default: return Colors.dark.textSecondary;
     }
   };
@@ -273,15 +394,12 @@ export default function TaskerDashboardScreen() {
         case 'accepted': return 'Acceptée';
         case 'in_progress': return 'En cours';
         case 'completed': return 'Terminée';
-        case 'cancelled': return 'Annulée';
-        case 'rejected': return 'Refusée';
         default: return status;
       }
     }
     return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   };
 
-  // Group tasks by status
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const acceptedTasks = tasks.filter(t => t.status === 'accepted');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
@@ -289,9 +407,21 @@ export default function TaskerDashboardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.dark.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.welcomeSection}>
+            <SkeletonBox width={200} height={24} style={{}} />
+            <SkeletonBox width={44} height={44} style={{ borderRadius: 22 }} />
+          </View>
+          <View style={styles.statsRow}>
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </View>
+          <SkeletonTaskCard />
+          <SkeletonTaskCard />
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -300,148 +430,117 @@ export default function TaskerDashboardScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.dark.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.dark.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <View style={styles.welcomeContent}>
-            <View style={styles.welcomeTextContainer}>
-              <Text style={styles.welcomeHand}>👋</Text>
-              <Text style={styles.welcomeText}>
-                {i18n.locale === 'fr' ? 'Bonjour,' : 'Welcome,'} {user?.full_name?.split(' ')[0]}!
+        {/* Gradient Welcome Header */}
+        <Animated.View style={{ opacity: headerFade, transform: [{ translateY: welcomeSlide }] }}>
+          <LinearGradient
+            colors={[Colors.dark.primary, '#059669']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.welcomeSection}
+          >
+            <View style={styles.welcomeContent}>
+              <View style={styles.welcomeTextContainer}>
+                <Text style={styles.welcomeHand}>👋</Text>
+                <Text style={styles.welcomeText}>
+                  {i18n.locale === 'fr' ? 'Bonjour,' : 'Welcome,'} {user?.full_name?.split(' ')[0]}!
+                </Text>
+              </View>
+              <Text style={styles.motivationalText}>
+                {i18n.locale === 'fr' ? 'Prêt à améliorer la journée de quelqu\'un' : 'Ready to make someone\'s day better'}
               </Text>
             </View>
-            <Text style={styles.motivationalText}>
-              {i18n.locale === 'fr' 
-                ? 'Prêt à améliorer la journée de quelqu\'un'
-                : 'Ready to make someone\'s day better'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={Colors.dark.text} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+            <Animated.View style={{ transform: [{ scale: notificationScale }] }}>
+              <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress} activeOpacity={0.8}>
+                <Ionicons name="notifications" size={24} color="#fff" />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
+          </LinearGradient>
+        </Animated.View>
 
-        {/* Stats Cards - Clickable */}
+        {/* Animated Stats Row */}
         <View style={styles.statsRow}>
-          <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#f59e0b20' }]}
+          <AnimatedStatCard
+            icon="star"
+            iconColor="#f59e0b"
+            bgColor="#f59e0b15"
+            value={stats.rating > 0 ? stats.rating.toFixed(1) : '-'}
+            label={i18n.locale === 'fr' ? 'Note' : 'Rating'}
+            subLabel={`(${stats.totalReviews})`}
+            index={0}
             onPress={() => router.push('/tasker/my-reviews')}
-          >
-            <Ionicons name="star" size={20} color="#f59e0b" />
-            <Text style={[styles.statNumber, { color: '#f59e0b' }]}>
-              {stats.rating > 0 ? stats.rating.toFixed(1) : '-'}
-            </Text>
-            <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'Note' : 'Rating'}
-            </Text>
-            <Text style={styles.statSubLabel}>({stats.totalReviews})</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#3b82f620' }]}
-            onPress={() => {/* Could navigate to completed tasks list */}}
-          >
-            <Ionicons name="clipboard-outline" size={20} color="#3b82f6" />
-            <Text style={[styles.statNumber, { color: '#3b82f6' }]}>{stats.completedTasks}</Text>
-            <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}
-            </Text>
-            <Text style={styles.statSubLabel}>{i18n.locale === 'fr' ? 'terminées' : 'complete'}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#10b98120' }]}
+          />
+          <AnimatedStatCard
+            icon="clipboard-outline"
+            iconColor="#3b82f6"
+            bgColor="#3b82f615"
+            value={stats.completedTasks}
+            label={i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}
+            subLabel={i18n.locale === 'fr' ? 'terminées' : 'complete'}
+            index={1}
+            onPress={() => {}}
+          />
+          <AnimatedStatCard
+            icon="wallet-outline"
+            iconColor={Colors.dark.success}
+            bgColor="#10b98115"
+            value={stats.totalEarnings > 1000 ? `${Math.round(stats.totalEarnings / 1000)}K` : stats.totalEarnings}
+            label={i18n.locale === 'fr' ? 'Revenus' : 'Earned'}
+            subLabel="XOF"
+            index={2}
             onPress={() => router.push('/tasker/my-earnings')}
-          >
-            <Ionicons name="wallet-outline" size={20} color={Colors.dark.success} />
-            <Text style={[styles.statNumber, { color: Colors.dark.success }]}>
-              {stats.totalEarnings > 1000 
-                ? `${Math.round(stats.totalEarnings / 1000)}K` 
-                : stats.totalEarnings}
-            </Text>
-            <Text style={styles.statLabel}>
-              {i18n.locale === 'fr' ? 'Revenus' : 'Earned'}
-            </Text>
-            <Text style={styles.statSubLabel}>XOF</Text>
-          </TouchableOpacity>
+          />
         </View>
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.quickActionBtn}
-            onPress={() => router.push('/tasker/edit-profile')}
-          >
-            <Ionicons name="person-outline" size={20} color={Colors.dark.primary} />
-            <Text style={styles.quickActionText}>
-              {i18n.locale === 'fr' ? 'Profil' : 'Profile'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionBtn}
-            onPress={() => router.push('/tasker/manage-services')}
-          >
-            <Ionicons name="construct-outline" size={20} color={Colors.dark.primary} />
-            <Text style={styles.quickActionText}>
-              {i18n.locale === 'fr' ? 'Services' : 'Services'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionBtn}
-            onPress={() => router.push('/tasker/my-reviews')}
-          >
-            <Ionicons name="chatbubbles-outline" size={20} color={Colors.dark.primary} />
-            <Text style={styles.quickActionText}>
-              {i18n.locale === 'fr' ? 'Avis' : 'Reviews'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionBtn}
-            onPress={() => router.push('/tasker/my-earnings')}
-          >
-            <Ionicons name="cash-outline" size={20} color={Colors.dark.primary} />
-            <Text style={styles.quickActionText}>
-              {i18n.locale === 'fr' ? 'Revenus' : 'Earnings'}
-            </Text>
-          </TouchableOpacity>
+          {[
+            { icon: 'person-outline', label: i18n.locale === 'fr' ? 'Profil' : 'Profile', route: '/tasker/edit-profile' },
+            { icon: 'construct-outline', label: i18n.locale === 'fr' ? 'Services' : 'Services', route: '/tasker/manage-services' },
+            { icon: 'chatbubbles-outline', label: i18n.locale === 'fr' ? 'Avis' : 'Reviews', route: '/tasker/my-reviews' },
+            { icon: 'cash-outline', label: i18n.locale === 'fr' ? 'Revenus' : 'Earnings', route: '/tasker/my-earnings' },
+          ].map((action, index) => (
+            <TouchableOpacity
+              key={action.route}
+              style={styles.quickActionBtn}
+              onPress={() => router.push(action.route as any)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={action.icon as any} size={20} color={Colors.dark.primary} />
+              <Text style={styles.quickActionText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Pending Task Requests - CRITICAL SECTION */}
+        {/* Pending Tasks - Urgent Section */}
         {pendingTasks.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <View style={styles.urgentBadge}>
-                  <Ionicons name="alert-circle" size={16} color={Colors.dark.background} />
+                  <Ionicons name="alert-circle" size={16} color="#fff" />
                 </View>
                 <Text style={styles.sectionTitle}>
                   {i18n.locale === 'fr' ? 'Demandes en attente' : 'Pending Requests'}
                 </Text>
               </View>
-              <Text style={styles.taskCount}>{pendingTasks.length}</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{pendingTasks.length}</Text>
+              </View>
             </View>
 
-            {pendingTasks.map((task) => {
-              const category = getCategoryById(task.category);
-              const subcategory = task.subcategory ? getSubcategoryById(task.category, task.subcategory) : null;
-
-              return (
-                <View key={task.id} style={styles.pendingCard}>
+            {pendingTasks.map((task, index) => (
+              <AnimatedTaskCard key={task.id} index={index}>
+                <View style={styles.pendingCard}>
                   <View style={styles.pendingHeader}>
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingTitle}>{task.title}</Text>
@@ -469,175 +568,137 @@ export default function TaskerDashboardScreen() {
                       style={[styles.actionBtn, styles.rejectBtn]}
                       onPress={() => handleRejectTask(task.id)}
                       disabled={actionLoading === task.id}
+                      activeOpacity={0.8}
                     >
-                      {actionLoading === task.id ? (
-                        <ActivityIndicator size="small" color={Colors.dark.error} />
-                      ) : (
-                        <>
-                          <Ionicons name="close" size={18} color={Colors.dark.error} />
-                          <Text style={styles.rejectBtnText}>
-                            {i18n.locale === 'fr' ? 'Refuser' : 'Reject'}
-                          </Text>
-                        </>
-                      )}
+                      <Ionicons name="close" size={18} color={Colors.dark.error} />
+                      <Text style={styles.rejectBtnText}>{i18n.locale === 'fr' ? 'Refuser' : 'Reject'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionBtn, styles.acceptBtn]}
                       onPress={() => handleAcceptTask(task.id)}
                       disabled={actionLoading === task.id}
+                      activeOpacity={0.8}
                     >
-                      {actionLoading === task.id ? (
-                        <ActivityIndicator size="small" color={Colors.dark.background} />
-                      ) : (
-                        <>
-                          <Ionicons name="checkmark" size={18} color={Colors.dark.background} />
-                          <Text style={styles.acceptBtnText}>
-                            {i18n.locale === 'fr' ? 'Accepter' : 'Accept'}
-                          </Text>
-                        </>
-                      )}
+                      <Ionicons name="checkmark" size={18} color="#fff" />
+                      <Text style={styles.acceptBtnText}>{i18n.locale === 'fr' ? 'Accepter' : 'Accept'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-              );
-            })}
+              </AnimatedTaskCard>
+            ))}
           </View>
         )}
 
-        {/* Accepted Tasks - Ready to Start */}
+        {/* Accepted Tasks */}
         {acceptedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {i18n.locale === 'fr' ? 'Prêt à commencer' : 'Ready to Start'}
-            </Text>
-
-            {acceptedTasks.map((task) => (
-              <View key={task.id} style={styles.taskCard}>
-                <View style={styles.taskHeader}>
-                  <Text style={styles.taskTitle}>{task.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
-                    <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Prêt à commencer' : 'Ready to Start'}</Text>
+            {acceptedTasks.map((task, index) => (
+              <AnimatedTaskCard key={task.id} index={index}>
+                <View style={styles.taskCard}>
+                  <View style={styles.taskHeader}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
+                      <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.taskMeta}>
+                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
+                    <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
+                    <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
+                    <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
+                  </View>
+                  <View style={styles.taskFooter}>
+                    <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
+                    <TouchableOpacity
+                      style={styles.startTimerBtn}
+                      onPress={() => handleStartTimer(task.id)}
+                      disabled={actionLoading === task.id}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="play" size={18} color="#fff" />
+                      <Text style={styles.startTimerText}>{i18n.locale === 'fr' ? 'Démarrer' : 'Start'}</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View style={styles.taskMeta}>
-                  <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                  <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
-                  <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
-                  <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
-                </View>
-                <View style={styles.taskFooter}>
-                  <Text style={styles.taskPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
-                  <TouchableOpacity
-                    style={styles.startTimerBtn}
-                    onPress={() => handleStartTimer(task.id)}
-                    disabled={actionLoading === task.id}
-                  >
-                    {actionLoading === task.id ? (
-                      <ActivityIndicator size="small" color={Colors.dark.background} />
-                    ) : (
-                      <>
-                        <Ionicons name="play" size={18} color={Colors.dark.background} />
-                        <Text style={styles.startTimerText}>
-                          {i18n.locale === 'fr' ? 'Démarrer' : 'Start'}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
+              </AnimatedTaskCard>
             ))}
           </View>
         )}
 
-        {/* In Progress Tasks with Timer */}
+        {/* In Progress Tasks with Pulsing Timer */}
         {inProgressTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {i18n.locale === 'fr' ? 'En cours' : 'In Progress'}
-            </Text>
-
-            {inProgressTasks.map((task) => (
-              <View key={task.id} style={[styles.taskCard, styles.activeTaskCard]}>
-                <View style={styles.taskHeader}>
-                  <Text style={styles.taskTitle}>{task.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: '#8b5cf6' }]}>
-                    <Ionicons name="time" size={12} color={Colors.dark.background} />
-                    <Text style={styles.statusText}>
-                      {i18n.locale === 'fr' ? 'En cours' : 'Active'}
-                    </Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'En cours' : 'In Progress'}</Text>
+            {inProgressTasks.map((task, index) => (
+              <AnimatedTaskCard key={task.id} index={index}>
+                <View style={[styles.taskCard, styles.activeTaskCard]}>
+                  <View style={styles.taskHeader}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: '#8b5cf6' }]}>
+                      <Ionicons name="time" size={12} color="#fff" />
+                      <Text style={styles.statusText}>{i18n.locale === 'fr' ? 'En cours' : 'Active'}</Text>
+                    </View>
                   </View>
-                </View>
 
-                {/* Timer Display */}
-                <View style={styles.timerContainer}>
-                  <View style={styles.timerDisplay}>
-                    <Ionicons name="stopwatch" size={32} color={Colors.dark.primary} />
-                    <Text style={styles.timerText}>
-                      {activeTaskTimer === task.id ? formatTime(elapsedTime) : '--:--:--'}
-                    </Text>
-                  </View>
-                  {task.pricing_type === 'hourly' && (
-                    <Text style={styles.timerSubtext}>
-                      {i18n.locale === 'fr' ? 'Taux:' : 'Rate:'} {task.hourly_rate?.toLocaleString()} XOF/h
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.taskFooter}>
-                  <View>
-                    <Text style={styles.taskMetaText}>{task.address}</Text>
-                    <Text style={styles.taskPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.stopTimerBtn}
-                    onPress={() => handleStopTimer(task.id)}
-                    disabled={actionLoading === task.id}
-                  >
-                    {actionLoading === task.id ? (
-                      <ActivityIndicator size="small" color={Colors.dark.background} />
-                    ) : (
-                      <>
-                        <Ionicons name="stop" size={18} color={Colors.dark.background} />
-                        <Text style={styles.stopTimerText}>
-                          {i18n.locale === 'fr' ? 'Terminer' : 'Finish'}
-                        </Text>
-                      </>
+                  <View style={styles.timerContainer}>
+                    <PulsingTimer
+                      time={activeTaskTimer === task.id ? formatTime(elapsedTime) : '--:--:--'}
+                      isActive={activeTaskTimer === task.id}
+                    />
+                    {task.pricing_type === 'hourly' && (
+                      <Text style={styles.timerSubtext}>
+                        {i18n.locale === 'fr' ? 'Taux:' : 'Rate:'} {task.hourly_rate?.toLocaleString()} XOF/h
+                      </Text>
                     )}
-                  </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.taskFooter}>
+                    <View>
+                      <Text style={styles.taskMetaText}>{task.address}</Text>
+                      <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.stopTimerBtn}
+                      onPress={() => handleStopTimer(task.id)}
+                      disabled={actionLoading === task.id}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="stop" size={18} color="#fff" />
+                      <Text style={styles.stopTimerText}>{i18n.locale === 'fr' ? 'Terminer' : 'Finish'}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              </AnimatedTaskCard>
             ))}
           </View>
         )}
 
-        {/* Recent Completed */}
+        {/* Completed Tasks */}
         {completedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {i18n.locale === 'fr' ? 'Récemment terminées' : 'Recently Completed'}
-            </Text>
-
-            {completedTasks.map((task) => (
-              <TouchableOpacity
-                key={task.id}
-                style={[styles.taskCard, styles.completedCard]}
-                onPress={() => router.push(`/task/${task.id}`)}
-              >
-                <View style={styles.taskHeader}>
-                  <Text style={styles.taskTitle}>{task.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: Colors.dark.success }]}>
-                    <Ionicons name="checkmark" size={12} color={Colors.dark.background} />
-                    <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Récemment terminées' : 'Recently Completed'}</Text>
+            {completedTasks.map((task, index) => (
+              <AnimatedTaskCard key={task.id} index={index}>
+                <TouchableOpacity
+                  style={[styles.taskCard, styles.completedCard]}
+                  onPress={() => router.push(`/task/${task.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.taskHeader}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: Colors.dark.success }]}>
+                      <Ionicons name="checkmark" size={12} color="#fff" />
+                      <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.taskMeta}>
-                  <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                  <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date || task.task_date)}</Text>
-                </View>
-                <Text style={styles.taskPrice}>
-                  {(task.final_price || task.estimated_total || task.total_cost || 0).toLocaleString()} XOF
-                </Text>
-              </TouchableOpacity>
+                  <View style={styles.taskMeta}>
+                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
+                    <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date)}</Text>
+                  </View>
+                  <Text style={styles.taskPrice}>{(task.final_price || task.estimated_total || 0).toLocaleString()} XOF</Text>
+                </TouchableOpacity>
+              </AnimatedTaskCard>
             ))}
           </View>
         )}
@@ -645,14 +706,12 @@ export default function TaskerDashboardScreen() {
         {/* Empty State */}
         {tasks.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="briefcase-outline" size={64} color={Colors.dark.textSecondary} />
-            <Text style={styles.emptyTitle}>
-              {i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks yet'}
-            </Text>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="briefcase-outline" size={48} color={Colors.dark.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks yet'}</Text>
             <Text style={styles.emptySubtitle}>
-              {i18n.locale === 'fr'
-                ? 'Les nouvelles demandes apparaîtront ici'
-                : 'New task requests will appear here'}
+              {i18n.locale === 'fr' ? 'Les nouvelles demandes apparaîtront ici' : 'New task requests will appear here'}
             </Text>
           </View>
         )}
@@ -662,366 +721,171 @@ export default function TaskerDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
+  container: { flex: 1, backgroundColor: Colors.dark.background },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 40 },
+  
   // Welcome Section
   welcomeSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    backgroundColor: Colors.dark.primary,
-    marginHorizontal: -20,
-    marginTop: -20,
+    alignItems: 'center',
     padding: 20,
     paddingTop: 16,
+    overflow: 'hidden',
   },
-  welcomeContent: {
-    flex: 1,
-  },
-  welcomeTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  welcomeHand: {
-    fontSize: 24,
-  },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.dark.background,
-  },
-  motivationalText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
-    marginLeft: 32,
-  },
+  welcomeContent: { flex: 1 },
+  welcomeTextContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  welcomeHand: { fontSize: 24 },
+  welcomeText: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+  motivationalText: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 4, marginLeft: 32 },
   notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.dark.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+    position: 'absolute', top: -2, right: -2,
+    backgroundColor: Colors.dark.error, borderRadius: 10,
+    minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.dark.primary,
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#fff',
+  badgeText: { fontSize: 11, fontWeight: 'bold', color: '#fff' },
+  decorCircle1: {
+    position: 'absolute', top: -40, right: -40,
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  // Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+  decorCircle2: {
+    position: 'absolute', bottom: -50, right: 60,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
+  
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 20, marginBottom: 20 },
   statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    alignItems: 'center',
+    flex: 1, borderRadius: 16, padding: 14, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 6,
+  statIconContainer: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.dark.textSecondary,
-    marginTop: 2,
-  },
-  statSubLabel: {
-    fontSize: 10,
-    color: Colors.dark.textSecondary,
-  },
+  statNumber: { fontSize: 24, fontWeight: 'bold', marginTop: 8 },
+  statLabel: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 2 },
+  statSubLabel: { fontSize: 10, color: Colors.dark.textSecondary },
+  
   // Quick Actions
   quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 8,
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingHorizontal: 20, marginBottom: 24, gap: 8,
   },
   quickActionBtn: {
-    flex: 1,
-    backgroundColor: Colors.dark.card,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    flex: 1, backgroundColor: Colors.dark.card, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', gap: 6,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  quickActionText: {
-    fontSize: 11,
-    color: Colors.dark.text,
-    fontWeight: '500',
-  },
+  quickActionText: { fontSize: 11, color: Colors.dark.text, fontWeight: '600' },
+  
   // Section
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  section: { paddingHorizontal: 20, marginBottom: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitleContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   urgentBadge: {
-    backgroundColor: '#f59e0b',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#f59e0b', borderRadius: 12,
+    width: 28, height: 28, alignItems: 'center', justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark.text,
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.dark.text, letterSpacing: -0.3 },
+  countBadge: {
+    backgroundColor: Colors.dark.primary, borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 4,
   },
-  taskCount: {
-    fontSize: 14,
-    color: Colors.dark.textSecondary,
-  },
+  countBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  
   // Pending Card
   pendingCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#f59e0b',
+    backgroundColor: Colors.dark.card, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 2, borderColor: '#f59e0b',
+    shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
   },
-  pendingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  pendingInfo: {
-    flex: 1,
-  },
-  pendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark.text,
-    marginBottom: 8,
-  },
-  pendingMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  pendingMetaText: {
-    fontSize: 13,
-    color: Colors.dark.textSecondary,
-  },
-  pendingPrice: {
-    alignItems: 'flex-end',
-  },
-  pendingPriceValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark.primary,
-  },
-  pendingPriceCurrency: {
-    fontSize: 12,
-    color: Colors.dark.textSecondary,
-  },
-  pendingActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  pendingHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  pendingInfo: { flex: 1 },
+  pendingTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
+  pendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  pendingMetaText: { fontSize: 13, color: Colors.dark.textSecondary },
+  pendingPrice: { alignItems: 'flex-end' },
+  pendingPriceValue: { fontSize: 22, fontWeight: 'bold', color: Colors.dark.primary },
+  pendingPriceCurrency: { fontSize: 12, color: Colors.dark.textSecondary },
+  pendingActions: { flexDirection: 'row', gap: 12 },
   actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, borderRadius: 12, gap: 6,
   },
-  rejectBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: Colors.dark.error,
-  },
-  rejectBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.error,
-  },
-  acceptBtn: {
-    backgroundColor: Colors.dark.primary,
-  },
-  acceptBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.background,
-  },
+  rejectBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: Colors.dark.error },
+  rejectBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.error },
+  acceptBtn: { backgroundColor: Colors.dark.primary },
+  acceptBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  
   // Task Card
   taskCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
   },
-  activeTaskCard: {
-    borderColor: '#8b5cf6',
-    borderWidth: 2,
-  },
-  completedCard: {
-    opacity: 0.8,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark.text,
-    flex: 1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.dark.background,
-  },
-  taskMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  taskMetaText: {
-    fontSize: 13,
-    color: Colors.dark.textSecondary,
-  },
-  taskFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  taskPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark.primary,
-  },
+  activeTaskCard: { borderColor: '#8b5cf6', borderWidth: 2 },
+  completedCard: { opacity: 0.85 },
+  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  taskTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text, flex: 1 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  statusText: { fontSize: 11, fontWeight: '600', color: '#fff' },
+  taskMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  taskMetaText: { fontSize: 13, color: Colors.dark.textSecondary },
+  taskFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  taskPrice: { fontSize: 16, fontWeight: 'bold', color: Colors.dark.primary },
   startTimerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 6,
   },
-  startTimerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.background,
-  },
+  startTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   stopTimerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.error,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.error,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 6,
   },
-  stopTimerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.background,
-  },
-  timerContainer: {
-    backgroundColor: Colors.dark.background,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginVertical: 12,
+  stopTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  
+  // Timer
+  timerContainer: { alignItems: 'center', marginVertical: 12 },
+  timerDisplayContainer: { position: 'relative' },
+  timerGlow: {
+    position: 'absolute', top: -10, left: -10, right: -10, bottom: -10,
+    backgroundColor: Colors.dark.primary, borderRadius: 20, opacity: 0.3,
   },
   timerDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.dark.primary, borderRadius: 16, padding: 16,
   },
-  timerText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: Colors.dark.text,
-    fontFamily: 'monospace',
+  timerIconContainer: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  timerSubtext: {
-    fontSize: 12,
-    color: Colors.dark.textSecondary,
-    marginTop: 8,
+  timerText: { fontSize: 32, fontWeight: 'bold', color: '#fff', fontFamily: 'monospace' },
+  timerSubtext: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 8 },
+  
+  // Empty State
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyIconContainer: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: `${Colors.dark.primary}15`,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.dark.text,
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: Colors.dark.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.dark.text, marginTop: 8 },
+  emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
 });

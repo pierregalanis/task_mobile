@@ -79,11 +79,32 @@ export interface User {
 
 export interface PortfolioImage {
   id: string;
-  image_url: string;
-  category: string;
-  subcategory: string;
-  description?: string;
-  created_at: string;
+  url: string;
+  thumbnail_url?: string;
+  image_url?: string; // Legacy support
+  service_category: string;
+  service_subcategory: string;
+  category?: string; // Legacy support
+  subcategory?: string; // Legacy support
+  caption?: string;
+  description?: string; // Legacy support
+  is_featured?: boolean;
+  is_before?: boolean;
+  is_after?: boolean;
+  uploaded_at?: string;
+  created_at?: string;
+}
+
+// Pending Review type (from /api/reviews/pending)
+export interface PendingReview {
+  task_id: string;
+  task_title: string;
+  completed_at: string;
+  days_remaining: number;
+  tasker_id: string;
+  tasker_name: string;
+  tasker_profile_image: string | null;
+  total_cost: number;
 }
 
 // ==================== AUTH API ====================
@@ -406,20 +427,38 @@ export const taskAPI = {
 // ==================== REVIEW API ====================
 
 export const reviewAPI = {
+  // Get all pending reviews for current client
+  async getPendingReviews(): Promise<{ pending_reviews: PendingReview[]; count: number }> {
+    const response = await api.get('/api/reviews/pending');
+    return response.data;
+  },
+
+  // Check if specific task can be reviewed
+  async canReviewTask(taskId: string): Promise<{ can_review: boolean; reason: string }> {
+    const response = await api.get(`/api/reviews/task/${taskId}/can-review`);
+    return response.data;
+  },
+
+  // Get reviews for a tasker
   async getTaskerReviews(taskerId: string) {
     const response = await api.get(`/api/reviews/tasker/${taskerId}`);
     return response.data;
   },
 
-  async createReview(reviewData: any) {
+  // Submit a review
+  async createReview(reviewData: {
+    task_id: string;
+    tasker_id: string;
+    rating: number;
+    comment?: string;
+  }) {
     const response = await api.post('/api/reviews', reviewData);
     return response.data;
   },
 
-  // Check if client can leave a review for a task
+  // Legacy alias for canReviewTask
   async canReview(taskId: string) {
-    const response = await api.get(`/api/reviews/task/${taskId}/can-review`);
-    return response.data;
+    return this.canReviewTask(taskId);
   },
 };
 
@@ -535,7 +574,7 @@ export const pushTokenAPI = {
   },
 };
 
-// ==================== IMAGE API ====================
+//==================== IMAGE API ====================
 
 export const imageAPI = {
   // Upload profile picture
@@ -553,12 +592,17 @@ export const imageAPI = {
     return response.data;
   },
 
-  // Upload work portfolio image for a specific service
+  // Upload work portfolio image with enhanced options
   async uploadWorkPortfolioImage(
     imageUri: string,
     serviceCategory: string,
     serviceSubcategory: string,
-    description?: string
+    options?: {
+      caption?: string;
+      isFeatured?: boolean;
+      isBefore?: boolean;
+      isAfter?: boolean;
+    }
   ) {
     const formData = new FormData();
     formData.append('file', {
@@ -568,11 +612,36 @@ export const imageAPI = {
     } as any);
     formData.append('service_category', serviceCategory);
     formData.append('service_subcategory', serviceSubcategory);
-    if (description) {
-      formData.append('description', description);
-    }
+    
+    // Enhanced options
+    if (options?.caption) formData.append('caption', options.caption);
+    if (options?.isFeatured) formData.append('is_featured', 'true');
+    if (options?.isBefore) formData.append('is_before', 'true');
+    if (options?.isAfter) formData.append('is_after', 'true');
 
     const response = await api.post('/api/images/work-portfolio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  // NEW: Update existing portfolio image metadata
+  async updateWorkPortfolioImage(
+    imageId: string,
+    updates: {
+      caption?: string;
+      isFeatured?: boolean;
+      isBefore?: boolean;
+      isAfter?: boolean;
+    }
+  ) {
+    const formData = new FormData();
+    if (updates.caption !== undefined) formData.append('caption', updates.caption);
+    if (updates.isFeatured !== undefined) formData.append('is_featured', String(updates.isFeatured));
+    if (updates.isBefore !== undefined) formData.append('is_before', String(updates.isBefore));
+    if (updates.isAfter !== undefined) formData.append('is_after', String(updates.isAfter));
+
+    const response = await api.patch(`/api/images/work-portfolio/${imageId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -585,7 +654,7 @@ export const imageAPI = {
   },
 
   // Get work portfolio images filtered by service
-  async getWorkPortfolioByService(category: string, subcategory: string): Promise<PortfolioImage[]> {
+  async getWorkPortfolioByService(category: string, subcategory: string) {
     const response = await api.get('/api/images/work-portfolio/by-service', {
       params: { category, subcategory },
     });
@@ -604,6 +673,7 @@ export const imageAPI = {
     return response.data;
   },
 };
+
 
 // ==================== AI ASSISTANT API ====================
 // Using the mobile-optimized AI assistant with full app context
@@ -651,6 +721,46 @@ export const disputeAPI = {
   // Get specific dispute
   async getDispute(disputeId: string) {
     const response = await api.get(`/api/disputes/${disputeId}`);
+    return response.data;
+  },
+};
+
+// ==================== SETTINGS API ====================
+
+export interface NotificationPreferences {
+  push_notifications: boolean;
+  task_updates: boolean;
+  messages: boolean;
+  payments: boolean;
+  reviews: boolean;
+  marketing: boolean;
+}
+
+export const settingsAPI = {
+  // Get notification preferences
+  async getNotificationPreferences(): Promise<NotificationPreferences> {
+    const response = await api.get('/api/push/preferences');
+    return response.data;
+  },
+
+  // Update notification preferences
+  async updateNotificationPreferences(prefs: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    const response = await api.put('/api/push/preferences', prefs);
+    return response.data;
+  },
+
+  // Change password
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/api/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data;
+  },
+
+  // Delete account
+  async deleteAccount(): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete('/api/auth/delete-account');
     return response.data;
   },
 };

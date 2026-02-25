@@ -7,6 +7,8 @@ import {
   TouchableOpacity, 
   Animated,
   Dimensions,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,10 +19,22 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryName, Category } from '../../constants/Categories';
-import { notificationAPI, categoryAPI } from '../../services/api';
+import { notificationAPI, categoryAPI, reviewAPI } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 24 * 2 - 12) / 2;
+
+// Interface for pending review (matches backend response)
+interface PendingReview {
+  task_id: string;
+  task_title: string;
+  completed_at: string;
+  days_remaining: number;
+  tasker_id: string;
+  tasker_name: string;
+  tasker_profile_image: string | null;
+  total_cost: number;
+}
 
 // Skeleton Loading Component
 const SkeletonBox = ({ width, height, style }: { width: number | string; height: number; style?: any }) => {
@@ -74,6 +88,243 @@ const SkeletonCategoryCard = () => (
     <SkeletonBox width={50} height={10} style={{}} />
   </View>
 );
+
+// Review Prompt Modal Component
+const ReviewPromptModal = ({ 
+  visible, 
+  review, 
+  onReview, 
+  onDismiss 
+}: { 
+  visible: boolean; 
+  review: PendingReview | null; 
+  onReview: () => void; 
+  onDismiss: () => void;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0.9);
+      opacityAnim.setValue(0);
+    }
+  }, [visible]);
+
+  if (!review) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View 
+          style={[
+            styles.modalContainer,
+            {
+              opacity: opacityAnim,
+              transform: [{ scale: scaleAnim }],
+            }
+          ]}
+        >
+          {/* Close Button */}
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={onDismiss}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color={Colors.dark.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Star Icon */}
+          <View style={styles.modalIconContainer}>
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              style={styles.modalIconGradient}
+            >
+              <Ionicons name="star" size={32} color="#fff" />
+            </LinearGradient>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.modalTitle}>
+            {i18n.locale === 'fr' ? 'Comment était votre expérience ?' : 'How was your experience?'}
+          </Text>
+
+          {/* Task Info */}
+          <View style={styles.modalTaskInfo}>
+            <View style={styles.modalTaskerAvatar}>
+              {review.tasker_profile_image ? (
+                <Image source={{ uri: review.tasker_profile_image }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={24} color={Colors.dark.textSecondary} />
+              )}
+            </View>
+            <View style={styles.modalTaskDetails}>
+              <Text style={styles.modalTaskTitle} numberOfLines={1}>{review.task_title}</Text>
+              <Text style={styles.modalTaskerName}>
+                {i18n.locale === 'fr' ? 'par' : 'by'} {review.tasker_name}
+              </Text>
+            </View>
+          </View>
+
+          {/* Days Remaining Warning */}
+          {review.days_remaining <= 7 && (
+            <View style={styles.warningBanner}>
+              <Ionicons name="time-outline" size={16} color="#F59E0B" />
+              <Text style={styles.warningText}>
+                {i18n.locale === 'fr' 
+                  ? `${review.days_remaining} jours restants pour évaluer`
+                  : `${review.days_remaining} days left to review`}
+              </Text>
+            </View>
+          )}
+
+          {/* Description */}
+          <Text style={styles.modalDescription}>
+            {i18n.locale === 'fr' 
+              ? 'Votre avis aide les autres clients à trouver des tâcherons de qualité et aide les tâcherons à améliorer leurs services.'
+              : 'Your review helps other clients find quality taskers and helps taskers improve their services.'}
+          </Text>
+
+          {/* Buttons */}
+          <TouchableOpacity 
+            style={styles.modalPrimaryButton}
+            onPress={onReview}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="star" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.modalPrimaryButtonText}>
+              {i18n.locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.modalSecondaryButton}
+            onPress={onDismiss}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.modalSecondaryButtonText}>
+              {i18n.locale === 'fr' ? 'Peut-être plus tard' : 'Maybe Later'}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
+// Review Banner Component
+const ReviewBanner = ({ 
+  review, 
+  onReview, 
+  onDismiss 
+}: { 
+  review: PendingReview; 
+  onReview: () => void; 
+  onDismiss: () => void;
+}) => {
+  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const handleDismiss = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onDismiss());
+  };
+
+  return (
+    <Animated.View 
+      style={[
+        styles.bannerContainer,
+        {
+          opacity: opacityAnim,
+          transform: [{ translateY: slideAnim }],
+        }
+      ]}
+    >
+      <LinearGradient
+        colors={['#F59E0B', '#D97706']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.bannerGradient}
+      >
+        <TouchableOpacity 
+          style={styles.bannerCloseButton}
+          onPress={handleDismiss}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="close" size={18} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
+
+        <View style={styles.bannerIconContainer}>
+          <Ionicons name="star" size={20} color="#F59E0B" />
+        </View>
+
+        <View style={styles.bannerContent}>
+          <Text style={styles.bannerTitle}>
+            {i18n.locale === 'fr' ? 'Notez votre tâcheron' : 'Rate your tasker'}
+          </Text>
+          <Text style={styles.bannerSubtitle} numberOfLines={1}>
+            {review.tasker_name} - {review.task_title}
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.bannerButton}
+          onPress={onReview}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.bannerButtonText}>
+            {i18n.locale === 'fr' ? 'Noter' : 'Review'}
+          </Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    </Animated.View>
+  );
+};
 
 // Animated Category Card
 const AnimatedCategoryCard = ({ 
@@ -160,6 +411,12 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  // Review Prompt States
+  const [pendingReview, setPendingReview] = useState<PendingReview | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReviewBanner, setShowReviewBanner] = useState(false);
+  const hasCheckedReviews = useRef(false);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -232,9 +489,34 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // Fetch pending review tasks for clients
+  const fetchPendingReviews = useCallback(async () => {
+    if (user?.role !== 'client' || hasCheckedReviews.current) return;
+    
+    try {
+      const response = await reviewAPI.getPendingReviews();
+      
+      if (response && response.pending_reviews && response.pending_reviews.length > 0) {
+        setPendingReview(response.pending_reviews[0]);
+        setShowReviewModal(true);
+        hasCheckedReviews.current = true;
+      }
+    } catch (error) {
+      console.log('Error fetching pending reviews:', error);
+      // Silently fail - this is a non-critical feature
+    }
+  }, [user?.role]);
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    // Check for pending reviews when component mounts (for clients only)
+    if (user?.role === 'client') {
+      fetchPendingReviews();
+    }
+  }, [fetchPendingReviews, user?.role]);
 
   useFocusEffect(
     useCallback(() => {
@@ -258,13 +540,59 @@ export default function HomeScreen() {
     router.push('/notifications');
   };
 
+  // Handle review modal dismiss - show banner instead
+  const handleReviewModalDismiss = () => {
+    setShowReviewModal(false);
+    setShowReviewBanner(true);
+  };
+
+  // Handle review action - navigate to review screen
+  const handleReviewAction = () => {
+    setShowReviewModal(false);
+    setShowReviewBanner(false);
+    if (pendingReview) {
+      router.push({
+        pathname: '/review',
+        params: { 
+          taskId: pendingReview.task_id,
+          taskerId: pendingReview.tasker_id,
+          taskerName: pendingReview.tasker_name,
+          taskerImage: pendingReview.tasker_profile_image || '',
+          taskTitle: pendingReview.task_title,
+        }
+      });
+    }
+  };
+
+  // Handle banner dismiss
+  const handleBannerDismiss = () => {
+    setShowReviewBanner(false);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Review Prompt Modal */}
+      <ReviewPromptModal
+        visible={showReviewModal}
+        review={pendingReview}
+        onReview={handleReviewAction}
+        onDismiss={handleReviewModalDismiss}
+      />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Review Banner (shown after modal is dismissed) */}
+        {showReviewBanner && pendingReview && (
+          <ReviewBanner
+            review={pendingReview}
+            onReview={handleReviewAction}
+            onDismiss={handleBannerDismiss}
+          />
+        )}
+
         {/* Animated Header */}
         <Animated.View 
           style={[
@@ -463,6 +791,197 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  // Review Banner Styles
+  bannerContainer: {
+    marginHorizontal: 24,
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  bannerCloseButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  bannerIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  bannerContent: {
+    flex: 1,
+    marginRight: 8,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  bannerButton: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  bannerButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  // Review Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  modalIconContainer: {
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  modalIconGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalTaskInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.background,
+    padding: 12,
+    borderRadius: 12,
+    width: '100%',
+    marginBottom: 16,
+  },
+  modalTaskerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.dark.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  modalTaskDetails: {
+    flex: 1,
+  },
+  modalTaskTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.dark.text,
+    marginBottom: 2,
+  },
+  modalTaskerName: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    width: '100%',
+    marginBottom: 16,
+  },
+  warningText: {
+    marginLeft: 8,
+    color: '#F59E0B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  modalPrimaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  modalPrimaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  modalSecondaryButton: {
+    paddingVertical: 12,
+  },
+  modalSecondaryButtonText: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+    fontWeight: '500',
   },
   // Welcome Card
   welcomeCardContainer: {

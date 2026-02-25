@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,165 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
+
+// Quick Reply Templates
+const TASKER_QUICK_REPLIES = {
+  en: [
+    { icon: '👋', text: "I'll be there! See you soon." },
+    { icon: '📍', text: "Can you share the exact address?" },
+    { icon: '📋', text: "Any specific instructions?" },
+    { icon: '🚗', text: "On my way! ETA ~15 min." },
+    { icon: '🚦', text: "Stuck in traffic, will be there soon." },
+    { icon: '📍', text: "I am here!" },
+    { icon: '✅', text: "Task completed! Thank you." },
+    { icon: '💰', text: "Please confirm payment when ready." },
+  ],
+  fr: [
+    { icon: '👋', text: "J'arrive bientôt ! À tout de suite." },
+    { icon: '📍', text: "Pouvez-vous partager l'adresse exacte ?" },
+    { icon: '📋', text: "Des instructions particulières ?" },
+    { icon: '🚗', text: "En route ! J'arrive dans ~15 min." },
+    { icon: '🚦', text: "Coincé dans le trafic, j'arrive bientôt." },
+    { icon: '📍', text: "Je suis arrivé !" },
+    { icon: '✅', text: "Tâche terminée ! Merci." },
+    { icon: '💰', text: "Confirmez le paiement quand vous êtes prêt." },
+  ],
+};
+
+const CLIENT_QUICK_REPLIES = {
+  en: [
+    { icon: '👍', text: "Great! Looking forward to it." },
+    { icon: '📍', text: "Here's the address:" },
+    { icon: '⏰', text: "What's your ETA?" },
+    { icon: '🚗', text: "Are you on your way?" },
+    { icon: '⏳', text: "I'll be a bit late." },
+    { icon: '👀', text: "I see you! Coming now." },
+    { icon: '⭐', text: "Great job! Thank you." },
+    { icon: '💳', text: "Payment sent!" },
+  ],
+  fr: [
+    { icon: '👍', text: "Super ! J'ai hâte." },
+    { icon: '📍', text: "Voici l'adresse :" },
+    { icon: '⏰', text: "Vous arrivez dans combien de temps ?" },
+    { icon: '🚗', text: "Vous êtes en route ?" },
+    { icon: '⏳', text: "Je serai un peu en retard." },
+    { icon: '👀', text: "Je vous vois ! J'arrive." },
+    { icon: '⭐', text: "Excellent travail ! Merci." },
+    { icon: '💳', text: "Paiement envoyé !" },
+  ],
+};
+
+// Quick Reply Chip Component
+const QuickReplyChip = ({ 
+  icon, 
+  text, 
+  onPress 
+}: { 
+  icon: string; 
+  text: string; 
+  onPress: () => void;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={styles.quickReplyChip}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <Text style={styles.quickReplyIcon}>{icon}</Text>
+        <Text style={styles.quickReplyText} numberOfLines={1}>{text}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Quick Replies Section Component
+const QuickRepliesSection = ({ 
+  replies, 
+  onSelectReply,
+  isExpanded,
+  onToggleExpand,
+  isFrench,
+}: { 
+  replies: { icon: string; text: string }[];
+  onSelectReply: (text: string) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  isFrench: boolean;
+}) => {
+  const heightAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(heightAnim, {
+      toValue: isExpanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isExpanded]);
+
+  const containerHeight = heightAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 52],
+  });
+
+  return (
+    <View style={styles.quickRepliesContainer}>
+      {/* Toggle Button */}
+      <TouchableOpacity 
+        style={styles.quickRepliesToggle} 
+        onPress={onToggleExpand}
+        activeOpacity={0.7}
+      >
+        <Ionicons 
+          name="flash" 
+          size={16} 
+          color={isExpanded ? Colors.dark.primary : Colors.dark.textSecondary} 
+        />
+        <Text style={[
+          styles.quickRepliesToggleText,
+          isExpanded && styles.quickRepliesToggleTextActive
+        ]}>
+          {isFrench ? 'Réponses rapides' : 'Quick Replies'}
+        </Text>
+        <Ionicons 
+          name={isExpanded ? "chevron-down" : "chevron-up"} 
+          size={16} 
+          color={isExpanded ? Colors.dark.primary : Colors.dark.textSecondary} 
+        />
+      </TouchableOpacity>
+
+      {/* Quick Reply Chips */}
+      <Animated.View style={[styles.quickRepliesScroll, { height: containerHeight, opacity: heightAnim }]}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickRepliesContent}
+        >
+          {replies.map((reply, index) => (
+            <QuickReplyChip
+              key={index}
+              icon={reply.icon}
+              text={reply.text}
+              onPress={() => onSelectReply(reply.text)}
+            />
+          ))}
+        </ScrollView>
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -31,10 +191,16 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
   const isFrench = i18n.locale === 'fr';
+
+  // Get appropriate quick replies based on role and language
+  const quickReplies = isTasker 
+    ? (isFrench ? TASKER_QUICK_REPLIES.fr : TASKER_QUICK_REPLIES.en)
+    : (isFrench ? CLIENT_QUICK_REPLIES.fr : CLIENT_QUICK_REPLIES.en);
 
   useEffect(() => {
     fetchTaskInfo();
@@ -89,23 +255,19 @@ export default function ChatScreen() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !task) return;
+  const handleSendMessage = async (messageText?: string) => {
+    const textToSend = messageText || newMessage.trim();
+    if (!textToSend || !task) return;
 
     // Get the receiver ID based on user role
-    // Check multiple possible field names for tasker/client IDs
     let receiverId: string | undefined;
     
     if (isClient) {
-      // Client sending to tasker - check all possible field names
       receiverId = task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to;
-      console.log('Client sending message - Task object:', JSON.stringify(task, null, 2));
-      console.log('Resolved tasker ID:', receiverId);
+      console.log('Client sending message - Resolved tasker ID:', receiverId);
     } else {
-      // Tasker sending to client - check all possible field names
       receiverId = task.client_id || task.user_id || task.client?.id || task.created_by;
-      console.log('Tasker sending message - Task object:', JSON.stringify(task, null, 2));
-      console.log('Resolved client ID:', receiverId);
+      console.log('Tasker sending message - Resolved client ID:', receiverId);
     }
 
     if (!receiverId) {
@@ -119,8 +281,9 @@ export default function ChatScreen() {
 
     try {
       setSending(true);
-      await chatAPI.sendMessage(taskId as string, receiverId, newMessage.trim());
+      await chatAPI.sendMessage(taskId as string, receiverId, textToSend);
       setNewMessage('');
+      setShowQuickReplies(false);
       await fetchMessages();
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
@@ -133,6 +296,12 @@ export default function ChatScreen() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleQuickReplySelect = (text: string) => {
+    // Insert into input field (user can edit before sending)
+    setNewMessage(text);
+    setShowQuickReplies(false);
   };
 
   // Get message content - handle different field names
@@ -297,6 +466,15 @@ export default function ChatScreen() {
           )}
         </ScrollView>
 
+        {/* Quick Replies Section */}
+        <QuickRepliesSection
+          replies={quickReplies}
+          onSelectReply={handleQuickReplySelect}
+          isExpanded={showQuickReplies}
+          onToggleExpand={() => setShowQuickReplies(!showQuickReplies)}
+          isFrench={isFrench}
+        />
+
         {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
@@ -311,7 +489,7 @@ export default function ChatScreen() {
           />
           <TouchableOpacity
             style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-            onPress={handleSendMessage}
+            onPress={() => handleSendMessage()}
             disabled={!newMessage.trim() || sending}
             activeOpacity={0.7}
           >
@@ -478,6 +656,58 @@ const styles = StyleSheet.create({
   otherMessageTime: {
     color: Colors.dark.textSecondary,
   },
+  
+  // Quick Replies Styles
+  quickRepliesContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
+    backgroundColor: Colors.dark.background,
+  },
+  quickRepliesToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    gap: 6,
+  },
+  quickRepliesToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.dark.textSecondary,
+  },
+  quickRepliesToggleTextActive: {
+    color: Colors.dark.primary,
+  },
+  quickRepliesScroll: {
+    overflow: 'hidden',
+  },
+  quickRepliesContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  quickReplyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.card,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    marginRight: 8,
+    gap: 6,
+    maxWidth: 200,
+  },
+  quickReplyIcon: {
+    fontSize: 14,
+  },
+  quickReplyText: {
+    fontSize: 13,
+    color: Colors.dark.text,
+    flexShrink: 1,
+  },
+  
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

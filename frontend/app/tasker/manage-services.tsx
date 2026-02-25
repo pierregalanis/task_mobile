@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { categoryAPI, taskerAPI, imageAPI } from '../../services/api';
+import { categoryAPI, taskerAPI, imageAPI, PortfolioImage } from '../../services/api';
 import { getCategoryName, getSubcategoryName } from '../../constants/Categories';
 import { showMessage } from '../../utils/alert';
 
@@ -31,13 +31,6 @@ interface Service {
   fixed_price: number;
   bio: string;
   max_travel_distance: number;
-}
-
-interface PortfolioImage {
-  id: string;
-  url: string;
-  thumbnail_url?: string;
-  description?: string;
 }
 
 export default function ManageServicesScreen() {
@@ -85,7 +78,6 @@ export default function ManageServicesScreen() {
       setAvailabilityLoading(true);
       setIsAvailable(value);
 
-      // Use JSON endpoint for proper sync with website
       await taskerAPI.updateProfileJson({
         is_available: value,
       });
@@ -113,7 +105,6 @@ export default function ManageServicesScreen() {
       const updatedServices = [...services];
       updatedServices[index] = updatedService;
 
-      // Use JSON endpoint for proper sync with website
       await taskerAPI.updateProfileJson({
         services: updatedServices,
       });
@@ -148,7 +139,6 @@ export default function ManageServicesScreen() {
               setLoading(true);
               const updatedServices = services.filter((_, i) => i !== index);
 
-              // Use JSON endpoint for proper sync with website
               await taskerAPI.updateProfileJson({
                 services: updatedServices,
               });
@@ -196,7 +186,6 @@ export default function ManageServicesScreen() {
 
       const updatedServices = [...services, newService];
 
-      // Use JSON endpoint for proper sync with website
       await taskerAPI.updateProfileJson({
         services: updatedServices,
       });
@@ -471,6 +460,13 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
   const [portfolioImages, setPortfolioImages] = useState<PortfolioImage[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // Upload modal state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [imageCaption, setImageCaption] = useState('');
+  const [imageType, setImageType] = useState<'normal' | 'before' | 'after'>('normal');
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const category = categories.find((c: any) => c.id === service.category);
   const subcategory = category?.subcategories?.find((s: any) => s.id === service.subcategory || s.en === service.subcategory);
@@ -479,7 +475,6 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
     ? service.fixed_price?.toLocaleString() + ' XOF'
     : service.hourly_rate?.toLocaleString() + ' XOF/h';
 
-  // Fetch portfolio images when expanded
   useEffect(() => {
     if (isExpanded) {
       fetchPortfolioImages();
@@ -490,7 +485,7 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
     try {
       setPortfolioLoading(true);
       const response = await imageAPI.getWorkPortfolioByService(service.category, service.subcategory);
-      setPortfolioImages(response.work_portfolio || []);
+      setPortfolioImages(response.work_portfolio || response || []);
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       setPortfolioImages([]);
@@ -519,7 +514,12 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadImage(result.assets[0].uri);
+        // Show upload modal with options
+        setPendingImageUri(result.assets[0].uri);
+        setImageCaption('');
+        setImageType('normal');
+        setIsFeatured(false);
+        setShowUploadModal(true);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -527,16 +527,28 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
     }
   };
 
-  const uploadImage = async (imageUri: string) => {
+  const handleConfirmUpload = async () => {
+    if (!pendingImageUri) return;
+    
     try {
       setUploadingImage(true);
+      setShowUploadModal(false);
+      
       await imageAPI.uploadWorkPortfolioImage(
-        imageUri,
+        pendingImageUri,
         service.category,
         service.subcategory,
-        ''
+        {
+          caption: imageCaption || undefined,
+          isFeatured: isFeatured,
+          isBefore: imageType === 'before',
+          isAfter: imageType === 'after',
+        }
       );
+      
       await fetchPortfolioImages();
+      setPendingImageUri(null);
+      
       Alert.alert(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Image ajoutée!' : 'Image uploaded!'
@@ -546,6 +558,16 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
       Alert.alert('Error', error.response?.data?.detail || (i18n.locale === 'fr' ? 'Erreur lors du téléchargement' : 'Failed to upload image'));
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleToggleFeatured = async (imageId: string, newFeaturedState: boolean) => {
+    try {
+      await imageAPI.updateWorkPortfolioImage(imageId, { isFeatured: newFeaturedState });
+      await fetchPortfolioImages();
+    } catch (error) {
+      console.error('Error toggling featured:', error);
+      Alert.alert('Error', i18n.locale === 'fr' ? 'Erreur lors de la mise à jour' : 'Failed to update');
     }
   };
 
@@ -571,6 +593,11 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
       ]
     );
   };
+
+  // Group images by type
+  const beforeImages = portfolioImages.filter(img => img.is_before);
+  const afterImages = portfolioImages.filter(img => img.is_after);
+  const normalImages = portfolioImages.filter(img => !img.is_before && !img.is_after);
 
   return (
     <View style={styles.serviceCard}>
@@ -635,22 +662,111 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
                 </Text>
               </View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
-                {portfolioImages.map((img) => (
-                  <View key={img.id} style={styles.portfolioImageContainer}>
-                    <Image source={{ uri: img.thumbnail_url || img.url }} style={styles.portfolioImage} />
-                    <TouchableOpacity 
-                      style={styles.deleteImageBtn}
-                      onPress={() => handleDeleteImage(img.id)}
-                    >
-                      <Ionicons name="close-circle" size={24} color={Colors.dark.error} />
-                    </TouchableOpacity>
+              <View>
+                {/* Before/After Pairs */}
+                {beforeImages.length > 0 && (
+                  <View style={styles.beforeAfterSection}>
+                    <Text style={styles.portfolioSubtitle}>
+                      {i18n.locale === 'fr' ? 'Avant / Après' : 'Before / After'}
+                    </Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {beforeImages.map((beforeImg) => {
+                        const afterImg = afterImages.find(a => a.caption === beforeImg.caption) || afterImages[0];
+                        return (
+                          <View key={beforeImg.id} style={styles.beforeAfterPair}>
+                            {/* Before Image */}
+                            <View style={styles.beforeAfterItem}>
+                              <View style={styles.portfolioImageWrapper}>
+                                <Image source={{ uri: beforeImg.thumbnail_url || beforeImg.url }} style={styles.beforeAfterImage} />
+                                <View style={[styles.beforeAfterLabel, styles.beforeLabel]}>
+                                  <Text style={styles.beforeAfterLabelText}>
+                                    {i18n.locale === 'fr' ? 'AVANT' : 'BEFORE'}
+                                  </Text>
+                                </View>
+                                {beforeImg.is_featured && (
+                                  <View style={styles.featuredBadge}>
+                                    <Ionicons name="star" size={10} color="#FFD700" />
+                                  </View>
+                                )}
+                                <TouchableOpacity style={styles.deleteImageBtn} onPress={() => handleDeleteImage(beforeImg.id)}>
+                                  <Ionicons name="close-circle" size={20} color={Colors.dark.error} />
+                                </TouchableOpacity>
+                              </View>
+                              {beforeImg.caption && <Text style={styles.imageCaption} numberOfLines={1}>{beforeImg.caption}</Text>}
+                            </View>
+                            
+                            {/* After Image */}
+                            {afterImg && (
+                              <View style={styles.beforeAfterItem}>
+                                <View style={styles.portfolioImageWrapper}>
+                                  <Image source={{ uri: afterImg.thumbnail_url || afterImg.url }} style={styles.beforeAfterImage} />
+                                  <View style={[styles.beforeAfterLabel, styles.afterLabel]}>
+                                    <Text style={styles.beforeAfterLabelText}>
+                                      {i18n.locale === 'fr' ? 'APRÈS' : 'AFTER'}
+                                    </Text>
+                                  </View>
+                                  {afterImg.is_featured && (
+                                    <View style={styles.featuredBadge}>
+                                      <Ionicons name="star" size={10} color="#FFD700" />
+                                    </View>
+                                  )}
+                                  <TouchableOpacity style={styles.deleteImageBtn} onPress={() => handleDeleteImage(afterImg.id)}>
+                                    <Ionicons name="close-circle" size={20} color={Colors.dark.error} />
+                                  </TouchableOpacity>
+                                </View>
+                                {afterImg.caption && <Text style={styles.imageCaption} numberOfLines={1}>{afterImg.caption}</Text>}
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
                   </View>
-                ))}
-              </ScrollView>
+                )}
+
+                {/* Normal Images */}
+                {normalImages.length > 0 && (
+                  <View style={styles.normalImagesSection}>
+                    {beforeImages.length > 0 && (
+                      <Text style={styles.portfolioSubtitle}>
+                        {i18n.locale === 'fr' ? 'Autres photos' : 'Other Photos'}
+                      </Text>
+                    )}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
+                      {normalImages.map((img) => (
+                        <View key={img.id} style={styles.portfolioImageContainer}>
+                          <View style={styles.portfolioImageWrapper}>
+                            <Image source={{ uri: img.thumbnail_url || img.url }} style={styles.portfolioImage} />
+                            {img.is_featured && (
+                              <View style={styles.featuredBadge}>
+                                <Ionicons name="star" size={10} color="#FFD700" />
+                              </View>
+                            )}
+                            <TouchableOpacity 
+                              style={styles.starButton}
+                              onPress={() => handleToggleFeatured(img.id, !img.is_featured)}
+                            >
+                              <Ionicons 
+                                name={img.is_featured ? "star" : "star-outline"} 
+                                size={16} 
+                                color={img.is_featured ? "#FFD700" : Colors.dark.textSecondary} 
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.deleteImageBtn} onPress={() => handleDeleteImage(img.id)}>
+                              <Ionicons name="close-circle" size={20} color={Colors.dark.error} />
+                            </TouchableOpacity>
+                          </View>
+                          {img.caption && <Text style={styles.imageCaption} numberOfLines={2}>{img.caption}</Text>}
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             )}
           </View>
 
+          {/* Rest of service settings */}
           <View style={styles.settingGroup}>
             <Text style={styles.settingLabel}>{i18n.locale === 'fr' ? 'Type de tarification' : 'Pricing Type'}</Text>
             <View style={styles.pricingTypeRow}>
@@ -749,6 +865,89 @@ function ServiceCard({ service, isExpanded, onToggle, onSave, onRemove, loading,
           </View>
         </View>
       )}
+
+      {/* Upload Options Modal */}
+      <Modal visible={showUploadModal} animationType="fade" transparent>
+        <View style={styles.uploadModalOverlay}>
+          <View style={styles.uploadModalContent}>
+            <View style={styles.uploadModalHeader}>
+              <Text style={styles.uploadModalTitle}>
+                {i18n.locale === 'fr' ? 'Options de l\'image' : 'Image Options'}
+              </Text>
+              <TouchableOpacity onPress={() => { setShowUploadModal(false); setPendingImageUri(null); }}>
+                <Ionicons name="close" size={24} color={Colors.dark.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Image Preview */}
+            {pendingImageUri && (
+              <Image source={{ uri: pendingImageUri }} style={styles.uploadPreview} />
+            )}
+
+            {/* Caption Input */}
+            <Text style={styles.uploadLabel}>
+              {i18n.locale === 'fr' ? 'Légende (optionnel)' : 'Caption (optional)'}
+            </Text>
+            <TextInput
+              style={styles.uploadInput}
+              value={imageCaption}
+              onChangeText={setImageCaption}
+              placeholder={i18n.locale === 'fr' ? 'Ex: Cuisine rénovée' : 'E.g., Kitchen renovation'}
+              placeholderTextColor={Colors.dark.textSecondary}
+              maxLength={100}
+            />
+
+            {/* Image Type Selector */}
+            <Text style={styles.uploadLabel}>
+              {i18n.locale === 'fr' ? 'Type d\'image' : 'Image Type'}
+            </Text>
+            <View style={styles.imageTypeRow}>
+              {(['normal', 'before', 'after'] as const).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.imageTypeBtn, imageType === type && styles.imageTypeBtnActive]}
+                  onPress={() => setImageType(type)}
+                >
+                  <Text style={[styles.imageTypeBtnText, imageType === type && styles.imageTypeBtnTextActive]}>
+                    {type === 'normal' 
+                      ? (i18n.locale === 'fr' ? 'Normal' : 'Normal')
+                      : type === 'before'
+                        ? (i18n.locale === 'fr' ? 'Avant' : 'Before')
+                        : (i18n.locale === 'fr' ? 'Après' : 'After')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Featured Toggle */}
+            <View style={styles.featuredToggle}>
+              <View style={styles.featuredToggleLeft}>
+                <Ionicons name="star" size={20} color="#FFD700" />
+                <Text style={styles.featuredToggleText}>
+                  {i18n.locale === 'fr' ? 'Image vedette' : 'Featured Image'}
+                </Text>
+              </View>
+              <Switch
+                value={isFeatured}
+                onValueChange={setIsFeatured}
+                trackColor={{ false: Colors.dark.border, true: Colors.dark.primary }}
+                thumbColor={isFeatured ? '#FFD700' : Colors.dark.textSecondary}
+              />
+            </View>
+
+            {/* Upload Button */}
+            <TouchableOpacity
+              style={styles.uploadConfirmBtn}
+              onPress={handleConfirmUpload}
+            >
+              <Ionicons name="cloud-upload" size={20} color={Colors.dark.background} />
+              <Text style={styles.uploadConfirmBtnText}>
+                {i18n.locale === 'fr' ? 'Télécharger' : 'Upload'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -780,181 +979,73 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
-  availabilityInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  availabilityDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  availabilityTextContainer: {
-    flex: 1,
-  },
-  availabilityTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark.text,
-  },
-  availabilityStatus: {
-    fontSize: 13,
-    color: Colors.dark.textSecondary,
-    marginTop: 2,
-  },
+  availabilityInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  availabilityDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
+  availabilityTextContainer: { flex: 1 },
+  availabilityTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text },
+  availabilityStatus: { fontSize: 13, color: Colors.dark.textSecondary, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
   addFirstBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 24,
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 24, gap: 8,
   },
   addFirstBtnText: { fontSize: 16, fontWeight: '600', color: Colors.dark.background },
   serviceCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    overflow: 'hidden',
+    backgroundColor: Colors.dark.card, borderRadius: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: Colors.dark.border, overflow: 'hidden',
   },
-  serviceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-  },
+  serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   serviceInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   serviceIcon: { fontSize: 28 },
   serviceName: { fontSize: 16, fontWeight: '600', color: Colors.dark.text },
   serviceCategory: { fontSize: 13, color: Colors.dark.textSecondary },
   serviceRight: { alignItems: 'flex-end', gap: 4 },
   serviceRate: { fontSize: 14, fontWeight: '600', color: Colors.dark.primary },
-  pricingBadge: {
-    backgroundColor: Colors.dark.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  pricingBadgeFixed: {
-    backgroundColor: '#3b82f6',
-  },
-  pricingBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.dark.background,
-  },
-  serviceSettings: {
-    padding: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-    backgroundColor: Colors.dark.background,
-  },
+  pricingBadge: { backgroundColor: Colors.dark.primary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  pricingBadgeFixed: { backgroundColor: '#3b82f6' },
+  pricingBadgeText: { fontSize: 10, fontWeight: '600', color: Colors.dark.background },
+  serviceSettings: { padding: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.dark.border, backgroundColor: Colors.dark.background },
   settingGroup: { marginBottom: 16 },
   settingLabel: { fontSize: 14, color: Colors.dark.textSecondary, marginBottom: 8 },
   settingInput: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    color: Colors.dark.text,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card, borderRadius: 10, padding: 12, fontSize: 15,
+    color: Colors.dark.text, borderWidth: 1, borderColor: Colors.dark.border,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   serviceActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
   removeBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: Colors.dark.error,
+    flex: 1, padding: 12, borderRadius: 10, alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: Colors.dark.error,
   },
   removeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.error },
-  saveServiceBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: Colors.dark.primary,
-  },
+  saveServiceBtn: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center', backgroundColor: Colors.dark.primary },
   saveServiceBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.background },
-  pricingTypeRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  pricingTypeRow: { flexDirection: 'row', gap: 12 },
   pricingTypeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    backgroundColor: Colors.dark.card,
-    gap: 8,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card, gap: 8,
   },
-  pricingTypeBtnSmall: {
-    paddingVertical: 10,
-  },
-  pricingTypeBtnActive: {
-    backgroundColor: Colors.dark.primary,
-    borderColor: Colors.dark.primary,
-  },
-  pricingTypeBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.text,
-  },
-  pricingTypeBtnTextActive: {
-    color: Colors.dark.background,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.dark.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
+  pricingTypeBtnSmall: { paddingVertical: 10 },
+  pricingTypeBtnActive: { backgroundColor: Colors.dark.primary, borderColor: Colors.dark.primary },
+  pricingTypeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.text },
+  pricingTypeBtnTextActive: { color: Colors.dark.background },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.dark.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.dark.border,
   },
   modalTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text },
   modalBody: { padding: 20 },
   inputLabel: { fontSize: 14, fontWeight: '500', color: Colors.dark.textSecondary, marginBottom: 8, marginTop: 16 },
   categoryScroll: { marginBottom: 8 },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.card,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 8,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.card,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, marginRight: 8, gap: 8,
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
   categoryChipActive: { backgroundColor: Colors.dark.primary, borderColor: Colors.dark.primary },
   categoryChipIcon: { fontSize: 16 },
@@ -962,90 +1053,92 @@ const styles = StyleSheet.create({
   categoryChipTextActive: { color: Colors.dark.background },
   subcategoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   subcategoryChip: {
-    backgroundColor: Colors.dark.card,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card, paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 16, borderWidth: 1, borderColor: Colors.dark.border,
   },
   subcategoryChipActive: { backgroundColor: Colors.dark.primary, borderColor: Colors.dark.primary },
   subcategoryChipText: { fontSize: 13, color: Colors.dark.text },
   subcategoryChipTextActive: { color: Colors.dark.background },
   modalInput: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: Colors.dark.text,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card, borderRadius: 12, padding: 14, fontSize: 15,
+    color: Colors.dark.text, borderWidth: 1, borderColor: Colors.dark.border,
   },
   modalSaveBtn: {
-    backgroundColor: Colors.dark.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 40,
+    backgroundColor: Colors.dark.primary, paddingVertical: 16, borderRadius: 12,
+    alignItems: 'center', marginTop: 24, marginBottom: 40,
   },
   modalSaveBtnText: { fontSize: 16, fontWeight: '600', color: Colors.dark.background },
+  
   // Portfolio styles
-  portfolioSection: {
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  portfolioHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
+  portfolioSection: { marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.dark.border },
+  portfolioHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   addPhotoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.dark.primary,
+    flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12,
+    paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.dark.primary,
   },
-  addPhotoBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.dark.primary,
+  addPhotoBtnText: { fontSize: 12, fontWeight: '600', color: Colors.dark.primary },
+  noPhotosContainer: { alignItems: 'center', paddingVertical: 20, backgroundColor: Colors.dark.card, borderRadius: 12 },
+  noPhotosText: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 8 },
+  portfolioScroll: { marginHorizontal: -4 },
+  portfolioSubtitle: { fontSize: 12, fontWeight: '600', color: Colors.dark.textSecondary, marginBottom: 8, marginTop: 4 },
+  
+  // Portfolio Image Container
+  portfolioImageContainer: { marginHorizontal: 4, width: 110 },
+  portfolioImageWrapper: { position: 'relative' },
+  portfolioImage: { width: 110, height: 82, borderRadius: 8 },
+  imageCaption: { fontSize: 10, color: Colors.dark.textSecondary, marginTop: 4, textAlign: 'center' },
+  
+  // Featured Badge
+  featuredBadge: {
+    position: 'absolute', top: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10, padding: 4,
   },
-  noPhotosContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: Colors.dark.card,
-    borderRadius: 12,
+  starButton: {
+    position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12, padding: 4,
   },
-  noPhotosText: {
-    fontSize: 12,
-    color: Colors.dark.textSecondary,
-    marginTop: 8,
+  deleteImageBtn: { position: 'absolute', top: -6, right: -6, backgroundColor: Colors.dark.background, borderRadius: 12 },
+  
+  // Before/After Section
+  beforeAfterSection: { marginBottom: 12 },
+  normalImagesSection: { marginTop: 8 },
+  beforeAfterPair: { flexDirection: 'row', marginRight: 12 },
+  beforeAfterItem: { width: 100, marginHorizontal: 2 },
+  beforeAfterImage: { width: 100, height: 75, borderRadius: 8 },
+  beforeAfterLabel: { position: 'absolute', top: 4, left: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  beforeLabel: { backgroundColor: '#ef4444' },
+  afterLabel: { backgroundColor: Colors.dark.success },
+  beforeAfterLabelText: { fontSize: 8, fontWeight: '700', color: '#fff' },
+  
+  // Upload Modal
+  uploadModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  uploadModalContent: { backgroundColor: Colors.dark.card, borderRadius: 20, padding: 20, width: '100%', maxWidth: 340 },
+  uploadModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  uploadModalTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text },
+  uploadPreview: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
+  uploadLabel: { fontSize: 13, fontWeight: '500', color: Colors.dark.textSecondary, marginBottom: 8 },
+  uploadInput: {
+    backgroundColor: Colors.dark.background, borderRadius: 10, padding: 12, fontSize: 14,
+    color: Colors.dark.text, borderWidth: 1, borderColor: Colors.dark.border, marginBottom: 16,
   },
-  portfolioScroll: {
-    marginHorizontal: -4,
+  imageTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  imageTypeBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: Colors.dark.background,
+    borderWidth: 1, borderColor: Colors.dark.border, alignItems: 'center',
   },
-  portfolioImageContainer: {
-    position: 'relative',
-    marginHorizontal: 4,
+  imageTypeBtnActive: { backgroundColor: Colors.dark.primary, borderColor: Colors.dark.primary },
+  imageTypeBtnText: { fontSize: 13, fontWeight: '600', color: Colors.dark.text },
+  imageTypeBtnTextActive: { color: Colors.dark.background },
+  featuredToggle: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: Colors.dark.background, padding: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.dark.border, marginBottom: 20,
   },
-  portfolioImage: {
-    width: 100,
-    height: 75,
-    borderRadius: 8,
+  featuredToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  featuredToggleText: { fontSize: 14, fontWeight: '500', color: Colors.dark.text },
+  uploadConfirmBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: Colors.dark.primary, paddingVertical: 14, borderRadius: 12,
   },
-  deleteImageBtn: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: Colors.dark.background,
-    borderRadius: 12,
-  },
+  uploadConfirmBtnText: { fontSize: 16, fontWeight: '600', color: Colors.dark.background },
 });
