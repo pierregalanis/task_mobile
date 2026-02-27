@@ -7,18 +7,25 @@ import {
   TouchableOpacity, 
   Animated,
   ActivityIndicator,
+  Image,
+  Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { storage } from '../../utils/storage';
-import { showConfirm } from '../../utils/alert';
+import { showConfirm, showMessage } from '../../utils/alert';
+import { imageAPI } from '../../services/api';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
+const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
+const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
 
 // Animated Menu Item Component
 function AnimatedMenuItem({
@@ -83,8 +90,9 @@ function AnimatedMenuItem({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -140,6 +148,141 @@ export default function ProfileScreen() {
     router.replace('/profile');
   };
 
+  // Profile Picture Handlers
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        showMessage(
+          i18n.locale === 'fr' ? 'Permission refusée' : 'Permission Denied',
+          i18n.locale === 'fr' 
+            ? 'Veuillez autoriser l\'accès à la galerie' 
+            : 'Please allow access to your photo library'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Impossible de sélectionner l\'image' : 'Unable to select image'
+      );
+    }
+  };
+
+  const uploadProfileImage = async (imageUri: string) => {
+    try {
+      setUploadingImage(true);
+      await imageAPI.uploadProfileImage(imageUri);
+      
+      // Refresh user data to get new profile image
+      if (refreshUser) {
+        await refreshUser();
+      }
+      
+      showMessage(
+        i18n.locale === 'fr' ? 'Succès' : 'Success',
+        i18n.locale === 'fr' ? 'Photo de profil mise à jour' : 'Profile picture updated'
+      );
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Impossible de télécharger l\'image' : 'Unable to upload image'
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDeleteProfileImage = () => {
+    showConfirm(
+      i18n.locale === 'fr' ? 'Supprimer la photo' : 'Delete Photo',
+      i18n.locale === 'fr' 
+        ? 'Voulez-vous supprimer votre photo de profil?' 
+        : 'Do you want to delete your profile picture?',
+      async () => {
+        try {
+          setUploadingImage(true);
+          // Call API to delete profile image if endpoint exists
+          // await imageAPI.deleteProfileImage();
+          
+          if (refreshUser) {
+            await refreshUser();
+          }
+          
+          showMessage(
+            i18n.locale === 'fr' ? 'Succès' : 'Success',
+            i18n.locale === 'fr' ? 'Photo supprimée' : 'Photo deleted'
+          );
+        } catch (error) {
+          console.error('Error deleting image:', error);
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+    );
+  };
+
+  const handleAvatarPress = () => {
+    const hasProfileImage = user?.profile_image || user?.avatar || user?.profile_picture;
+    
+    Alert.alert(
+      i18n.locale === 'fr' ? 'Photo de profil' : 'Profile Picture',
+      i18n.locale === 'fr' ? 'Que voulez-vous faire?' : 'What would you like to do?',
+      [
+        {
+          text: i18n.locale === 'fr' ? 'Choisir une photo' : 'Choose Photo',
+          onPress: handlePickImage,
+        },
+        ...(hasProfileImage ? [{
+          text: i18n.locale === 'fr' ? 'Supprimer' : 'Delete',
+          onPress: handleDeleteProfileImage,
+          style: 'destructive' as const,
+        }] : []),
+        {
+          text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel',
+          style: 'cancel' as const,
+        },
+      ]
+    );
+  };
+
+  // Terms & Privacy Handlers
+  const handleOpenPrivacyPolicy = async () => {
+    try {
+      await Linking.openURL(PRIVACY_POLICY_URL);
+    } catch (error) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+      );
+    }
+  };
+
+  const handleOpenTermsOfService = async () => {
+    try {
+      await Linking.openURL(TERMS_OF_SERVICE_URL);
+    } catch (error) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+      );
+    }
+  };
+
   const avatarBorderRotation = avatarRotate.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
@@ -158,6 +301,9 @@ export default function ProfileScreen() {
   };
 
   const profileCompletion = getProfileCompletion();
+  
+  // Get profile image URL
+  const profileImageUrl = user?.profile_image || user?.avatar || user?.profile_picture;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -181,8 +327,13 @@ export default function ProfileScreen() {
             { opacity: profileFade, transform: [{ scale: profileScale }] }
           ]}
         >
-          {/* Avatar with Gradient Ring */}
-          <View style={styles.avatarWrapper}>
+          {/* Avatar with Gradient Ring - Now Tappable */}
+          <TouchableOpacity 
+            style={styles.avatarWrapper} 
+            onPress={handleAvatarPress}
+            activeOpacity={0.8}
+            disabled={uploadingImage}
+          >
             <Animated.View style={[styles.avatarGradientRing, { transform: [{ rotate: avatarBorderRotation }] }]}>
               <LinearGradient
                 colors={[Colors.dark.primary, '#059669', '#3b82f6', Colors.dark.primary]}
@@ -192,12 +343,26 @@ export default function ProfileScreen() {
               />
             </Animated.View>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.full_name?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              </View>
+              {uploadingImage ? (
+                <View style={styles.avatar}>
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              ) : profileImageUrl ? (
+                <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+              )}
             </View>
+            
+            {/* Camera Icon Overlay */}
+            <View style={styles.cameraIconContainer}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+            
             <View
               style={[
                 styles.roleBadge,
@@ -215,7 +380,7 @@ export default function ProfileScreen() {
                   : i18n.locale === 'fr' ? 'Client' : 'Client'}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <Text style={styles.profileName}>{user?.full_name}</Text>
           <Text style={styles.profileEmail}>{user?.email}</Text>
@@ -342,7 +507,7 @@ export default function ProfileScreen() {
               icon="document-text-outline"
               title={i18n.locale === 'fr' ? 'Conditions d\'utilisation' : 'Terms of Service'}
               subtitle={i18n.locale === 'fr' ? 'Lire les conditions' : 'Read our terms'}
-              onPress={() => {}}
+              onPress={handleOpenTermsOfService}
               index={4}
               iconColor={Colors.dark.textSecondary}
             />
@@ -350,7 +515,7 @@ export default function ProfileScreen() {
               icon="shield-checkmark-outline"
               title={i18n.locale === 'fr' ? 'Confidentialité' : 'Privacy Policy'}
               subtitle={i18n.locale === 'fr' ? 'Vos données' : 'Your data'}
-              onPress={() => {}}
+              onPress={handleOpenPrivacyPolicy}
               index={5}
               iconColor={Colors.dark.success}
             />
@@ -427,9 +592,25 @@ const styles = StyleSheet.create({
     width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.dark.primary,
     alignItems: 'center', justifyContent: 'center',
   },
+  avatarImage: {
+    width: 80, height: 80, borderRadius: 40,
+  },
   avatarText: { fontSize: 32, fontWeight: '700', color: '#fff' },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.dark.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.dark.card,
+  },
   roleBadge: {
-    position: 'absolute', bottom: -4, right: -4,
+    position: 'absolute', bottom: -4, left: -4,
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
     borderWidth: 2, borderColor: Colors.dark.card,
