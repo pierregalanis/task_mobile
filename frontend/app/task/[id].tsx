@@ -74,17 +74,27 @@ export default function TaskDetailsScreen() {
     };
   }, [id]);
 
-  // Timer effect
+  // Timer effect - only runs when timerRunning changes
   useEffect(() => {
     if (timerRunning) {
+      // Clear any existing interval first
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       timerRef.current = setInterval(() => {
         setTimerSeconds(prev => prev + 1);
       }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [timerRunning]);
 
@@ -100,13 +110,19 @@ export default function TaskDetailsScreen() {
       
       if (taskData) {
         setTask(taskData);
-        // Check timer status
+        // Check timer status - only set if not manually controlled
         if (taskData.timer_started && !taskData.timer_stopped) {
           setTimerRunning(true);
           if (taskData.timer_started_at) {
             const startTime = new Date(taskData.timer_started_at).getTime();
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             setTimerSeconds(elapsed > 0 ? elapsed : 0);
+          }
+        } else {
+          // Ensure timer is stopped if backend says so
+          setTimerRunning(false);
+          if (taskData.elapsed_seconds) {
+            setTimerSeconds(taskData.elapsed_seconds);
           }
         }
       } else {
@@ -124,6 +140,8 @@ export default function TaskDetailsScreen() {
               const elapsed = Math.floor((Date.now() - startTime) / 1000);
               setTimerSeconds(elapsed > 0 ? elapsed : 0);
             }
+          } else {
+            setTimerRunning(false);
           }
         }
       }
@@ -211,7 +229,7 @@ export default function TaskDetailsScreen() {
       showMessage(
         i18n.locale === 'fr' ? 'Tâche refusée' : 'Task Declined',
         i18n.locale === 'fr' ? 'Vous avez refusé cette tâche' : 'You have declined this task',
-        [{ text: 'OK', onPress: () => router.back() }]
+        () => router.back()
       );
     } catch (error) {
       console.error('Error rejecting task:', error);
@@ -228,43 +246,78 @@ export default function TaskDetailsScreen() {
     router.push(`/tracking/${task.id}?mode=tasker`);
   };
 
+  // FIXED: Timer start - update local state immediately, avoid race condition
   const handleStartTimer = async () => {
     try {
       setActionLoading(true);
-      await taskAPI.startTimer(task.id);
+      const response = await taskAPI.startTimer(task.id);
+      
+      // Update local state immediately - don't rely on refetch which causes race condition
       setTimerRunning(true);
       setTimerSeconds(0);
+      
+      // Update task state locally to reflect timer is running
+      setTask((prev: any) => ({
+        ...prev,
+        timer_started: true,
+        timer_stopped: false,
+        timer_started_at: new Date().toISOString(),
+        status: 'in_progress',
+      }));
+      
       showMessage(
         i18n.locale === 'fr' ? 'Chrono démarré' : 'Timer Started',
         i18n.locale === 'fr' ? 'Le temps de travail est maintenant comptabilisé' : 'Work time is now being tracked'
       );
-      fetchTaskDetails();
-    } catch (error) {
+      // Note: NOT calling fetchTaskDetails() to avoid race condition
+    } catch (error: any) {
       console.error('Error starting timer:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de démarrer le chrono' : 'Failed to start timer'
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de démarrer le chrono' : 'Failed to start timer')
       );
     } finally {
       setActionLoading(false);
     }
   };
 
+  // FIXED: Timer stop - immediately stop UI timer, handle errors gracefully
   const handleStopTimer = async () => {
+    // Immediately stop local timer to prevent UI glitches
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    const currentSeconds = timerSeconds; // Capture current time before any state changes
+    
+    // Optimistically update UI
+    setTimerRunning(false);
+    
     try {
       setActionLoading(true);
-      await taskAPI.stopTimer(task.id);
-      setTimerRunning(false);
+      const response = await taskAPI.stopTimer(task.id);
+      
+      // Update task state locally to reflect timer is stopped
+      setTask((prev: any) => ({
+        ...prev,
+        timer_started: true,
+        timer_stopped: true,
+        elapsed_seconds: currentSeconds,
+        hours_worked: response?.hours_worked || (currentSeconds / 3600).toFixed(2),
+      }));
+      
       showMessage(
         i18n.locale === 'fr' ? 'Chrono arrêté' : 'Timer Stopped',
         i18n.locale === 'fr' ? 'Le temps de travail a été enregistré' : 'Work time has been recorded'
       );
-      fetchTaskDetails();
-    } catch (error) {
+      // Note: NOT calling fetchTaskDetails() to avoid race condition that could re-enable timer
+    } catch (error: any) {
       console.error('Error stopping timer:', error);
+      // Re-enable timer only if API call failed
+      setTimerRunning(true);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d\'arrêter le chrono' : 'Failed to stop timer'
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'arrêter le chrono' : 'Failed to stop timer')
       );
     } finally {
       setActionLoading(false);
@@ -274,6 +327,14 @@ export default function TaskDetailsScreen() {
   const handleCompleteTask = async () => {
     try {
       setActionLoading(true);
+      // Stop timer if running before completing
+      if (timerRunning) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setTimerRunning(false);
+      }
       await taskAPI.completeTask(task.id);
       showMessage(
         i18n.locale === 'fr' ? 'Tâche terminée!' : 'Task Completed!',
@@ -328,7 +389,7 @@ export default function TaskDetailsScreen() {
       showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Tâche annulée' : 'Task cancelled',
-        [{ text: 'OK', onPress: () => router.back() }]
+        () => router.back()
       );
     } catch (error) {
       console.error('Error cancelling task:', error);
@@ -595,7 +656,7 @@ export default function TaskDetailsScreen() {
           </View>
         )}
 
-        {/* Timer Display */}
+        {/* Timer Display for Tasker */}
         {isTasker && isInProgress && (
           <View style={styles.timerCard}>
             <Ionicons name="timer-outline" size={28} color={timerRunning ? Colors.dark.primary : Colors.dark.textSecondary} />
@@ -609,19 +670,29 @@ export default function TaskDetailsScreen() {
             </View>
             {timerRunning ? (
               <TouchableOpacity 
-                style={styles.timerStopButton} 
+                style={[styles.timerStopButton, actionLoading && styles.timerButtonDisabled]} 
                 onPress={handleStopTimer}
                 disabled={actionLoading}
+                activeOpacity={0.7}
               >
-                <Ionicons name="pause" size={20} color={Colors.dark.background} />
+                {actionLoading ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Ionicons name="pause" size={20} color={Colors.dark.background} />
+                )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity 
-                style={styles.timerStartButton} 
+                style={[styles.timerStartButton, actionLoading && styles.timerButtonDisabled]} 
                 onPress={handleStartTimer}
                 disabled={actionLoading}
+                activeOpacity={0.7}
               >
-                <Ionicons name="play" size={20} color={Colors.dark.background} />
+                {actionLoading ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Ionicons name="play" size={20} color={Colors.dark.background} />
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -1428,6 +1499,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.error,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  timerButtonDisabled: {
+    opacity: 0.6,
   },
   timerLiveBadge: {
     flexDirection: 'row',
