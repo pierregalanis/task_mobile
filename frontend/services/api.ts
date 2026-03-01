@@ -107,6 +107,63 @@ export interface PendingReview {
   total_cost: number;
 }
 
+
+// ==================== SEARCH FILTER TYPES ====================
+
+export interface SearchFilters {
+  categoryId?: string;
+  subcategory?: string;
+  service?: string;
+  isAvailable?: boolean;
+  city?: string;
+  country?: string;
+  minRating?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  searchQuery?: string;
+  availableOnDate?: string;  // YYYY-MM-DD format
+  sortBy?: 'rating' | 'price-low' | 'price-high' | 'reviews';
+  skip?: number;
+  limit?: number;
+}
+
+export interface TaskerService {
+  category: string;
+  subcategory: string;
+  hourly_rate: number;
+  pricing_type: 'hourly' | 'fixed';
+  bio: string;
+  max_travel_distance: number;
+  fixed_price?: number;
+}
+
+export interface TaskerProfileData {
+  services: TaskerService[];
+  hourly_rate: number;
+  bio: string;
+  max_travel_distance: number;
+  is_available: boolean;
+  average_rating: number;
+  total_reviews: number;
+  completed_tasks: number;
+  certifications?: string[];
+}
+
+export interface Tasker {
+  id: string;
+  email?: string;
+  full_name: string;
+  phone?: string;
+  city?: string;
+  country?: string;
+  profile_image: string | null;
+  role?: 'tasker';
+  language?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  tasker_profile?: TaskerProfileData;
+}
+
 // ==================== AUTH API ====================
 
 export const authAPI = {
@@ -228,16 +285,67 @@ export const paymentAPI = {
 
 export const taskerAPI = {
   /**
-   * Search for taskers with optional filters
-   * Only returns taskers who have at least one service configured
-   * 
-   * @param params.category_id - Filter by category ID (e.g., "cleaning")
-   * @param params.subcategory - Filter by specific subcategory name (must match tasker's service)
-   * @param params.is_available - Filter by availability
-   * @param params.country - Filter by country
-   * @param params.city - Filter by city
-   * @param params.skip - Pagination offset (default: 0)
-   * @param params.limit - Max results (default: 50, max: 100)
+   * Search for taskers with advanced filters
+   * Supports rating, price range, availability date, text search, and sorting
+   */
+  async searchTaskers(filters: SearchFilters = {}): Promise<Tasker[]> {
+    const params = new URLSearchParams();
+    
+    // Category filters
+    if (filters.categoryId) params.append('category_id', filters.categoryId);
+    if (filters.subcategory) params.append('subcategory', filters.subcategory);
+    if (filters.service) params.append('service', filters.service);
+    
+    // Location filters
+    if (filters.city) params.append('city', filters.city);
+    if (filters.country) params.append('country', filters.country);
+    
+    // Availability
+    if (filters.isAvailable !== undefined) {
+      params.append('is_available', filters.isAvailable.toString());
+    }
+    
+    // Rating filter
+    if (filters.minRating && filters.minRating > 0) {
+      params.append('min_rating', filters.minRating.toString());
+    }
+    
+    // Price range
+    if (filters.minPrice) {
+      params.append('min_price', filters.minPrice.toString());
+    }
+    if (filters.maxPrice) {
+      params.append('max_price', filters.maxPrice.toString());
+    }
+    
+    // Text search
+    if (filters.searchQuery) {
+      params.append('search_query', filters.searchQuery);
+    }
+    
+    // Availability date
+    if (filters.availableOnDate) {
+      params.append('available_on_date', filters.availableOnDate);
+    }
+    
+    // Sorting
+    if (filters.sortBy) {
+      params.append('sort_by', filters.sortBy);
+    }
+    
+    // Pagination
+    if (filters.skip) params.append('skip', filters.skip.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    
+    const queryString = params.toString();
+    const url = queryString ? `/api/taskers/search?${queryString}` : '/api/taskers/search';
+    
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  /**
+   * Legacy method - uses searchTaskers internally for backward compatibility
    */
   async getTaskers(params?: {
     category_id?: string;
@@ -248,17 +356,26 @@ export const taskerAPI = {
     city?: string;
     skip?: number;
     limit?: number;
-  }) {
-    const response = await api.get('/api/taskers/search', { params });
-    return response.data;
+  }): Promise<Tasker[]> {
+    const filters: SearchFilters = {
+      categoryId: params?.category_id,
+      subcategory: params?.subcategory,
+      service: params?.service,
+      isAvailable: params?.is_available,
+      country: params?.country,
+      city: params?.city,
+      skip: params?.skip,
+      limit: params?.limit,
+    };
+    return this.searchTaskers(filters);
   },
 
-  async getTasker(userId: string) {
+  async getTasker(userId: string): Promise<Tasker> {
     const response = await api.get(`/api/users/${userId}`);
     return response.data;
   },
 
-  async getTaskerProfile(userId: string) {
+  async getTaskerProfile(userId: string): Promise<Tasker> {
     const response = await api.get(`/api/users/${userId}`);
     return response.data;
   },

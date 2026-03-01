@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { taskerAPI, categoryAPI } from '../../services/api';
+import { taskerAPI, categoryAPI, SearchFilters as SearchFiltersType } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
+import SearchFilters from '../../components/SearchFilters';
 
 export default function TaskersScreen() {
   const router = useRouter();
@@ -26,14 +27,61 @@ export default function TaskersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Advanced filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<SearchFiltersType>({});
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  const isEn = i18n.locale === 'en';
+
+  // Calculate active filter count (excluding searchQuery which is in the search bar)
+  const calculateFilterCount = (filters: SearchFiltersType) => {
+    let count = 0;
+    if (filters.minRating && filters.minRating > 0) count++;
+    if (filters.minPrice) count++;
+    if (filters.maxPrice) count++;
+    if (filters.availableOnDate) count++;
+    if (filters.sortBy && filters.sortBy !== 'rating') count++;
+    return count;
+  };
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    fetchTaskers();
+  // Fetch taskers with filters
+  const fetchTaskers = useCallback(async (filters: SearchFiltersType = {}) => {
+    try {
+      setLoading(true);
+      
+      // Build search params
+      const searchFilters: SearchFiltersType = {
+        ...filters,
+        isAvailable: true,
+        limit: 50,
+      };
+      
+      // Add category filter if selected
+      if (selectedCategory) {
+        searchFilters.categoryId = selectedCategory;
+      }
+
+      const data = await taskerAPI.searchTaskers(searchFilters);
+      setTaskers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching taskers:', error);
+      setTaskers([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [selectedCategory]);
+
+  // Refetch when category changes
+  useEffect(() => {
+    fetchTaskers(activeFilters);
+  }, [selectedCategory, fetchTaskers]);
 
   const fetchCategories = async () => {
     try {
@@ -44,61 +92,151 @@ export default function TaskersScreen() {
     }
   };
 
-  const fetchTaskers = async () => {
-    try {
-      setLoading(true);
-      const params: any = {};
-      if (selectedCategory) {
-        params.category = selectedCategory;
-      }
-      const data = await taskerAPI.getTaskers(params);
-      setTaskers(data);
-    } catch (error) {
-      console.error('Error fetching taskers:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchCategories();
-    fetchTaskers();
+    fetchTaskers(activeFilters);
   };
 
+  // Handle advanced filter apply
+  const handleApplyFilters = (newFilters: SearchFiltersType) => {
+    // If there's a search query from the modal, update the search bar too
+    if (newFilters.searchQuery) {
+      setSearchQuery(newFilters.searchQuery);
+    }
+    setActiveFilters(newFilters);
+    setActiveFilterCount(calculateFilterCount(newFilters));
+    fetchTaskers(newFilters);
+  };
+
+  // Handle search submit (when user finishes typing)
+  const handleSearchSubmit = () => {
+    const filtersWithSearch = {
+      ...activeFilters,
+      searchQuery: searchQuery || undefined,
+    };
+    fetchTaskers(filtersWithSearch);
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setActiveFilterCount(0);
+    setSearchQuery('');
+    setSelectedCategory(null);
+    fetchTaskers({});
+  };
+
+  // Client-side filter for instant search feedback
   const filteredTaskers = taskers.filter((tasker) =>
     tasker.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Get sort label for display
+  const getSortLabel = () => {
+    switch (activeFilters.sortBy) {
+      case 'price-low':
+        return isEn ? 'Price ↑' : 'Prix ↑';
+      case 'price-high':
+        return isEn ? 'Price ↓' : 'Prix ↓';
+      case 'reviews':
+        return isEn ? 'Reviews' : 'Avis';
+      default:
+        return isEn ? 'Rating' : 'Note';
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {i18n.locale === 'fr' ? 'Trouver un Tasker' : 'Find a Tasker'}
+          {isEn ? 'Find a Tasker' : 'Trouver un Tasker'}
         </Text>
         <Text style={styles.headerSubtitle}>
-          {filteredTaskers.length} {i18n.locale === 'fr' ? 'disponibles' : 'available'}
+          {filteredTaskers.length} {isEn ? 'available' : 'disponibles'}
         </Text>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={i18n.locale === 'fr' ? 'Rechercher un tasker...' : 'Search taskers...'}
-          placeholderTextColor={Colors.dark.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color={Colors.dark.textSecondary} />
-          </TouchableOpacity>
-        )}
+      {/* Search Bar with Filter Button */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={isEn ? 'Search taskers...' : 'Rechercher un tasker...'}
+            placeholderTextColor={Colors.dark.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Filter Button */}
+        <TouchableOpacity
+          style={[
+            styles.filterIconButton,
+            activeFilterCount > 0 && styles.filterIconButtonActive,
+          ]}
+          onPress={() => setShowFilters(true)}
+        >
+          <Ionicons
+            name="options"
+            size={22}
+            color={activeFilterCount > 0 ? Colors.dark.background : Colors.dark.text}
+          />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
+
+      {/* Active Filters Preview */}
+      {(activeFilterCount > 0 || selectedCategory) && (
+        <View style={styles.activeFiltersBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFiltersContent}>
+            {/* Sort indicator */}
+            <View style={styles.sortTag}>
+              <Ionicons name="swap-vertical" size={12} color={Colors.dark.textSecondary} />
+              <Text style={styles.sortTagText}>{getSortLabel()}</Text>
+            </View>
+            
+            {activeFilters.minRating && activeFilters.minRating > 0 && (
+              <View style={styles.filterTag}>
+                <Ionicons name="star" size={12} color="#fbbf24" />
+                <Text style={styles.filterTagText}>{activeFilters.minRating}+</Text>
+              </View>
+            )}
+            {(activeFilters.minPrice || activeFilters.maxPrice) && (
+              <View style={styles.filterTag}>
+                <Ionicons name="cash" size={12} color={Colors.dark.primary} />
+                <Text style={styles.filterTagText}>
+                  {activeFilters.minPrice || '0'} - {activeFilters.maxPrice || '∞'} XOF
+                </Text>
+              </View>
+            )}
+            {activeFilters.availableOnDate && (
+              <View style={styles.filterTag}>
+                <Ionicons name="calendar" size={12} color={Colors.dark.primary} />
+                <Text style={styles.filterTagText}>{activeFilters.availableOnDate}</Text>
+              </View>
+            )}
+          </ScrollView>
+          {activeFilterCount > 0 && (
+            <TouchableOpacity onPress={handleClearFilters} style={styles.clearAllButton}>
+              <Text style={styles.clearAllText}>{isEn ? 'Clear' : 'Effacer'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Category Filters */}
       <ScrollView
@@ -113,7 +251,7 @@ export default function TaskersScreen() {
           activeOpacity={0.7}
         >
           <Text style={[styles.filterChipText, !selectedCategory && styles.filterChipTextActive]}>
-            {i18n.locale === 'fr' ? 'Tous' : 'All'}
+            {isEn ? 'All' : 'Tous'}
           </Text>
         </TouchableOpacity>
         {categories.map((category) => (
@@ -137,7 +275,7 @@ export default function TaskersScreen() {
       </ScrollView>
 
       {/* Taskers List */}
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.dark.primary} />
         </View>
@@ -150,15 +288,26 @@ export default function TaskersScreen() {
         >
           {filteredTaskers.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={64} color={Colors.dark.textSecondary} />
+              <Ionicons name="search-outline" size={64} color={Colors.dark.textSecondary} />
               <Text style={styles.emptyTitle}>
-                {i18n.locale === 'fr' ? 'Aucun tasker trouvé' : 'No taskers found'}
+                {isEn ? 'No taskers found' : 'Aucun tasker trouvé'}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {i18n.locale === 'fr'
-                  ? 'Essayez de modifier vos filtres'
-                  : 'Try adjusting your filters'}
+                {activeFilterCount > 0 || selectedCategory
+                  ? isEn
+                    ? 'Try adjusting your filters'
+                    : 'Essayez de modifier vos filtres'
+                  : isEn
+                  ? 'Check back later for new taskers'
+                  : 'Revenez plus tard pour de nouveaux taskers'}
               </Text>
+              {(activeFilterCount > 0 || selectedCategory) && (
+                <TouchableOpacity style={styles.clearFiltersButton} onPress={handleClearFilters}>
+                  <Text style={styles.clearFiltersButtonText}>
+                    {isEn ? 'Clear All Filters' : 'Effacer tous les filtres'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             filteredTaskers.map((tasker) => (
@@ -169,8 +318,8 @@ export default function TaskersScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.taskerImageContainer}>
-                  {tasker.profile_photo ? (
-                    <Image source={{ uri: tasker.profile_photo }} style={styles.taskerImage} />
+                  {tasker.profile_image || tasker.profile_photo ? (
+                    <Image source={{ uri: tasker.profile_image || tasker.profile_photo }} style={styles.taskerImage} />
                   ) : (
                     <View style={[styles.taskerImage, styles.taskerImagePlaceholder]}>
                       <Text style={styles.taskerInitials}>
@@ -178,7 +327,7 @@ export default function TaskersScreen() {
                       </Text>
                     </View>
                   )}
-                  {tasker.is_available && <View style={styles.availableBadge} />}
+                  {(tasker.is_available || tasker.tasker_profile?.is_available) && <View style={styles.availableBadge} />}
                 </View>
 
                 <View style={styles.taskerInfo}>
@@ -193,20 +342,22 @@ export default function TaskersScreen() {
                     <View style={styles.metaItem}>
                       <Ionicons name="star" size={14} color="#f59e0b" />
                       <Text style={styles.metaText}>
-                        {tasker.rating || '5.0'} ({tasker.reviews_count || 0})
+                        {(tasker.tasker_profile?.average_rating || tasker.rating || 0).toFixed(1)} ({tasker.tasker_profile?.total_reviews || tasker.reviews_count || 0})
                       </Text>
                     </View>
                     <View style={styles.metaDivider} />
                     <View style={styles.metaItem}>
                       <Ionicons name="checkmark-circle" size={14} color={Colors.dark.primary} />
-                      <Text style={styles.metaText}>{tasker.completed_tasks || 0} {i18n.locale === 'fr' ? 'tâches' : 'tasks'}</Text>
+                      <Text style={styles.metaText}>
+                        {tasker.tasker_profile?.completed_tasks || tasker.completed_tasks || 0} {isEn ? 'tasks' : 'tâches'}
+                      </Text>
                     </View>
-                    {tasker.distance && (
+                    {tasker.city && (
                       <>
                         <View style={styles.metaDivider} />
                         <View style={styles.metaItem}>
                           <Ionicons name="location" size={14} color={Colors.dark.textSecondary} />
-                          <Text style={styles.metaText}>{tasker.distance} km</Text>
+                          <Text style={styles.metaText}>{tasker.city}</Text>
                         </View>
                       </>
                     )}
@@ -219,7 +370,7 @@ export default function TaskersScreen() {
                           .slice(0, 2)
                           .map((s: any) => {
                             const category = getCategoryById(categories, s.category);
-                            return category ? getCategoryName(category, i18n.locale) : s.category;
+                            return category ? getCategoryName(category, i18n.locale) : s.subcategory || s.category;
                           })
                           .join(', ')}
                         {tasker.tasker_profile.services.length > 2 && ' +' + (tasker.tasker_profile.services.length - 2)}
@@ -230,12 +381,12 @@ export default function TaskersScreen() {
                   {tasker.tasker_profile?.services?.[0] && (
                     <View style={styles.priceContainer}>
                       <Text style={styles.priceLabel}>
-                        {i18n.locale === 'fr' ? 'À partir de' : 'Starting at'}
+                        {isEn ? 'Starting at' : 'À partir de'}
                       </Text>
                       <Text style={styles.priceAmount}>
-                        {tasker.tasker_profile.services[0].pricing_type === 'hourly'
-                          ? `${tasker.tasker_profile.services[0].hourly_rate} XOF/h`
-                          : `${tasker.tasker_profile.services[0].fixed_price} XOF`}
+                        {tasker.tasker_profile.services[0].pricing_type === 'fixed'
+                          ? `${tasker.tasker_profile.services[0].fixed_price || 0} XOF`
+                          : `${tasker.tasker_profile.services[0].hourly_rate || 0} XOF/h`}
                       </Text>
                     </View>
                   )}
@@ -245,6 +396,14 @@ export default function TaskersScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Search Filters Modal */}
+      <SearchFilters
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        onApply={handleApplyFilters}
+        initialFilters={{ ...activeFilters, searchQuery }}
+      />
     </SafeAreaView>
   );
 }
@@ -270,12 +429,20 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     marginTop: 4,
   },
+  
+  // Search Row
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginVertical: 16,
+    gap: 12,
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.dark.card,
-    marginHorizontal: 24,
-    marginVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 12,
     height: 50,
@@ -290,6 +457,91 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.dark.text,
   },
+  filterIconButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  filterIconButtonActive: {
+    backgroundColor: Colors.dark.primary,
+    borderColor: Colors.dark.primary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.dark.error || '#ef4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+
+  // Active Filters Bar
+  activeFiltersBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 24,
+    paddingRight: 12,
+    paddingBottom: 12,
+  },
+  activeFiltersContent: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  sortTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  sortTagText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+  },
+  filterTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary,
+  },
+  filterTagText: {
+    fontSize: 12,
+    color: Colors.dark.text,
+  },
+  clearAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  clearAllText: {
+    fontSize: 13,
+    color: Colors.dark.primary,
+    fontWeight: '500',
+  },
+
+  // Category Chips
   filtersContainer: {
     maxHeight: 50,
     marginBottom: 16,
@@ -324,6 +576,8 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: Colors.dark.background,
   },
+
+  // Loading & Empty States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -350,7 +604,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.dark.textSecondary,
     marginTop: 8,
+    textAlign: 'center',
   },
+  clearFiltersButton: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  clearFiltersButtonText: {
+    color: Colors.dark.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Tasker Card
   taskerCard: {
     flexDirection: 'row',
     backgroundColor: Colors.dark.card,
@@ -377,7 +648,7 @@ const styles = StyleSheet.create({
   taskerInitials: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.dark.text,
+    color: Colors.dark.background,
   },
   availableBadge: {
     position: 'absolute',
@@ -386,7 +657,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.dark.success,
+    backgroundColor: Colors.dark.success || '#22c55e',
     borderWidth: 2,
     borderColor: Colors.dark.card,
   },
@@ -411,6 +682,7 @@ const styles = StyleSheet.create({
   taskerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginBottom: 8,
   },
   metaItem: {
