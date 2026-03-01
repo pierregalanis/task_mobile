@@ -456,6 +456,50 @@ export default function ProfileScreen() {
           </View>
         )}
 
+          {/* Tasker Management Section - Only for Taskers */}
+        {user?.role === 'tasker' && (
+          <View style={styles.menuSection}>
+            <Text style={styles.menuSectionTitle}>
+              {i18n.locale === 'fr' ? 'Gestion Tâcheron' : 'Tasker Management'}
+            </Text>
+            <View style={styles.menuCard}>
+              <AnimatedMenuItem
+                icon="calendar"
+                title={i18n.locale === 'fr' ? 'Disponibilités' : 'Availability'}
+                subtitle={i18n.locale === 'fr' ? 'Gérer vos horaires' : 'Manage your schedule'}
+                onPress={() => router.push('/tasker/availability')}
+                index={0}
+                iconColor={Colors.dark.primary}
+              />
+              <AnimatedMenuItem
+                icon="briefcase"
+                title={i18n.locale === 'fr' ? 'Mes Services' : 'My Services'}
+                subtitle={i18n.locale === 'fr' ? 'Gérer vos services' : 'Manage your services'}
+                onPress={() => router.push('/tasker/manage-services')}
+                index={1}
+                iconColor="#f59e0b"
+              />
+              <AnimatedMenuItem
+                icon="star"
+                title={i18n.locale === 'fr' ? 'Mes Avis' : 'My Reviews'}
+                subtitle={i18n.locale === 'fr' ? 'Voir les avis clients' : 'View customer reviews'}
+                onPress={() => router.push('/tasker/my-reviews')}
+                index={2}
+                iconColor="#fbbf24"
+              />
+              <AnimatedMenuItem
+                icon="wallet"
+                title={i18n.locale === 'fr' ? 'Mes Revenus' : 'My Earnings'}
+                subtitle={i18n.locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
+                onPress={() => router.push('/tasker/my-earnings')}
+                index={3}
+                iconColor={Colors.dark.success}
+              />
+            </View>
+          </View>
+        )}
+
+
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>

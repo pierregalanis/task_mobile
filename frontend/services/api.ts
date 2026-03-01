@@ -725,6 +725,115 @@ export const disputeAPI = {
   },
 };
 
+// ==================== AVAILABILITY API ====================
+
+export interface DaySchedule {
+  enabled: boolean;
+  start_time: string;  // "HH:MM" format
+  end_time: string;    // "HH:MM" format
+}
+
+export interface WeeklySchedule {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+export interface BlockedDate {
+  date: string;       // "YYYY-MM-DD"
+  reason?: string;
+}
+
+export interface AvailabilitySettings {
+  weekly_schedule: WeeklySchedule;
+  blocked_dates: BlockedDate[];
+  timezone: string;
+  min_booking_notice_hours: number;
+}
+
+export interface TimeSlot {
+  start_time: string;  // "HH:MM"
+  end_time: string;    // "HH:MM"
+  available: boolean;
+}
+
+export interface AvailableSlotsResponse {
+  date: string;
+  day_name: string;
+  is_available: boolean;
+  slots: TimeSlot[];
+  message?: string;
+}
+
+export interface CalendarDay {
+  date: string;
+  day: number;
+  day_name: string;
+  status: 'available' | 'day_off' | 'blocked' | 'past';
+}
+
+export interface CalendarResponse {
+  month: number;
+  year: number;
+  month_name: string;
+  days: CalendarDay[];
+}
+
+export const availabilityAPI = {
+  // ============ TASKER ENDPOINTS ============
+  
+  // Get tasker's own schedule
+  async getMySchedule(): Promise<AvailabilitySettings> {
+    const response = await api.get('/api/availability/my-schedule');
+    return response.data;
+  },
+
+  // Update tasker's schedule
+  async updateMySchedule(settings: Partial<AvailabilitySettings>): Promise<{ success: boolean; message: string }> {
+    const response = await api.put('/api/availability/my-schedule', settings);
+    return response.data;
+  },
+
+  // Block a date
+  async blockDate(date: string, reason: string = ''): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/api/availability/block-date', { date, reason });
+    return response.data;
+  },
+
+  // Unblock a date
+  async unblockDate(date: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(`/api/availability/block-date/${date}`);
+    return response.data;
+  },
+
+  // ============ CLIENT ENDPOINTS ============
+  
+  // Get available slots for a tasker on a date
+  async getAvailableSlots(taskerId: string, dateStr: string, durationHours: number = 1): Promise<AvailableSlotsResponse> {
+    const params = new URLSearchParams({
+      date_str: dateStr,
+      duration_hours: durationHours.toString()
+    });
+    const response = await api.get(`/api/availability/tasker/${taskerId}/slots?${params}`);
+    return response.data;
+  },
+
+  // Get monthly calendar for a tasker
+  async getTaskerCalendar(taskerId: string, month: number, year: number): Promise<CalendarResponse> {
+    const params = new URLSearchParams({
+      month: month.toString(),
+      year: year.toString()
+    });
+    const response = await api.get(`/api/availability/tasker/${taskerId}/calendar?${params}`);
+    return response.data;
+  }
+};
+
+
 // ==================== SETTINGS API ====================
 
 export interface NotificationPreferences {

@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { pushTokenAPI } from './api';
 
 // Configure notification behavior
@@ -75,30 +76,216 @@ export async function removePushToken() {
   }
 }
 
-export function setupNotificationListeners(navigation: any) {
+/**
+ * Handle notification routing based on notification type and data
+ * Uses Expo Router for navigation
+ */
+export function handleNotificationNavigation(data: any) {
+  console.log('Handling notification navigation:', data);
+  
+  const notificationType = data.type || data.notification_type;
+  const taskId = data.task_id || data.taskId;
+  const taskerId = data.tasker_id || data.taskerId;
+  const reviewId = data.review_id || data.reviewId;
+
+  try {
+    switch (notificationType) {
+      // ==================== MESSAGE NOTIFICATIONS ====================
+      case 'new_message':
+      case 'message':
+      case 'chat_message':
+        if (taskId) {
+          router.push(`/chat/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== TASK NOTIFICATIONS ====================
+      case 'task_application':
+      case 'new_task':
+      case 'task_assigned':
+        // Tasker received a new task request
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'task_accepted':
+      case 'task_confirmed':
+        // Client's task was accepted by tasker
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'task_rejected':
+      case 'task_declined':
+        // Task was declined
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'task_cancelled':
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'task_completed':
+      case 'task_finished':
+        // Task was marked as completed
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'task_update':
+      case 'task_status':
+        // Generic task status update
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== TRACKING NOTIFICATIONS ====================
+      case 'en_route':
+      case 'tasker_en_route':
+        // Tasker is on the way - open tracking
+        if (taskId) {
+          router.push(`/tracking/${taskId}?mode=client`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'arrived':
+      case 'tasker_arrived':
+        // Tasker has arrived
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'timer_started':
+      case 'work_started':
+        // Work timer started
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== PAYMENT NOTIFICATIONS ====================
+      case 'payment_received':
+      case 'payment_completed':
+      case 'payment':
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/tasker/my-earnings');
+        }
+        break;
+
+      case 'payment_pending':
+      case 'awaiting_payment':
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== REVIEW NOTIFICATIONS ====================
+      case 'new_review':
+      case 'review_received':
+      case 'review':
+        // Someone left a review - go to task details or reviews page
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else if (taskerId) {
+          router.push(`/tasker/${taskerId}`);
+        } else {
+          router.push('/(tabs)/profile');
+        }
+        break;
+
+      case 'review_reminder':
+      case 'pending_review':
+        // Reminder to leave a review
+        if (taskId) {
+          router.push(`/review?taskId=${taskId}`);
+        } else {
+          router.push('/(tabs)/home');
+        }
+        break;
+
+      // ==================== DISPUTE NOTIFICATIONS ====================
+      case 'dispute_opened':
+      case 'dispute_update':
+      case 'dispute_resolved':
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== PROMO/MARKETING ====================
+      case 'promo':
+      case 'marketing':
+      case 'announcement':
+        router.push('/(tabs)/home');
+        break;
+
+      // ==================== DEFAULT ====================
+      default:
+        console.log('Unknown notification type:', notificationType);
+        // If we have a task_id, go to that task
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          // Otherwise go to notifications list
+          router.push('/notifications');
+        }
+        break;
+    }
+  } catch (error) {
+    console.error('Error navigating from notification:', error);
+    // Fallback to notifications screen
+    router.push('/notifications');
+  }
+}
+
+export function setupNotificationListeners() {
   // Handle notification when app is foregrounded
   const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-    console.log('Notification received:', notification);
+    console.log('Notification received (foreground):', notification);
+    // Optionally show an in-app alert or update badge
   });
 
   // Handle notification response (when user taps on notification)
   const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('Notification response:', response);
+    console.log('Notification tapped:', response);
     
     const data = response.notification.request.content.data;
-    
-    // Navigate based on notification type
-    if (data.type === 'new_message' && data.task_id) {
-      navigation.navigate('chat', { id: data.task_id });
-    } else if (data.type === 'task_application' || data.type === 'task_accepted' || data.type === 'task_rejected') {
-      navigation.navigate('(tabs)', { screen: 'bookings' });
-    } else if (data.type === 'en_route' || data.type === 'arrived') {
-      navigation.navigate('(tabs)', { screen: 'bookings' });
-    } else if (data.type === 'payment_received') {
-      navigation.navigate('(tabs)', { screen: 'bookings' });
-    } else if (data.type === 'new_review') {
-      navigation.navigate('(tabs)', { screen: 'profile' });
-    }
+    handleNotificationNavigation(data);
   });
 
   return { notificationListener, responseListener };
@@ -110,5 +297,21 @@ export function cleanupNotificationListeners(listeners: any) {
   }
   if (listeners.responseListener) {
     Notifications.removeNotificationSubscription(listeners.responseListener);
+  }
+}
+
+/**
+ * Check if app was opened from a notification (cold start)
+ * Call this in your root layout's useEffect
+ */
+export async function getInitialNotification() {
+  const response = await Notifications.getLastNotificationResponseAsync();
+  if (response) {
+    console.log('App opened from notification:', response);
+    const data = response.notification.request.content.data;
+    // Small delay to ensure router is ready
+    setTimeout(() => {
+      handleNotificationNavigation(data);
+    }, 500);
   }
 }

@@ -15,13 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { taskAPI } from '../../services/api';
+import { taskAPI, TimeSlot } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 import * as Location from 'expo-location';
+import AvailabilityCalendar from '../../components/AvailabilityCalendar';
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8';
@@ -126,6 +127,11 @@ export default function CreateBookingScreen() {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Availability Calendar state
+  const [useAvailabilityCalendar, setUseAvailabilityCalendar] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | undefined>();
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | undefined>();
+  
   // Location state
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +156,20 @@ export default function CreateBookingScreen() {
   const maxTravelDistance = params.maxTravelDistance ? parseFloat(params.maxTravelDistance as string) : 50;
   const taskerLatitude = params.taskerLatitude ? parseFloat(params.taskerLatitude as string) : null;
   const taskerLongitude = params.taskerLongitude ? parseFloat(params.taskerLongitude as string) : null;
+  const taskerId = params.taskerId as string;
+
+  // Handle availability calendar selection
+  const handleCalendarSelect = (date: string, slot: TimeSlot) => {
+    setSelectedDate(date);
+    if (slot && slot.available) {
+      setSelectedSlot(slot);
+      // Update taskDate when a slot is selected
+      const [year, month, day] = date.split('-').map(Number);
+      const [hours, minutes] = slot.start_time.split(':').map(Number);
+      const newDate = new Date(year, month - 1, day, hours, minutes);
+      setTaskDate(newDate);
+    }
+  };
 
   // Calculate total price
   const calculateTotal = () => {
@@ -422,6 +442,19 @@ export default function CreateBookingScreen() {
       return;
     }
 
+    // Validate time slot selection when using availability calendar
+    if (useAvailabilityCalendar && taskerId) {
+      if (!selectedDate || !selectedSlot) {
+        showMessage(
+          i18n.locale === 'fr' ? 'Erreur' : 'Error',
+          i18n.locale === 'fr' 
+            ? 'Veuillez sélectionner une date et un créneau horaire' 
+            : 'Please select a date and time slot'
+        );
+        return;
+      }
+    }
+
     if (Platform.OS !== 'web' && !selectedLocation) {
       setLocationError(true);
       showMessage(
@@ -590,112 +623,7 @@ export default function CreateBookingScreen() {
               />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <Text style={styles.inputLabel}>
-                  {i18n.locale === 'fr' ? 'Date' : 'Date'} <Text style={styles.required}>*</Text>
-                </Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker(true)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="calendar" size={20} color={Colors.dark.primary} />
-                  <Text style={styles.dateButtonText}>{formatDate(taskDate)}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <Text style={styles.inputLabel}>
-                  {i18n.locale === 'fr' ? 'Heure' : 'Time'} <Text style={styles.required}>*</Text>
-                </Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowTimePicker(true)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="time" size={20} color={Colors.dark.primary} />
-                  <Text style={styles.dateButtonText}>{formatTime(taskDate)}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {Platform.OS === 'ios' && showDatePicker && (
-              <Modal visible={showDatePicker} transparent animationType="slide">
-                <View style={styles.pickerModal}>
-                  <View style={styles.pickerContainer}>
-                    <View style={styles.pickerHeader}>
-                      <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                        <Text style={styles.pickerDone}>
-                          {i18n.locale === 'fr' ? 'Terminé' : 'Done'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={taskDate}
-                      mode="date"
-                      display="spinner"
-                      onChange={handleDateChange}
-                      minimumDate={getMinDate()}
-                      textColor={Colors.dark.text}
-                    />
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            {Platform.OS === 'android' && showDatePicker && (
-              <DateTimePicker
-                value={taskDate}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-                minimumDate={getMinDate()}
-              />
-            )}
-
-            {Platform.OS === 'ios' && showTimePicker && (
-              <Modal visible={showTimePicker} transparent animationType="slide">
-                <View style={styles.pickerModal}>
-                  <View style={styles.pickerContainer}>
-                    <View style={styles.pickerHeader}>
-                      <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                        <Text style={styles.pickerDone}>
-                          {i18n.locale === 'fr' ? 'Terminé' : 'Done'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={taskDate}
-                      mode="time"
-                      display="spinner"
-                      onChange={handleTimeChange}
-                      textColor={Colors.dark.text}
-                    />
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            {Platform.OS === 'android' && showTimePicker && (
-              <DateTimePicker
-                value={taskDate}
-                mode="time"
-                display="default"
-                onChange={handleTimeChange}
-              />
-            )}
-
-            {Platform.OS === 'web' && (showDatePicker || showTimePicker) && (
-              <View style={styles.webPickerNotice}>
-                <Text style={styles.webPickerText}>
-                  {i18n.locale === 'fr' 
-                    ? 'Sélecteur de date/heure disponible sur mobile uniquement' 
-                    : 'Date/time picker available on mobile only'}
-                </Text>
-              </View>
-            )}
-
+            {/* Duration Dropdown - Only for hourly pricing (moved before date selection) */}
             {pricingType === 'hourly' && (
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>
@@ -714,6 +642,151 @@ export default function CreateBookingScreen() {
                 </TouchableOpacity>
               </View>
             )}
+
+            {/* Date & Time Selection */}
+            <View style={styles.inputContainer}>
+              <View style={styles.schedulingHeader}>
+                <Text style={styles.inputLabel}>
+                  {i18n.locale === 'fr' ? 'Date & Heure' : 'Date & Time'} <Text style={styles.required}>*</Text>
+                </Text>
+                {taskerId && (
+                  <TouchableOpacity
+                    style={styles.schedulingToggle}
+                    onPress={() => setUseAvailabilityCalendar(!useAvailabilityCalendar)}
+                  >
+                    <Text style={styles.schedulingToggleText}>
+                      {useAvailabilityCalendar 
+                        ? (i18n.locale === 'fr' ? 'Mode manuel' : 'Manual mode')
+                        : (i18n.locale === 'fr' ? 'Voir disponibilités' : 'View availability')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {useAvailabilityCalendar && taskerId ? (
+                <View style={styles.calendarContainer}>
+                  <AvailabilityCalendar
+                    taskerId={taskerId}
+                    durationHours={duration}
+                    onSelect={handleCalendarSelect}
+                    selectedDate={selectedDate}
+                    selectedSlot={selectedSlot}
+                  />
+                </View>
+              ) : (
+                <>
+                  {/* Manual Date & Time Selection */}
+                  <View style={styles.row}>
+                    <View style={[styles.inputContainer, styles.halfWidth]}>
+                      <TouchableOpacity
+                        style={styles.dateButton}
+                        onPress={() => setShowDatePicker(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="calendar" size={20} color={Colors.dark.primary} />
+                        <Text style={styles.dateButtonText}>{formatDate(taskDate)}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={[styles.inputContainer, styles.halfWidth]}>
+                      <TouchableOpacity
+                        style={styles.dateButton}
+                        onPress={() => setShowTimePicker(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="time" size={20} color={Colors.dark.primary} />
+                        <Text style={styles.dateButtonText}>{formatTime(taskDate)}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {Platform.OS === 'ios' && showDatePicker && (
+                    <Modal visible={showDatePicker} transparent animationType="slide">
+                      <View style={styles.pickerModal}>
+                        <View style={styles.pickerContainer}>
+                          <View style={styles.pickerHeader}>
+                            <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                              <Text style={styles.pickerDone}>
+                                {i18n.locale === 'fr' ? 'Terminé' : 'Done'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={taskDate}
+                            mode="date"
+                            display="spinner"
+                            onChange={handleDateChange}
+                            minimumDate={getMinDate()}
+                            textColor={Colors.dark.text}
+                          />
+                        </View>
+                      </View>
+                    </Modal>
+                  )}
+
+                  {Platform.OS === 'android' && showDatePicker && (
+                    <DateTimePicker
+                      value={taskDate}
+                      mode="date"
+                      display="default"
+                      onChange={handleDateChange}
+                      minimumDate={getMinDate()}
+                    />
+                  )}
+
+                  {Platform.OS === 'ios' && showTimePicker && (
+                    <Modal visible={showTimePicker} transparent animationType="slide">
+                      <View style={styles.pickerModal}>
+                        <View style={styles.pickerContainer}>
+                          <View style={styles.pickerHeader}>
+                            <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                              <Text style={styles.pickerDone}>
+                                {i18n.locale === 'fr' ? 'Terminé' : 'Done'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={taskDate}
+                            mode="time"
+                            display="spinner"
+                            onChange={handleTimeChange}
+                            textColor={Colors.dark.text}
+                          />
+                        </View>
+                      </View>
+                    </Modal>
+                  )}
+
+                  {Platform.OS === 'android' && showTimePicker && (
+                    <DateTimePicker
+                      value={taskDate}
+                      mode="time"
+                      display="default"
+                      onChange={handleTimeChange}
+                    />
+                  )}
+
+                  {Platform.OS === 'web' && (showDatePicker || showTimePicker) && (
+                    <View style={styles.webPickerNotice}>
+                      <Text style={styles.webPickerText}>
+                        {i18n.locale === 'fr' 
+                          ? 'Sélecteur de date/heure disponible sur mobile uniquement' 
+                          : 'Date/time picker available on mobile only'}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.manualModeNotice}>
+                    <Ionicons name="information-circle" size={16} color={Colors.dark.warning} />
+                    <Text style={styles.manualModeText}>
+                      {i18n.locale === 'fr' 
+                        ? 'Mode manuel - la disponibilité n\'est pas garantie' 
+                        : 'Manual mode - availability is not guaranteed'}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
 
             <Modal visible={showDurationPicker} transparent animationType="slide">
               <TouchableOpacity 
@@ -1145,6 +1218,42 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.dark.text,
     marginBottom: 8,
+  },
+  schedulingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  schedulingToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  schedulingToggleText: {
+    fontSize: 12,
+    color: Colors.dark.primary,
+    fontWeight: '500',
+  },
+  calendarContainer: {
+    marginTop: 4,
+  },
+  manualModeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  manualModeText: {
+    fontSize: 12,
+    color: Colors.dark.warning,
+    flex: 1,
   },
   required: {
     color: Colors.dark.error,

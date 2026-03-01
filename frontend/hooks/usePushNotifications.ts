@@ -18,6 +18,43 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// ==================== NOTIFICATION TYPES (match backend exactly) ====================
+// All types use snake_case - no camelCase or kebab-case
+const NotificationTypes = {
+  // Core task notifications
+  NEW_BOOKING_REQUEST: 'new_booking_request',
+  TASK_ACCEPTED: 'task_accepted',
+  TASK_REJECTED: 'task_rejected',
+  TASK_COMPLETED: 'task_completed',
+  TASK_CANCELLED: 'task_cancelled',
+  TASK_APPLICATION: 'task_application',
+  WORK_STARTED: 'work_started',
+  TASK_REMINDER: 'task_reminder',
+  
+  // Location
+  TASKER_ARRIVED: 'tasker_arrived',
+  TASKER_ON_WAY: 'tasker_on_way',  // NOT "en_route"
+  
+  // Payment
+  PAYMENT_RECEIVED: 'payment_received',
+  PAYMENT_CONFIRMED: 'payment_confirmed',
+  
+  // Communication
+  NEW_MESSAGE: 'new_message',
+  
+  // Reviews
+  NEW_REVIEW: 'new_review',
+  REVIEW_RECEIVED: 'review_received',
+  
+  // Disputes
+  DISPUTE_RAISED: 'dispute_raised',    // NOT "dispute_opened"
+  DISPUTE_RESOLVED: 'dispute_resolved',
+  
+  // Other
+  PROFILE_VERIFIED: 'profile_verified',
+  GENERAL: 'general'
+};
+
 export interface PushNotificationState {
   expoPushToken: string | null;
   notification: Notifications.Notification | null;
@@ -42,7 +79,6 @@ export function usePushNotifications() {
     // Check if running on a physical device
     if (!Device.isDevice) {
       console.log('Push notifications require a physical device');
-      // For web/simulator, we can still set up the listeners but won't get a token
       if (Platform.OS === 'web') {
         console.log('Web platform detected - push notifications have limited support');
       }
@@ -117,42 +153,89 @@ export function usePushNotifications() {
 
   // Handle notification response (user tapped notification)
   const handleNotificationResponse = useCallback((response: Notifications.NotificationResponse) => {
-    console.log('Notification response:', response);
+    console.log('Notification tapped:', response);
     
     const data = response.notification.request.content.data;
     console.log('Notification data:', JSON.stringify(data, null, 2));
     
-    // Check notification type for routing
-    const notificationType = data?.type?.toLowerCase() || '';
-    
-    // Message/Chat notification types - navigate to chat
-    const chatTypes = ['new_message', 'message', 'chat', 'chat_message'];
-    const isChatNotification = chatTypes.includes(notificationType) || data?.screen === 'chat';
-    
-    if (isChatNotification && data?.task_id) {
-      // Navigate to chat screen for message notifications
-      console.log('Navigating to chat for task:', data.task_id);
-      router.push(`/chat/${data.task_id}`);
-      return;
+    // Backend uses snake_case: type, task_id
+    const notificationType = data?.type || '';
+    const taskId = data?.task_id;
+
+    try {
+      switch (notificationType) {
+        // ==================== MESSAGES → CHAT ====================
+        case NotificationTypes.NEW_MESSAGE:
+          if (taskId) {
+            console.log('Navigating to chat for task:', taskId);
+            router.push(`/chat/${taskId}`);
+          } else {
+            router.push('/(tabs)/bookings');
+          }
+          break;
+
+        // ==================== REVIEWS → PROFILE (where reviews are shown) ====================
+        case NotificationTypes.NEW_REVIEW:
+        case NotificationTypes.REVIEW_RECEIVED:
+          console.log('Navigating to profile (reviews)');
+          router.push('/(tabs)/profile');
+          break;
+
+        // ==================== PAYMENT RECEIVED → EARNINGS ====================
+        case NotificationTypes.PAYMENT_RECEIVED:
+          console.log('Navigating to earnings');
+          router.push('/tasker/my-earnings');
+          break;
+
+        // ==================== PROFILE VERIFIED → PROFILE ====================
+        case NotificationTypes.PROFILE_VERIFIED:
+          console.log('Navigating to profile');
+          router.push('/(tabs)/profile');
+          break;
+
+        // ==================== GENERAL → NOTIFICATIONS LIST ====================
+        case NotificationTypes.GENERAL:
+          console.log('Navigating to notifications');
+          router.push('/notifications');
+          break;
+
+        // ==================== ALL TASK-RELATED → TASK DETAILS ====================
+        case NotificationTypes.NEW_BOOKING_REQUEST:
+        case NotificationTypes.TASK_ACCEPTED:
+        case NotificationTypes.TASK_REJECTED:
+        case NotificationTypes.TASK_COMPLETED:
+        case NotificationTypes.TASK_CANCELLED:
+        case NotificationTypes.TASK_APPLICATION:
+        case NotificationTypes.WORK_STARTED:
+        case NotificationTypes.TASK_REMINDER:
+        case NotificationTypes.TASKER_ARRIVED:
+        case NotificationTypes.TASKER_ON_WAY:
+        case NotificationTypes.PAYMENT_CONFIRMED:
+        case NotificationTypes.DISPUTE_RAISED:
+        case NotificationTypes.DISPUTE_RESOLVED:
+          if (taskId) {
+            console.log('Navigating to task:', taskId);
+            router.push(`/task/${taskId}`);
+          } else {
+            router.push('/(tabs)/bookings');
+          }
+          break;
+
+        // ==================== DEFAULT ====================
+        default:
+          console.log('Unknown notification type:', notificationType);
+          // If we have a task_id, go to that task
+          if (taskId) {
+            router.push(`/task/${taskId}`);
+          } else {
+            router.push('/notifications');
+          }
+          break;
+      }
+    } catch (err) {
+      console.error('Error handling notification navigation:', err);
+      router.push('/notifications');
     }
-    
-    // Task-related notifications - navigate to task details
-    if (data?.task_id) {
-      console.log('Navigating to task:', data.task_id);
-      router.push(`/task/${data.task_id}`);
-      return;
-    }
-    
-    // Custom screen navigation
-    if (data?.screen) {
-      console.log('Navigating to screen:', data.screen);
-      router.push(data.screen as string);
-      return;
-    }
-    
-    // Fallback - go to notifications list
-    console.log('No specific route, navigating to notifications');
-    router.push('/notifications');
   }, [router]);
 
   // Set up listeners on mount
@@ -171,13 +254,23 @@ export function usePushNotifications() {
       handleNotificationResponse
     );
 
+    // Check if app was opened from a notification (cold start)
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        console.log('App opened from notification (cold start):', response);
+        // Small delay to ensure router is ready
+        setTimeout(() => {
+          handleNotificationResponse(response);
+        }, 500);
+      }
+    });
+
     return () => {
       // Clean up listeners
       if (notificationListener.current) {
         try {
           notificationListener.current.remove();
         } catch (e) {
-          // Fallback for web where removeNotificationSubscription may not exist
           console.log('Could not remove notification listener');
         }
       }
@@ -185,7 +278,6 @@ export function usePushNotifications() {
         try {
           responseListener.current.remove();
         } catch (e) {
-          // Fallback for web
           console.log('Could not remove response listener');
         }
       }
