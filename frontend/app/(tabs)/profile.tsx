@@ -17,9 +17,8 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Colors } from '../../constants/Colors';
-import i18n from '../../utils/i18n';
-import { storage } from '../../utils/storage';
 import { showConfirm, showMessage } from '../../utils/alert';
 import { imageAPI } from '../../services/api';
 
@@ -91,6 +90,7 @@ function AnimatedMenuItem({
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, refreshUser, logout } = useAuth();
+  const { locale, setLocale, t } = useLanguage();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -121,8 +121,8 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Déconnexion' : 'Logout',
-      i18n.locale === 'fr'
+      locale === 'fr' ? 'Déconnexion' : 'Logout',
+      locale === 'fr'
         ? 'Êtes-vous sûr de vouloir vous déconnecter?'
         : 'Are you sure you want to logout?',
       async () => {
@@ -136,16 +136,14 @@ export default function ProfileScreen() {
         router.replace('/');
       },
       undefined,
-      i18n.locale === 'fr' ? 'Déconnexion' : 'Logout',
-      i18n.locale === 'fr' ? 'Annuler' : 'Cancel'
+      locale === 'fr' ? 'Déconnexion' : 'Logout',
+      locale === 'fr' ? 'Annuler' : 'Cancel'
     );
   };
 
   const handleLanguageChange = async () => {
-    const newLocale = i18n.locale === 'en' ? 'fr' : 'en';
-    i18n.locale = newLocale;
-    await storage.saveLanguage(newLocale);
-    router.replace('/profile');
+    const newLocale = locale === 'en' ? 'fr' : 'en';
+    await setLocale(newLocale);
   };
 
   // Profile Picture Handlers
@@ -155,8 +153,8 @@ export default function ProfileScreen() {
       
       if (!permissionResult.granted) {
         showMessage(
-          i18n.locale === 'fr' ? 'Permission refusée' : 'Permission Denied',
-          i18n.locale === 'fr' 
+          locale === 'fr' ? 'Permission refusée' : 'Permission Denied',
+          locale === 'fr' 
             ? 'Veuillez autoriser l\'accès à la galerie' 
             : 'Please allow access to your photo library'
         );
@@ -176,8 +174,8 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Error picking image:', error);
       showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de sélectionner l\'image' : 'Unable to select image'
+        locale === 'fr' ? 'Erreur' : 'Error',
+        locale === 'fr' ? 'Impossible de sélectionner l\'image' : 'Unable to select image'
       );
     }
   };
@@ -193,14 +191,14 @@ export default function ProfileScreen() {
       }
       
       showMessage(
-        i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Photo de profil mise à jour' : 'Profile picture updated'
+        locale === 'fr' ? 'Succès' : 'Success',
+        locale === 'fr' ? 'Photo de profil mise à jour' : 'Profile picture updated'
       );
     } catch (error) {
       console.error('Error uploading image:', error);
       showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de télécharger l\'image' : 'Unable to upload image'
+        locale === 'fr' ? 'Erreur' : 'Error',
+        locale === 'fr' ? 'Impossible de télécharger l\'image' : 'Unable to upload image'
       );
     } finally {
       setUploadingImage(false);
@@ -209,8 +207,8 @@ export default function ProfileScreen() {
 
   const handleDeleteProfileImage = () => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Supprimer la photo' : 'Delete Photo',
-      i18n.locale === 'fr' 
+      locale === 'fr' ? 'Supprimer la photo' : 'Delete Photo',
+      locale === 'fr' 
         ? 'Voulez-vous supprimer votre photo de profil?' 
         : 'Do you want to delete your profile picture?',
       async () => {
@@ -224,8 +222,8 @@ export default function ProfileScreen() {
           }
           
           showMessage(
-            i18n.locale === 'fr' ? 'Succès' : 'Success',
-            i18n.locale === 'fr' ? 'Photo supprimée' : 'Photo deleted'
+            locale === 'fr' ? 'Succès' : 'Success',
+            locale === 'fr' ? 'Photo supprimée' : 'Photo deleted'
           );
         } catch (error) {
           console.error('Error deleting image:', error);
@@ -240,20 +238,20 @@ export default function ProfileScreen() {
     const hasProfileImage = user?.profile_image || user?.avatar || user?.profile_picture;
     
     Alert.alert(
-      i18n.locale === 'fr' ? 'Photo de profil' : 'Profile Picture',
-      i18n.locale === 'fr' ? 'Que voulez-vous faire?' : 'What would you like to do?',
+      locale === 'fr' ? 'Photo de profil' : 'Profile Picture',
+      locale === 'fr' ? 'Que voulez-vous faire?' : 'What would you like to do?',
       [
         {
-          text: i18n.locale === 'fr' ? 'Choisir une photo' : 'Choose Photo',
+          text: locale === 'fr' ? 'Choisir une photo' : 'Choose Photo',
           onPress: handlePickImage,
         },
         ...(hasProfileImage ? [{
-          text: i18n.locale === 'fr' ? 'Supprimer' : 'Delete',
+          text: locale === 'fr' ? 'Supprimer' : 'Delete',
           onPress: handleDeleteProfileImage,
           style: 'destructive' as const,
         }] : []),
         {
-          text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel',
+          text: locale === 'fr' ? 'Annuler' : 'Cancel',
           style: 'cancel' as const,
         },
       ]
@@ -266,8 +264,8 @@ export default function ProfileScreen() {
       await Linking.openURL(PRIVACY_POLICY_URL);
     } catch (error) {
       showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+        locale === 'fr' ? 'Erreur' : 'Error',
+        locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
       );
     }
   };
@@ -277,8 +275,8 @@ export default function ProfileScreen() {
       await Linking.openURL(TERMS_OF_SERVICE_URL);
     } catch (error) {
       showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+        locale === 'fr' ? 'Erreur' : 'Error',
+        locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
       );
     }
   };
@@ -309,9 +307,9 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Animated Header */}
       <Animated.View style={[styles.header, { opacity: headerFade }]}>
-        <Text style={styles.headerTitle}>{i18n.t('profile.title')}</Text>
+        <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         <Text style={styles.headerSubtitle}>
-          {i18n.locale === 'fr' ? 'Gérez votre compte' : 'Manage your account'}
+          {locale === 'fr' ? 'Gérez votre compte' : 'Manage your account'}
         </Text>
       </Animated.View>
 
@@ -376,8 +374,8 @@ export default function ProfileScreen() {
               />
               <Text style={styles.roleBadgeText}>
                 {user?.role === 'tasker'
-                  ? i18n.locale === 'fr' ? 'Tâcheron' : 'Tasker'
-                  : i18n.locale === 'fr' ? 'Client' : 'Client'}
+                  ? locale === 'fr' ? 'Tâcheron' : 'Tasker'
+                  : locale === 'fr' ? 'Client' : 'Client'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -406,7 +404,7 @@ export default function ProfileScreen() {
             <View style={styles.completionContainer}>
               <View style={styles.completionHeader}>
                 <Text style={styles.completionTitle}>
-                  {i18n.locale === 'fr' ? 'Profil complété' : 'Profile Complete'}
+                  {locale === 'fr' ? 'Profil complété' : 'Profile Complete'}
                 </Text>
                 <Text style={styles.completionPercent}>{profileCompletion}%</Text>
               </View>
@@ -423,37 +421,37 @@ export default function ProfileScreen() {
         {user?.role === 'tasker' && (
           <View style={styles.menuSection}>
             <Text style={styles.menuSectionTitle}>
-              {i18n.locale === 'fr' ? 'Gestion Tâcheron' : 'Tasker Management'}
+              {locale === 'fr' ? 'Gestion Tâcheron' : 'Tasker Management'}
             </Text>
             <View style={styles.menuCard}>
               <AnimatedMenuItem
                 icon="calendar"
-                title={i18n.locale === 'fr' ? 'Disponibilités' : 'Availability'}
-                subtitle={i18n.locale === 'fr' ? 'Gérer vos horaires' : 'Manage your schedule'}
+                title={locale === 'fr' ? 'Disponibilités' : 'Availability'}
+                subtitle={locale === 'fr' ? 'Gérer vos horaires' : 'Manage your schedule'}
                 onPress={() => router.push('/tasker/availability')}
                 index={0}
                 iconColor={Colors.dark.primary}
               />
               <AnimatedMenuItem
                 icon="briefcase"
-                title={i18n.locale === 'fr' ? 'Mes Services' : 'My Services'}
-                subtitle={i18n.locale === 'fr' ? 'Gérer vos services' : 'Manage your services'}
+                title={locale === 'fr' ? 'Mes Services' : 'My Services'}
+                subtitle={locale === 'fr' ? 'Gérer vos services' : 'Manage your services'}
                 onPress={() => router.push('/tasker/manage-services')}
                 index={1}
                 iconColor="#f59e0b"
               />
               <AnimatedMenuItem
                 icon="star"
-                title={i18n.locale === 'fr' ? 'Mes Avis' : 'My Reviews'}
-                subtitle={i18n.locale === 'fr' ? 'Voir les avis clients' : 'View customer reviews'}
+                title={locale === 'fr' ? 'Mes Avis' : 'My Reviews'}
+                subtitle={locale === 'fr' ? 'Voir les avis clients' : 'View customer reviews'}
                 onPress={() => router.push('/tasker/my-reviews')}
                 index={2}
                 iconColor="#fbbf24"
               />
               <AnimatedMenuItem
                 icon="wallet"
-                title={i18n.locale === 'fr' ? 'Mes Revenus' : 'My Earnings'}
-                subtitle={i18n.locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
+                title={locale === 'fr' ? 'Mes Revenus' : 'My Earnings'}
+                subtitle={locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
                 onPress={() => router.push('/tasker/my-earnings')}
                 index={3}
                 iconColor={Colors.dark.success}
@@ -466,29 +464,29 @@ export default function ProfileScreen() {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>
-            {i18n.locale === 'fr' ? 'Préférences' : 'Preferences'}
+            {locale === 'fr' ? 'Préférences' : 'Preferences'}
           </Text>
           <View style={styles.menuCard}>
             <AnimatedMenuItem
               icon="language"
-              title={i18n.t('profile.language')}
-              subtitle={i18n.locale === 'en' ? 'English' : 'Français'}
+              title={t('profile.language')}
+              subtitle={locale === 'en' ? 'English' : 'Français'}
               onPress={handleLanguageChange}
               index={0}
               iconColor="#8b5cf6"
             />
             <AnimatedMenuItem
               icon="notifications-outline"
-              title={i18n.locale === 'fr' ? 'Notifications' : 'Notifications'}
-              subtitle={i18n.locale === 'fr' ? 'Gérer les alertes' : 'Manage alerts'}
+              title={locale === 'fr' ? 'Notifications' : 'Notifications'}
+              subtitle={locale === 'fr' ? 'Gérer les alertes' : 'Manage alerts'}
               onPress={() => router.push('/notifications')}
               index={1}
               iconColor="#f59e0b"
             />
             <AnimatedMenuItem
               icon="settings-outline"
-              title={i18n.locale === 'fr' ? 'Paramètres' : 'Settings'}
-              subtitle={i18n.locale === 'fr' ? 'Mot de passe, compte' : 'Password, account'}
+              title={locale === 'fr' ? 'Paramètres' : 'Settings'}
+              subtitle={locale === 'fr' ? 'Mot de passe, compte' : 'Password, account'}
               onPress={() => router.push('/settings')}
               index={2}
               iconColor={Colors.dark.textSecondary}
@@ -499,12 +497,12 @@ export default function ProfileScreen() {
         {/* Support Section */}
         <View style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>
-            {i18n.locale === 'fr' ? 'Support' : 'Support'}
+            {locale === 'fr' ? 'Support' : 'Support'}
           </Text>
           <View style={styles.menuCard}>
             <AnimatedMenuItem
               icon="help-circle-outline"
-              title={i18n.locale === 'fr' ? 'Aide & Support' : 'Help & Support'}
+              title={locale === 'fr' ? 'Aide & Support' : 'Help & Support'}
               subtitle={SUPPORT_EMAIL}
               onPress={() => router.push('/support')}
               index={3}
@@ -512,16 +510,16 @@ export default function ProfileScreen() {
             />
             <AnimatedMenuItem
               icon="document-text-outline"
-              title={i18n.locale === 'fr' ? 'Conditions d\'utilisation' : 'Terms of Service'}
-              subtitle={i18n.locale === 'fr' ? 'Lire les conditions' : 'Read our terms'}
+              title={locale === 'fr' ? 'Conditions d\'utilisation' : 'Terms of Service'}
+              subtitle={locale === 'fr' ? 'Lire les conditions' : 'Read our terms'}
               onPress={handleOpenTermsOfService}
               index={4}
               iconColor={Colors.dark.textSecondary}
             />
             <AnimatedMenuItem
               icon="shield-checkmark-outline"
-              title={i18n.locale === 'fr' ? 'Confidentialité' : 'Privacy Policy'}
-              subtitle={i18n.locale === 'fr' ? 'Vos données' : 'Your data'}
+              title={locale === 'fr' ? 'Confidentialité' : 'Privacy Policy'}
+              subtitle={locale === 'fr' ? 'Vos données' : 'Your data'}
               onPress={handleOpenPrivacyPolicy}
               index={5}
               iconColor={Colors.dark.success}
@@ -536,10 +534,10 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.appName}>Soutrali</Text>
           <Text style={styles.versionText}>
-            {i18n.locale === 'fr' ? 'Version' : 'Version'} 1.0.0
+            {locale === 'fr' ? 'Version' : 'Version'} 1.0.0
           </Text>
           <Text style={styles.versionSubtext}>
-            {i18n.locale === 'fr' ? 'Fait avec ❤️ au Sénégal' : 'Made with ❤️ in Senegal'}
+            {locale === 'fr' ? 'Fait avec ❤️ au Sénégal' : 'Made with ❤️ in Senegal'}
           </Text>
         </View>
 
@@ -556,7 +554,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Ionicons name="log-out-outline" size={22} color={Colors.dark.error} />
-                <Text style={styles.logoutButtonText}>{i18n.t('profile.logout')}</Text>
+                <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
               </>
             )}
           </TouchableOpacity>

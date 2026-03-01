@@ -2,11 +2,12 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
-import i18n from '../../utils/i18n';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function TabsLayout() {
   const { user } = useAuth();
+  const { locale, t } = useLanguage();
   const isTasker = user?.role === 'tasker';
 
   return (
@@ -32,7 +33,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: i18n.t('home.title'),
+          title: t('home.title'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
@@ -43,7 +44,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="tasker-dashboard"
         options={{
-          title: i18n.locale === 'fr' ? 'Mes Tâches' : 'My Tasks',
+          title: locale === 'fr' ? 'Mes Tâches' : 'My Tasks',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="briefcase" size={size} color={color} />
           ),
@@ -54,7 +55,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="taskers"
         options={{
-          title: i18n.t('taskers.title'),
+          title: t('taskers.title'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
@@ -65,7 +66,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="bookings"
         options={{
-          title: i18n.t('bookings.title'),
+          title: t('bookings.title'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" size={size} color={color} />
           ),
@@ -74,7 +75,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: i18n.t('profile.title'),
+          title: t('profile.title'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),

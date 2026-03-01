@@ -16,8 +16,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Colors } from '../../constants/Colors';
-import i18n from '../../utils/i18n';
 import { getCategoryName, Category } from '../../constants/Categories';
 import { notificationAPI, categoryAPI, reviewAPI } from '../../services/api';
 
@@ -94,12 +94,14 @@ const ReviewPromptModal = ({
   visible, 
   review, 
   onReview, 
-  onDismiss 
+  onDismiss,
+  locale,
 }: { 
   visible: boolean; 
   review: PendingReview | null; 
   onReview: () => void; 
   onDismiss: () => void;
+  locale: string;
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -165,7 +167,7 @@ const ReviewPromptModal = ({
 
           {/* Title */}
           <Text style={styles.modalTitle}>
-            {i18n.locale === 'fr' ? 'Comment était votre expérience ?' : 'How was your experience?'}
+            {locale === 'fr' ? 'Comment était votre expérience ?' : 'How was your experience?'}
           </Text>
 
           {/* Task Info */}
@@ -180,7 +182,7 @@ const ReviewPromptModal = ({
             <View style={styles.modalTaskDetails}>
               <Text style={styles.modalTaskTitle} numberOfLines={1}>{review.task_title}</Text>
               <Text style={styles.modalTaskerName}>
-                {i18n.locale === 'fr' ? 'par' : 'by'} {review.tasker_name}
+                {locale === 'fr' ? 'par' : 'by'} {review.tasker_name}
               </Text>
             </View>
           </View>
@@ -190,7 +192,7 @@ const ReviewPromptModal = ({
             <View style={styles.warningBanner}>
               <Ionicons name="time-outline" size={16} color="#F59E0B" />
               <Text style={styles.warningText}>
-                {i18n.locale === 'fr' 
+                {locale === 'fr' 
                   ? `${review.days_remaining} jours restants pour évaluer`
                   : `${review.days_remaining} days left to review`}
               </Text>
@@ -199,7 +201,7 @@ const ReviewPromptModal = ({
 
           {/* Description */}
           <Text style={styles.modalDescription}>
-            {i18n.locale === 'fr' 
+            {locale === 'fr' 
               ? 'Votre avis aide les autres clients à trouver des tâcherons de qualité et aide les tâcherons à améliorer leurs services.'
               : 'Your review helps other clients find quality taskers and helps taskers improve their services.'}
           </Text>
@@ -212,7 +214,7 @@ const ReviewPromptModal = ({
           >
             <Ionicons name="star" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.modalPrimaryButtonText}>
-              {i18n.locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
+              {locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
             </Text>
           </TouchableOpacity>
 
@@ -222,7 +224,7 @@ const ReviewPromptModal = ({
             activeOpacity={0.7}
           >
             <Text style={styles.modalSecondaryButtonText}>
-              {i18n.locale === 'fr' ? 'Peut-être plus tard' : 'Maybe Later'}
+              {locale === 'fr' ? 'Peut-être plus tard' : 'Maybe Later'}
             </Text>
           </TouchableOpacity>
         </Animated.View>
@@ -235,11 +237,13 @@ const ReviewPromptModal = ({
 const ReviewBanner = ({ 
   review, 
   onReview, 
-  onDismiss 
+  onDismiss,
+  locale,
 }: { 
   review: PendingReview; 
   onReview: () => void; 
   onDismiss: () => void;
+  locale: string;
 }) => {
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -305,7 +309,7 @@ const ReviewBanner = ({
 
         <View style={styles.bannerContent}>
           <Text style={styles.bannerTitle}>
-            {i18n.locale === 'fr' ? 'Notez votre tâcheron' : 'Rate your tasker'}
+            {locale === 'fr' ? 'Notez votre tâcheron' : 'Rate your tasker'}
           </Text>
           <Text style={styles.bannerSubtitle} numberOfLines={1}>
             {review.tasker_name} - {review.task_title}
@@ -318,7 +322,7 @@ const ReviewBanner = ({
           activeOpacity={0.8}
         >
           <Text style={styles.bannerButtonText}>
-            {i18n.locale === 'fr' ? 'Noter' : 'Review'}
+            {locale === 'fr' ? 'Noter' : 'Review'}
           </Text>
         </TouchableOpacity>
       </LinearGradient>
@@ -330,11 +334,13 @@ const ReviewBanner = ({
 const AnimatedCategoryCard = ({ 
   category, 
   index, 
-  onPress 
+  onPress,
+  locale,
 }: { 
   category: Category; 
   index: number; 
   onPress: () => void;
+  locale: string;
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -393,11 +399,11 @@ const AnimatedCategoryCard = ({
           <Text style={styles.categoryIcon}>{category.icon}</Text>
         </View>
         <Text style={styles.categoryTitle} numberOfLines={2}>
-          {getCategoryName(category, i18n.locale)}
+          {getCategoryName(category, locale)}
         </Text>
         <View style={styles.serviceCountBadge}>
           <Text style={styles.categorySubcount}>
-            {category.subcategories.length} {i18n.locale === 'fr' ? 'services' : 'services'}
+            {category.subcategories.length} {locale === 'fr' ? 'services' : 'services'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -407,6 +413,7 @@ const AnimatedCategoryCard = ({
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -577,6 +584,7 @@ export default function HomeScreen() {
         review={pendingReview}
         onReview={handleReviewAction}
         onDismiss={handleReviewModalDismiss}
+        locale={locale}
       />
 
       <ScrollView
@@ -590,6 +598,7 @@ export default function HomeScreen() {
             review={pendingReview}
             onReview={handleReviewAction}
             onDismiss={handleBannerDismiss}
+            locale={locale}
           />
         )}
 
@@ -605,7 +614,7 @@ export default function HomeScreen() {
         >
           <View>
             <Text style={styles.greeting}>
-              {i18n.locale === 'fr' ? 'Bonjour' : 'Hello'},
+              {locale === 'fr' ? 'Bonjour' : 'Hello'},
             </Text>
             <Text style={styles.userName}>{user?.full_name}</Text>
           </View>
@@ -649,19 +658,19 @@ export default function HomeScreen() {
             <View style={styles.welcomeContent}>
               <Text style={styles.welcomeTitle}>
                 {user?.role === 'client'
-                  ? i18n.locale === 'fr'
+                  ? locale === 'fr'
                     ? 'Trouvez le Tâcheron parfait'
                     : 'Find the Perfect Tasker'
-                  : i18n.locale === 'fr'
+                  : locale === 'fr'
                   ? 'Commencez à accepter des tâches'
                   : 'Start Accepting Tasks'}
               </Text>
               <Text style={styles.welcomeSubtitle}>
                 {user?.role === 'client'
-                  ? i18n.locale === 'fr'
+                  ? locale === 'fr'
                     ? 'Des milliers de professionnels qualifiés sont prêts à vous aider'
                     : 'Thousands of skilled professionals ready to help'
-                  : i18n.locale === 'fr'
+                  : locale === 'fr'
                   ? 'Gagnez de l\'argent en aidant les gens autour de vous'
                   : 'Earn money by helping people around you'}
               </Text>
@@ -675,7 +684,7 @@ export default function HomeScreen() {
         {/* Categories Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{i18n.t('home.categories')}</Text>
+            <Text style={styles.sectionTitle}>{t('home.categories')}</Text>
             {!loadingCategories && categories.length > 0 && (
               <Text style={styles.sectionCount}>{categories.length}</Text>
             )}
@@ -698,6 +707,7 @@ export default function HomeScreen() {
                     pathname: '/booking/select-service',
                     params: { categoryId: category.id }
                   })}
+                  locale={locale}
                 />
               ))}
             </View>
@@ -707,16 +717,16 @@ export default function HomeScreen() {
         {/* Featured Section - Coming Soon */}
         {user?.role === 'client' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.t('home.featured')}</Text>
+            <Text style={styles.sectionTitle}>{t('home.featured')}</Text>
             <View style={styles.comingSoonCard}>
               <View style={styles.comingSoonIconContainer}>
                 <Ionicons name="star-outline" size={32} color={Colors.dark.primary} />
               </View>
               <Text style={styles.comingSoon}>
-                {i18n.locale === 'fr' ? 'Bientôt disponible' : 'Coming Soon'}
+                {locale === 'fr' ? 'Bientôt disponible' : 'Coming Soon'}
               </Text>
               <Text style={styles.comingSoonSubtitle}>
-                {i18n.locale === 'fr'
+                {locale === 'fr'
                   ? 'Parcourir les tâcherons sera disponible dans la Phase 2'
                   : 'Browse taskers will be available in Phase 2'}
               </Text>
