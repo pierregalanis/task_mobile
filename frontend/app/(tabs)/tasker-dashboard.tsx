@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { taskAPI, notificationAPI } from '../../services/api';
+import { taskAPI, notificationAPI, taskerAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -258,11 +258,13 @@ export default function TaskerDashboardScreen() {
   }, [tasks]);
 
   const fetchData = async () => {
-    try {
-      const [tasksData, unreadData] = await Promise.all([
-        taskAPI.getTaskerTasks(),
-        notificationAPI.getUnreadCount(),
-      ]);
+  try {
+    const [tasksData, unreadData, profileData] = await Promise.all([
+      taskAPI.getTaskerTasks(),
+      notificationAPI.getUnreadCount(),
+      taskerAPI.getMyProfile().catch(() => null),
+    ]);
+    
       
       const taskList = tasksData || [];
       setTasks(taskList);
@@ -273,8 +275,8 @@ export default function TaskerDashboardScreen() {
       const totalEarnings = paidTasks.reduce((sum: number, t: any) => 
         sum + (t.final_price || t.total_cost || t.estimated_total || 0), 0);
       
-      const rating = user?.tasker_profile?.average_rating || user?.tasker_profile?.rating || 0;
-      const totalReviews = user?.tasker_profile?.total_reviews || 0;
+      const rating = profileData?.average_rating || profileData?.tasker_profile?.average_rating || user?.tasker_profile?.average_rating || 0;
+      const totalReviews = profileData?.total_reviews || profileData?.tasker_profile?.total_reviews || user?.tasker_profile?.total_reviews || 0;
       
       setStats({ rating, totalReviews, completedTasks: completedTasks.length, totalEarnings });
     } catch (error) {
@@ -462,8 +464,8 @@ export default function TaskerDashboardScreen() {
                 )}
               </TouchableOpacity>
             </Animated.View>
-            <View style={styles.decorCircle1} />
-            <View style={styles.decorCircle2} />
+            <View style={styles.decorCircle1} pointerEvents="none" />
+            <View style={styles.decorCircle2} pointerEvents="none" />
           </LinearGradient>
         </Animated.View>
 

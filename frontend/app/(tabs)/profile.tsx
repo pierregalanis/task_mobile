@@ -90,7 +90,7 @@ function AnimatedMenuItem({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -417,44 +417,7 @@ export default function ProfileScreen() {
           )}
         </Animated.View>
 
-        {/* Quick Stats for Tasker */}
-        {user?.role === 'tasker' && (
-          <View style={styles.statsRow}>
-            <TouchableOpacity 
-              style={styles.statCard}
-              onPress={() => router.push('/tasker/my-reviews')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="star" size={20} color="#f59e0b" />
-              <Text style={styles.statValue}>
-                {user?.tasker_profile?.average_rating?.toFixed(1) || '-'}
-              </Text>
-              <Text style={styles.statLabel}>{i18n.locale === 'fr' ? 'Note' : 'Rating'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.statCard}
-              onPress={() => router.push('/tasker/my-earnings')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="wallet" size={20} color={Colors.dark.success} />
-              <Text style={styles.statValue}>
-                {user?.tasker_profile?.total_earnings ? `${Math.round(user.tasker_profile.total_earnings / 1000)}K` : '0'}
-              </Text>
-              <Text style={styles.statLabel}>XOF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.statCard}
-              onPress={() => router.push('/(tabs)/bookings')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
-              <Text style={styles.statValue}>
-                {user?.tasker_profile?.completed_tasks || 0}
-              </Text>
-              <Text style={styles.statLabel}>{i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+    
 
           {/* Tasker Management Section - Only for Taskers */}
         {user?.role === 'tasker' && (
@@ -679,17 +642,7 @@ const styles = StyleSheet.create({
   completionPercent: { fontSize: 12, color: Colors.dark.primary, fontWeight: '700' },
   completionBarBg: { height: 6, backgroundColor: Colors.dark.border, borderRadius: 3, overflow: 'hidden' },
   completionBarFill: { height: '100%', backgroundColor: Colors.dark.primary, borderRadius: 3 },
-  
-  // Stats Row
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  statCard: {
-    flex: 1, backgroundColor: Colors.dark.card, borderRadius: 16, padding: 16, alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.dark.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
-  },
-  statValue: { fontSize: 20, fontWeight: '700', color: Colors.dark.text, marginTop: 8 },
-  statLabel: { fontSize: 11, color: Colors.dark.textSecondary, marginTop: 2 },
-  
+   
   // Menu Sections
   menuSection: { marginBottom: 20 },
   menuSectionTitle: {

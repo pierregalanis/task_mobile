@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
+import UpcomingReminderBanner from '../../components/UpcomingReminderBanner';
 import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 
