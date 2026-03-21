@@ -1,25 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-View,
-
-Text,
-
-StyleSheet,
-
-ScrollView,
-
-TouchableOpacity,
-
-ActivityIndicator,
-
-Modal,
-
-TextInput,
-
-Platform,
-
-Image,
-
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+  Platform,
+  Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,11 +27,11 @@ import { formatPrice } from '../../utils/pricingUtils';
 
 // Dispute reasons
 const DISPUTE_REASONS = [
-  { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualité' },
-  { id: 'incomplete', en: 'Task Not Completed', fr: 'Tâche non terminée' },
+  { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualite' },
+  { id: 'incomplete', en: 'Task Not Completed', fr: 'Tache non terminee' },
   { id: 'overcharge', en: 'Overcharged', fr: 'Surfacturation' },
-  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: 'Le tâcheron ne s\'est pas présenté' },
-  { id: 'damage', en: 'Property Damage', fr: 'Dommages matériels' },
+  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: 'Le tacheron ne s'est pas presente' },
+  { id: 'damage', en: 'Property Damage', fr: 'Dommages materiels' },
   { id: 'other', en: 'Other', fr: 'Autre' },
 ];
 
@@ -161,7 +152,7 @@ export default function TaskDetailsScreen() {
       console.error('Error fetching task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de charger les détails' : 'Failed to load details'
+        i18n.locale === 'fr' ? 'Impossible de charger les details' : 'Failed to load details'
       );
     } finally {
       setLoading(false);
@@ -191,16 +182,16 @@ export default function TaskDetailsScreen() {
 
   const getStatusText = (status: string, isPaid?: boolean) => {
     if (i18n.locale === 'fr') {
-      if (status === 'completed' && isPaid) return 'Payé';
+      if (status === 'completed' && isPaid) return 'Paye';
       if (status === 'completed' && !isPaid) return 'En attente paiement';
       switch (status) {
         case 'assigned': return 'En attente';
         case 'pending': return 'En attente';
-        case 'accepted': return 'Acceptée';
+        case 'accepted': return 'Acceptee';
         case 'en_route': return 'En route';
         case 'in_progress': return 'En cours';
-        case 'completed': return 'Terminée';
-        case 'cancelled': return 'Annulée';
+        case 'completed': return 'Terminee';
+        case 'cancelled': return 'Annulee';
         default: return status;
       }
     }
@@ -219,15 +210,15 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.acceptTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Tâche acceptée!' : 'Task accepted!'
+        i18n.locale === 'fr' ? 'Succes' : 'Success',
+        i18n.locale === 'fr' ? 'Tache acceptee!' : 'Task accepted!'
       );
       fetchTaskDetails();
     } catch (error) {
       console.error('Error accepting task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d\'accepter' : 'Failed to accept'
+        i18n.locale === 'fr' ? 'Impossible d'accepter' : 'Failed to accept'
       );
     } finally {
       setActionLoading(false);
@@ -239,8 +230,8 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.rejectTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Tâche refusée' : 'Task Declined',
-        i18n.locale === 'fr' ? 'Vous avez refusé cette tâche' : 'You have declined this task',
+        i18n.locale === 'fr' ? 'Tache refusee' : 'Task Declined',
+        i18n.locale === 'fr' ? 'Vous avez refuse cette tache' : 'You have declined this task',
         () => router.back()
       );
     } catch (error) {
@@ -256,6 +247,41 @@ export default function TaskDetailsScreen() {
 
   const handleStartEnRoute = () => {
     router.push(`/tracking/${task.id}?mode=tasker`);
+  };
+
+  // Navigate to Client - opens Google Maps with directions
+  const handleNavigateToClient = () => {
+    const latitude = task.latitude;
+    const longitude = task.longitude;
+
+    if (latitude && longitude) {
+      const url = Platform.select({
+        ios: `maps://app?daddr=${latitude},${longitude}&dirflg=d`,
+        android: `google.navigation:q=${latitude},${longitude}&mode=d`,
+      });
+
+      if (url) {
+        Linking.canOpenURL(url).then((supported) => {
+          if (supported) {
+            Linking.openURL(url);
+          } else {
+            // Fallback to web Google Maps
+            Linking.openURL(
+              `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`
+            );
+          }
+        });
+      }
+    } else if (task.address) {
+      // Fallback: use address string if no coordinates
+      const encodedAddress = encodeURIComponent(task.address + (task.city ? `, ${task.city}` : ''));
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`);
+    } else {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr' ? 'Adresse du client non disponible' : 'Client address not available'
+      );
+    }
   };
 
   // FIXED: Timer start - update local state immediately, avoid race condition
@@ -278,15 +304,15 @@ export default function TaskDetailsScreen() {
       }));
       
       showMessage(
-        i18n.locale === 'fr' ? 'Chrono démarré' : 'Timer Started',
-        i18n.locale === 'fr' ? 'Le temps de travail est maintenant comptabilisé' : 'Work time is now being tracked'
+        i18n.locale === 'fr' ? 'Chrono demarre' : 'Timer Started',
+        i18n.locale === 'fr' ? 'Le temps de travail est maintenant comptabilise' : 'Work time is now being tracked'
       );
       // Note: NOT calling fetchTaskDetails() to avoid race condition
     } catch (error: any) {
       console.error('Error starting timer:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de démarrer le chrono' : 'Failed to start timer')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de demarrer le chrono' : 'Failed to start timer')
       );
     } finally {
       setActionLoading(false);
@@ -319,8 +345,8 @@ export default function TaskDetailsScreen() {
       }));
       
       showMessage(
-        i18n.locale === 'fr' ? 'Chrono arrêté' : 'Timer Stopped',
-        i18n.locale === 'fr' ? 'Le temps de travail a été enregistré' : 'Work time has been recorded'
+        i18n.locale === 'fr' ? 'Chrono arrete' : 'Timer Stopped',
+        i18n.locale === 'fr' ? 'Le temps de travail a ete enregistre' : 'Work time has been recorded'
       );
       // Note: NOT calling fetchTaskDetails() to avoid race condition that could re-enable timer
     } catch (error: any) {
@@ -329,7 +355,7 @@ export default function TaskDetailsScreen() {
       setTimerRunning(true);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'arrêter le chrono' : 'Failed to stop timer')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d'arreter le chrono' : 'Failed to stop timer')
       );
     } finally {
       setActionLoading(false);
@@ -349,7 +375,7 @@ export default function TaskDetailsScreen() {
       }
       await taskAPI.completeTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Tâche terminée!' : 'Task Completed!',
+        i18n.locale === 'fr' ? 'Tache terminee!' : 'Task Completed!',
         i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting payment'
       );
       fetchTaskDetails();
@@ -369,8 +395,8 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.markPaidCash(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Paiement confirmé!' : 'Payment Confirmed!',
-        i18n.locale === 'fr' ? 'Le paiement en espèces a été enregistré' : 'Cash payment has been recorded'
+        i18n.locale === 'fr' ? 'Paiement confirme!' : 'Payment Confirmed!',
+        i18n.locale === 'fr' ? 'Le paiement en especes a ete enregistre' : 'Cash payment has been recorded'
       );
       fetchTaskDetails();
     } catch (error) {
@@ -399,15 +425,15 @@ export default function TaskDetailsScreen() {
       setShowCancelModal(false);
       setCancelReason('');
       showMessage(
-        i18n.locale === 'fr' ? 'Succès' : 'Success',
-        i18n.locale === 'fr' ? 'Tâche annulée' : 'Task cancelled',
+        i18n.locale === 'fr' ? 'Succes' : 'Success',
+        i18n.locale === 'fr' ? 'Tache annulee' : 'Task cancelled',
         () => router.back()
       );
     } catch (error) {
       console.error('Error cancelling task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d\'annuler la tâche' : 'Failed to cancel task'
+        i18n.locale === 'fr' ? 'Impossible d'annuler la tache' : 'Failed to cancel task'
       );
     } finally {
       setCancelling(false);
@@ -436,14 +462,14 @@ export default function TaskDetailsScreen() {
       setRating(5);
       showMessage(
         i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
-        i18n.locale === 'fr' ? 'Votre avis a été soumis' : 'Your review has been submitted'
+        i18n.locale === 'fr' ? 'Votre avis a ete soumis' : 'Your review has been submitted'
       );
       fetchTaskDetails();
     } catch (error: any) {
       console.error('Error submitting review:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de soumettre l\'avis' : 'Failed to submit review')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de soumettre l'avis' : 'Failed to submit review')
       );
     } finally {
       setSubmittingReview(false);
@@ -454,14 +480,14 @@ export default function TaskDetailsScreen() {
     if (!disputeReason) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Veuillez sélectionner une raison' : 'Please select a reason'
+        i18n.locale === 'fr' ? 'Veuillez selectionner une raison' : 'Please select a reason'
       );
       return;
     }
     if (!disputeDescription.trim()) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Veuillez décrire le problème' : 'Please describe the issue'
+        i18n.locale === 'fr' ? 'Veuillez decrire le probleme' : 'Please describe the issue'
       );
       return;
     }
@@ -474,7 +500,7 @@ export default function TaskDetailsScreen() {
       setDisputeDescription('');
       showMessage(
         i18n.locale === 'fr' ? 'Litige soumis' : 'Dispute Submitted',
-        i18n.locale === 'fr' ? 'Notre équipe examinera votre demande sous peu.' : 'Our team will review your request shortly.'
+        i18n.locale === 'fr' ? 'Notre equipe examinera votre demande sous peu.' : 'Our team will review your request shortly.'
       );
     } catch (error: any) {
       console.error('Error submitting dispute:', error);
@@ -541,7 +567,7 @@ export default function TaskDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.dark.primary} />
+        <ActivityIndicator size=\"large\" color={Colors.dark.primary} />
       </View>
     );
   }
@@ -551,22 +577,22 @@ export default function TaskDetailsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+            <Ionicons name=\"arrow-back\" size={24} color={Colors.dark.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
+            {i18n.locale === 'fr' ? 'Details de la tache' : 'Task Details'}
           </Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={Colors.dark.error} />
+          <Ionicons name=\"alert-circle-outline\" size={64} color={Colors.dark.error} />
           <Text style={styles.errorText}>
-            {i18n.locale === 'fr' ? 'Tâche non trouvée' : 'Task not found'}
+            {i18n.locale === 'fr' ? 'Tache non trouvee' : 'Task not found'}
           </Text>
           <Button
             title={i18n.locale === 'fr' ? 'Retour' : 'Go Back'}
             onPress={() => router.back()}
-            variant="outline"
+            variant=\"outline\"
           />
         </View>
       </SafeAreaView>
@@ -604,8 +630,7 @@ export default function TaskDetailsScreen() {
   const showAcceptReject = isTasker && isPending;
   const showWaitingMessage = isClient && isPending;
   const showEnRouteButton = isTasker && isAccepted;
-  const showStartTimerButton = isTasker && (isEnRoute || isInProgress) && !timerRunning;
-  const showStopTimerButton = isTasker && isInProgress && timerRunning;
+  const showNavigateToClient = isTasker && (isEnRoute || isInProgress);
   const showCompleteButton = isTasker && isInProgress;
   const showTrackTasker = isClient && (isEnRoute || isInProgress);
   const showChat = isActive || isCompleted;
@@ -621,10 +646,10 @@ export default function TaskDetailsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
+          <Ionicons name=\"arrow-back\" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
+          {i18n.locale === 'fr' ? 'Details de la tache' : 'Task Details'}
         </Text>
         <View style={styles.placeholder} />
       </View>
@@ -654,14 +679,14 @@ export default function TaskDetailsScreen() {
         {/* Waiting Message for Client */}
         {showWaitingMessage && (
           <View style={styles.waitingCard}>
-            <Ionicons name="hourglass-outline" size={24} color="#f59e0b" />
+            <Ionicons name=\"hourglass-outline\" size={24} color=\"#f59e0b\" />
             <View style={styles.waitingContent}>
               <Text style={styles.waitingTitle}>
                 {i18n.locale === 'fr' ? 'En attente de confirmation' : 'Waiting for Confirmation'}
               </Text>
               <Text style={styles.waitingText}>
                 {i18n.locale === 'fr' 
-                  ? 'Le tâcheron n\'a pas encore accepté cette tâche' 
+                  ? 'Le tacheron n'a pas encore accepte cette tache' 
                   : 'The tasker has not yet accepted this task'}
               </Text>
             </View>
@@ -671,7 +696,7 @@ export default function TaskDetailsScreen() {
         {/* Timer Display for Tasker */}
         {isTasker && isInProgress && (
           <View style={styles.timerCard}>
-            <Ionicons name="timer-outline" size={28} color={timerRunning ? Colors.dark.primary : Colors.dark.textSecondary} />
+            <Ionicons name=\"timer-outline\" size={28} color={timerRunning ? Colors.dark.primary : Colors.dark.textSecondary} />
             <View style={styles.timerContent}>
               <Text style={styles.timerLabel}>
                 {i18n.locale === 'fr' ? 'Temps de travail' : 'Work Time'}
@@ -688,9 +713,9 @@ export default function TaskDetailsScreen() {
                 activeOpacity={0.7}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
-                  <Ionicons name="pause" size={20} color={Colors.dark.background} />
+                  <Ionicons name=\"pause\" size={20} color={Colors.dark.background} />
                 )}
               </TouchableOpacity>
             ) : (
@@ -701,9 +726,9 @@ export default function TaskDetailsScreen() {
                 activeOpacity={0.7}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
-                  <Ionicons name="play" size={20} color={Colors.dark.background} />
+                  <Ionicons name=\"play\" size={20} color={Colors.dark.background} />
                 )}
               </TouchableOpacity>
             )}
@@ -713,7 +738,7 @@ export default function TaskDetailsScreen() {
         {/* Client Timer View */}
         {isClient && isInProgress && task.timer_started && (
           <View style={styles.timerCard}>
-            <Ionicons name="timer-outline" size={28} color={Colors.dark.primary} />
+            <Ionicons name=\"timer-outline\" size={28} color={Colors.dark.primary} />
             <View style={styles.timerContent}>
               <Text style={styles.timerLabel}>
                 {i18n.locale === 'fr' ? 'Travail en cours' : 'Work in Progress'}
@@ -734,7 +759,7 @@ export default function TaskDetailsScreen() {
               {i18n.locale === 'fr' ? 'Nouvelle demande de service' : 'New Service Request'}
             </Text>
             <Text style={styles.acceptRejectSubtitle}>
-              {i18n.locale === 'fr' ? 'Voulez-vous accepter cette tâche?' : 'Do you want to accept this task?'}
+              {i18n.locale === 'fr' ? 'Voulez-vous accepter cette tache?' : 'Do you want to accept this task?'}
             </Text>
             <View style={styles.acceptRejectButtons}>
               <TouchableOpacity
@@ -743,10 +768,10 @@ export default function TaskDetailsScreen() {
                 disabled={actionLoading}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.error} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.error} />
                 ) : (
                   <>
-                    <Ionicons name="close" size={20} color={Colors.dark.error} />
+                    <Ionicons name=\"close\" size={20} color={Colors.dark.error} />
                     <Text style={styles.declineButtonText}>
                       {i18n.locale === 'fr' ? 'Refuser' : 'Decline'}
                     </Text>
@@ -759,10 +784,10 @@ export default function TaskDetailsScreen() {
                 disabled={actionLoading}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark" size={20} color={Colors.dark.background} />
+                    <Ionicons name=\"checkmark\" size={20} color={Colors.dark.background} />
                     <Text style={styles.acceptTaskButtonText}>
                       {i18n.locale === 'fr' ? 'Accepter' : 'Accept'}
                     </Text>
@@ -794,7 +819,7 @@ export default function TaskDetailsScreen() {
 
           <View style={styles.detailsGrid}>
             <View style={styles.detailItem}>
-              <Ionicons name="calendar" size={20} color={Colors.dark.primary} />
+              <Ionicons name=\"calendar\" size={20} color={Colors.dark.primary} />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>
                   {i18n.locale === 'fr' ? 'Date' : 'Date'}
@@ -804,7 +829,7 @@ export default function TaskDetailsScreen() {
             </View>
 
             <View style={styles.detailItem}>
-              <Ionicons name="time" size={20} color={Colors.dark.primary} />
+              <Ionicons name=\"time\" size={20} color={Colors.dark.primary} />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>
                   {i18n.locale === 'fr' ? 'Heure' : 'Time'}
@@ -815,10 +840,10 @@ export default function TaskDetailsScreen() {
 
             {task.duration_hours && (
               <View style={styles.detailItem}>
-                <Ionicons name="hourglass" size={20} color={Colors.dark.primary} />
+                <Ionicons name=\"hourglass\" size={20} color={Colors.dark.primary} />
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>
-                    {i18n.locale === 'fr' ? 'Durée estimée' : 'Estimated Duration'}
+                    {i18n.locale === 'fr' ? 'Duree estimee' : 'Estimated Duration'}
                   </Text>
                   <Text style={styles.detailValue}>
                     {task.duration_hours} {i18n.locale === 'fr' ? 'heures' : 'hours'}
@@ -828,7 +853,7 @@ export default function TaskDetailsScreen() {
             )}
 
             <View style={styles.detailItem}>
-              <Ionicons name="location" size={20} color={Colors.dark.primary} />
+              <Ionicons name=\"location\" size={20} color={Colors.dark.primary} />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>
                   {i18n.locale === 'fr' ? 'Adresse' : 'Address'}
@@ -841,7 +866,7 @@ export default function TaskDetailsScreen() {
           {task.special_instructions && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>
-                {i18n.locale === 'fr' ? 'Instructions spéciales' : 'Special Instructions'}
+                {i18n.locale === 'fr' ? 'Instructions speciales' : 'Special Instructions'}
               </Text>
               <Text style={styles.instructionsText}>{task.special_instructions}</Text>
             </View>
@@ -870,17 +895,17 @@ export default function TaskDetailsScreen() {
               />
             ) : (
               <View style={styles.personAvatar}>
-                <Ionicons name="person" size={32} color={Colors.dark.textSecondary} />
+                <Ionicons name=\"person\" size={32} color={Colors.dark.textSecondary} />
               </View>
             )}
             <View style={styles.personInfo}>
               <Text style={styles.personLabel}>
-                {i18n.locale === 'fr' ? 'Tâcheron assigné' : 'Assigned Tasker'}
+                {i18n.locale === 'fr' ? 'Tacheron assigne' : 'Assigned Tasker'}
               </Text>
               <Text style={styles.personName}>{taskerName}</Text>
               {taskerRating && taskerRating > 0 && (
                 <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={14} color="#f59e0b" />
+                  <Ionicons name=\"star\" size={14} color=\"#f59e0b\" />
                   <Text style={styles.ratingText}>
                     {taskerRating.toFixed(1)}
                     {taskerTotalReviews ? ` (${taskerTotalReviews})` : ''}
@@ -888,7 +913,7 @@ export default function TaskDetailsScreen() {
                 </View>
               )}
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
+            <Ionicons name=\"chevron-forward\" size={24} color={Colors.dark.textSecondary} />
           </TouchableOpacity>
         )}
 
@@ -902,7 +927,7 @@ export default function TaskDetailsScreen() {
               />
             ) : (
               <View style={styles.personAvatar}>
-                <Ionicons name="person" size={32} color={Colors.dark.textSecondary} />
+                <Ionicons name=\"person\" size={32} color={Colors.dark.textSecondary} />
               </View>
             )}
             <View style={styles.personInfo}>
@@ -923,7 +948,7 @@ export default function TaskDetailsScreen() {
         {showPaymentSection && (
           <View style={styles.paymentCard}>
             <View style={styles.paymentHeader}>
-              <Ionicons name="wallet-outline" size={24} color="#f59e0b" />
+              <Ionicons name=\"wallet-outline\" size={24} color=\"#f59e0b\" />
               <Text style={styles.paymentTitle}>
                 {i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting Payment'}
               </Text>
@@ -934,7 +959,7 @@ export default function TaskDetailsScreen() {
                 style={styles.chatPaymentButton}
                 onPress={handleChat}
               >
-                <Ionicons name="chatbubble" size={18} color={Colors.dark.primary} />
+                <Ionicons name=\"chatbubble\" size={18} color={Colors.dark.primary} />
                 <Text style={styles.chatPaymentButtonText}>
                   {i18n.locale === 'fr' ? 'Discuter paiement' : 'Chat about Payment'}
                 </Text>
@@ -945,12 +970,12 @@ export default function TaskDetailsScreen() {
                 disabled={actionLoading}
               >
                 {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
                   <>
-                    <Ionicons name="cash" size={18} color={Colors.dark.background} />
+                    <Ionicons name=\"cash\" size={18} color={Colors.dark.background} />
                     <Text style={styles.confirmCashButtonText}>
-                      {i18n.locale === 'fr' ? 'Confirmer espèces' : 'Confirm Cash'}
+                      {i18n.locale === 'fr' ? 'Confirmer especes' : 'Confirm Cash'}
                     </Text>
                   </>
                 )}
@@ -962,10 +987,10 @@ export default function TaskDetailsScreen() {
         {/* Paid Badge */}
         {showPaidBadge && (
           <View style={styles.paidCard}>
-            <Ionicons name="checkmark-circle" size={32} color={Colors.dark.success} />
+            <Ionicons name=\"checkmark-circle\" size={32} color={Colors.dark.success} />
             <View style={styles.paidContent}>
               <Text style={styles.paidTitle}>
-                {i18n.locale === 'fr' ? 'Paiement reçu' : 'Payment Received'}
+                {i18n.locale === 'fr' ? 'Paiement recu' : 'Payment Received'}
               </Text>
               <Text style={styles.paidAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
             </View>
@@ -978,11 +1003,11 @@ export default function TaskDetailsScreen() {
             {i18n.locale === 'fr' ? 'Actions' : 'Actions'}
           </Text>
 
-          {/* En Route Button for Tasker */}
+          {/* En Route Button for Tasker (only when accepted, before en_route) */}
           {showEnRouteButton && (
             <TouchableOpacity style={[styles.actionButton, styles.primaryActionButton]} onPress={handleStartEnRoute} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#8b5cf6' }]}>
-                <Ionicons name="navigate" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"navigate\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
@@ -992,7 +1017,25 @@ export default function TaskDetailsScreen() {
                   {i18n.locale === 'fr' ? 'Commencer le trajet et partager votre position' : 'Start trip and share your location'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Navigate to Client - appears AFTER en route (when en_route or in_progress) */}
+          {showNavigateToClient && (
+            <TouchableOpacity style={[styles.actionButton, styles.navigateActionButton]} onPress={handleNavigateToClient} activeOpacity={0.7}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#3b82f6' }]}>
+                <Ionicons name=\"map\" size={20} color={Colors.dark.background} />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>
+                  {i18n.locale === 'fr' ? 'Naviguer vers le client' : 'Navigate to Client'}
+                </Text>
+                <Text style={styles.actionSubtitle}>
+                  {i18n.locale === 'fr' ? 'Ouvrir les directions dans Google Maps' : 'Open directions in Google Maps'}
+                </Text>
+              </View>
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1005,17 +1048,17 @@ export default function TaskDetailsScreen() {
               disabled={actionLoading}
             >
               <View style={[styles.actionIconContainer, { backgroundColor: Colors.dark.success }]}>
-                <Ionicons name="checkmark-done" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"checkmark-done\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Marquer comme terminée' : 'Mark as Completed'}
+                  {i18n.locale === 'fr' ? 'Marquer comme terminee' : 'Mark as Completed'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Le travail est terminé' : 'The work is finished'}
+                  {i18n.locale === 'fr' ? 'Le travail est termine' : 'The work is finished'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1023,17 +1066,17 @@ export default function TaskDetailsScreen() {
           {showTrackTasker && (
             <TouchableOpacity style={styles.actionButton} onPress={handleTrackTasker} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#f59e0b' }]}>
-                <Ionicons name="location" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"location\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Suivre le tâcheron' : 'Track Tasker'}
+                  {i18n.locale === 'fr' ? 'Suivre le tacheron' : 'Track Tasker'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Voir la position en temps réel' : 'See real-time location'}
+                  {i18n.locale === 'fr' ? 'Voir la position en temps reel' : 'See real-time location'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1041,7 +1084,7 @@ export default function TaskDetailsScreen() {
           {showChat && (
             <TouchableOpacity style={styles.actionButton} onPress={handleChat} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#3b82f6' }]}>
-                <Ionicons name="chatbubble" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"chatbubble\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
@@ -1049,12 +1092,12 @@ export default function TaskDetailsScreen() {
                 </Text>
                 <Text style={styles.actionSubtitle}>
                   {isClient 
-                    ? (i18n.locale === 'fr' ? 'Envoyer un message au tâcheron' : 'Message the tasker')
+                    ? (i18n.locale === 'fr' ? 'Envoyer un message au tacheron' : 'Message the tasker')
                     : (i18n.locale === 'fr' ? 'Envoyer un message au client' : 'Message the client')
                   }
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1062,17 +1105,17 @@ export default function TaskDetailsScreen() {
           {showReview && (
             <TouchableOpacity style={styles.actionButton} onPress={() => setShowReviewModal(true)} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#f59e0b' }]}>
-                <Ionicons name="star" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"star\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
                   {i18n.locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Partagez votre expérience' : 'Share your experience'}
+                  {i18n.locale === 'fr' ? 'Partagez votre experience' : 'Share your experience'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1080,17 +1123,17 @@ export default function TaskDetailsScreen() {
           {isClient && isCompleted && (
             <TouchableOpacity style={styles.actionButton} onPress={handleRebook} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: Colors.dark.primary }]}>
-                <Ionicons name="repeat" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"repeat\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Réserver à nouveau' : 'Book Again'}
+                  {i18n.locale === 'fr' ? 'Reserver a nouveau' : 'Book Again'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Réserver le même service' : 'Book the same service again'}
+                  {i18n.locale === 'fr' ? 'Reserver le meme service' : 'Book the same service again'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1098,17 +1141,17 @@ export default function TaskDetailsScreen() {
           {isClient && taskerId && (
             <TouchableOpacity style={styles.actionButton} onPress={handleViewTaskerProfile} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#6366f1' }]}>
-                <Ionicons name="person" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"person\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
                   {i18n.locale === 'fr' ? 'Voir le profil' : 'View Tasker Profile'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Voir les détails du tâcheron' : 'See tasker details'}
+                  {i18n.locale === 'fr' ? 'Voir les details du tacheron' : 'See tasker details'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -1120,17 +1163,17 @@ export default function TaskDetailsScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.actionIconContainer, { backgroundColor: '#ef4444' }]}>
-                <Ionicons name="alert-circle" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"alert-circle\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={[styles.actionTitle, { color: '#ef4444' }]}>
-                  {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
+                  {i18n.locale === 'fr' ? 'Signaler un probleme' : 'Raise a Dispute'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Signaler un problème avec cette tâche' : 'Report an issue with this task'}
+                  {i18n.locale === 'fr' ? 'Signaler un probleme avec cette tache' : 'Report an issue with this task'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#ef4444" />
+              <Ionicons name=\"chevron-forward\" size={20} color=\"#ef4444\" />
             </TouchableOpacity>
           )}
 
@@ -1142,24 +1185,24 @@ export default function TaskDetailsScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.actionIconContainer, { backgroundColor: Colors.dark.error }]}>
-                <Ionicons name="close" size={20} color={Colors.dark.background} />
+                <Ionicons name=\"close\" size={20} color={Colors.dark.background} />
               </View>
               <View style={styles.actionContent}>
                 <Text style={[styles.actionTitle, { color: Colors.dark.error }]}>
-                  {i18n.locale === 'fr' ? 'Annuler la tâche' : 'Cancel Task'}
+                  {i18n.locale === 'fr' ? 'Annuler la tache' : 'Cancel Task'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Annuler cette réservation' : 'Cancel this booking'}
+                  {i18n.locale === 'fr' ? 'Annuler cette reservation' : 'Cancel this booking'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.dark.error} />
+              <Ionicons name=\"chevron-forward\" size={20} color={Colors.dark.error} />
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
       {/* Review Modal */}
-      <Modal visible={showReviewModal} transparent animationType="slide">
+      <Modal visible={showReviewModal} transparent animationType=\"slide\">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -1167,7 +1210,7 @@ export default function TaskDetailsScreen() {
                 {i18n.locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
               </Text>
               <TouchableOpacity onPress={() => setShowReviewModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.dark.text} />
+                <Ionicons name=\"close\" size={24} color={Colors.dark.text} />
               </TouchableOpacity>
             </View>
 
@@ -1194,51 +1237,51 @@ export default function TaskDetailsScreen() {
               </Text>
               <TextInput
                 style={styles.commentInput}
-                placeholder={i18n.locale === 'fr' ? 'Partagez votre expérience...' : 'Share your experience...'}
+                placeholder={i18n.locale === 'fr' ? 'Partagez votre experience...' : 'Share your experience...'}
                 placeholderTextColor={Colors.dark.textSecondary}
                 value={reviewComment}
                 onChangeText={setReviewComment}
                 multiline
                 numberOfLines={4}
-                textAlignVertical="top"
+                textAlignVertical=\"top\"
               />
             </View>
 
             <Button
               title={submittingReview 
                 ? (i18n.locale === 'fr' ? 'Envoi...' : 'Submitting...') 
-                : (i18n.locale === 'fr' ? 'Soumettre l\'avis' : 'Submit Review')
+                : (i18n.locale === 'fr' ? 'Soumettre l'avis' : 'Submit Review')
               }
               onPress={handleSubmitReview}
               loading={submittingReview}
-              variant="primary"
+              variant=\"primary\"
             />
           </View>
         </View>
       </Modal>
 
       {/* Cancel Modal */}
-      <Modal visible={showCancelModal} transparent animationType="slide">
+      <Modal visible={showCancelModal} transparent animationType=\"slide\">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {i18n.locale === 'fr' ? 'Annuler la tâche' : 'Cancel Task'}
+                {i18n.locale === 'fr' ? 'Annuler la tache' : 'Cancel Task'}
               </Text>
               <TouchableOpacity onPress={() => setShowCancelModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.dark.text} />
+                <Ionicons name=\"close\" size={24} color={Colors.dark.text} />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.cancelWarning}>
               {i18n.locale === 'fr' 
-                ? 'Êtes-vous sûr de vouloir annuler cette tâche? Cette action est irréversible.'
+                ? 'Etes-vous sur de vouloir annuler cette tache? Cette action est irreversible.'
                 : 'Are you sure you want to cancel this task? This action cannot be undone.'}
             </Text>
 
             <View style={styles.commentSection}>
               <Text style={styles.commentLabel}>
-                {i18n.locale === 'fr' ? 'Raison de l\'annulation' : 'Cancellation Reason'} *
+                {i18n.locale === 'fr' ? 'Raison de l'annulation' : 'Cancellation Reason'} *
               </Text>
               <TextInput
                 style={styles.commentInput}
@@ -1248,7 +1291,7 @@ export default function TaskDetailsScreen() {
                 onChangeText={setCancelReason}
                 multiline
                 numberOfLines={3}
-                textAlignVertical="top"
+                textAlignVertical=\"top\"
               />
             </View>
 
@@ -1267,7 +1310,7 @@ export default function TaskDetailsScreen() {
                 disabled={cancelling}
               >
                 {cancelling ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
                   <Text style={styles.confirmCancelModalButtonText}>
                     {i18n.locale === 'fr' ? 'Oui, annuler' : 'Yes, Cancel'}
@@ -1280,21 +1323,21 @@ export default function TaskDetailsScreen() {
       </Modal>
 
       {/* Dispute Modal */}
-      <Modal visible={showDisputeModal} transparent animationType="slide">
+      <Modal visible={showDisputeModal} transparent animationType=\"slide\">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
+                {i18n.locale === 'fr' ? 'Signaler un probleme' : 'Raise a Dispute'}
               </Text>
               <TouchableOpacity onPress={() => setShowDisputeModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.dark.text} />
+                <Ionicons name=\"close\" size={24} color={Colors.dark.text} />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.disputeInfo}>
               {i18n.locale === 'fr' 
-                ? 'Notre équipe examinera votre demande et vous contactera sous 24-48 heures.'
+                ? 'Notre equipe examinera votre demande et vous contactera sous 24-48 heures.'
                 : 'Our team will review your request and contact you within 24-48 hours.'}
             </Text>
 
@@ -1324,7 +1367,7 @@ export default function TaskDetailsScreen() {
                       {i18n.locale === 'fr' ? reason.fr : reason.en}
                     </Text>
                     {disputeReason === (i18n.locale === 'fr' ? reason.fr : reason.en) && (
-                      <Ionicons name="checkmark-circle" size={20} color={Colors.dark.primary} />
+                      <Ionicons name=\"checkmark-circle\" size={20} color={Colors.dark.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -1334,17 +1377,17 @@ export default function TaskDetailsScreen() {
             {/* Description */}
             <View style={styles.commentSection}>
               <Text style={styles.commentLabel}>
-                {i18n.locale === 'fr' ? 'Décrivez le problème' : 'Describe the Issue'} *
+                {i18n.locale === 'fr' ? 'Decrivez le probleme' : 'Describe the Issue'} *
               </Text>
               <TextInput
                 style={styles.commentInput}
-                placeholder={i18n.locale === 'fr' ? 'Expliquez le problème en détail...' : 'Explain the issue in detail...'}
+                placeholder={i18n.locale === 'fr' ? 'Expliquez le probleme en detail...' : 'Explain the issue in detail...'}
                 placeholderTextColor={Colors.dark.textSecondary}
                 value={disputeDescription}
                 onChangeText={setDisputeDescription}
                 multiline
                 numberOfLines={4}
-                textAlignVertical="top"
+                textAlignVertical=\"top\"
               />
             </View>
 
@@ -1363,7 +1406,7 @@ export default function TaskDetailsScreen() {
                 disabled={submittingDispute}
               >
                 {submittingDispute ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                  <ActivityIndicator size=\"small\" color={Colors.dark.background} />
                 ) : (
                   <Text style={styles.confirmCancelModalButtonText}>
                     {i18n.locale === 'fr' ? 'Soumettre' : 'Submit'}
@@ -1836,6 +1879,10 @@ const styles = StyleSheet.create({
     borderColor: '#8b5cf6',
     borderWidth: 2,
   },
+  navigateActionButton: {
+    borderColor: '#3b82f6',
+    borderWidth: 2,
+  },
   successActionButton: {
     borderColor: Colors.dark.success,
     borderWidth: 2,
@@ -2007,5 +2054,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
-

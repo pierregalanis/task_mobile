@@ -180,7 +180,7 @@ const PulsingTimer = ({ time, isActive }: { time: string; isActive: boolean }) =
       )}
       <View style={styles.timerDisplay}>
         <View style={styles.timerIconContainer}>
-          <Ionicons name="stopwatch" size={28} color="#fff" />
+          <Ionicons name=\"stopwatch\" size={28} color=\"#fff\" />
         </View>
         <Text style={styles.timerText}>{time}</Text>
       </View>
@@ -258,13 +258,12 @@ export default function TaskerDashboardScreen() {
   }, [tasks]);
 
   const fetchData = async () => {
-  try {
-    const [tasksData, unreadData, profileData] = await Promise.all([
-      taskAPI.getTaskerTasks(),
-      notificationAPI.getUnreadCount(),
-      taskerAPI.getMyProfile().catch(() => null),
-    ]);
-    
+    try {
+      const [tasksData, unreadData, profileData] = await Promise.all([
+        taskAPI.getTaskerTasks(),
+        notificationAPI.getUnreadCount(),
+        taskerAPI.getMyProfile().catch(() => null),
+      ]);
       
       const taskList = tasksData || [];
       setTasks(taskList);
@@ -301,7 +300,7 @@ export default function TaskerDashboardScreen() {
     try {
       setActionLoading(taskId);
       await taskAPI.acceptTask(taskId);
-      showMessage(i18n.locale === 'fr' ? 'Succès' : 'Success', i18n.locale === 'fr' ? 'Tâche acceptée!' : 'Task accepted!');
+      showMessage(i18n.locale === 'fr' ? 'Succes' : 'Success', i18n.locale === 'fr' ? 'Tache acceptee!' : 'Task accepted!');
       fetchData();
     } catch (error: any) {
       showMessage(i18n.locale === 'fr' ? 'Erreur' : 'Error', error.response?.data?.detail || 'Failed to accept task');
@@ -312,13 +311,13 @@ export default function TaskerDashboardScreen() {
 
   const handleRejectTask = async (taskId: string) => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Refuser la tâche?' : 'Reject task?',
-      i18n.locale === 'fr' ? 'Êtes-vous sûr?' : 'Are you sure?',
+      i18n.locale === 'fr' ? 'Refuser la tache?' : 'Reject task?',
+      i18n.locale === 'fr' ? 'Etes-vous sur?' : 'Are you sure?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.rejectTask(taskId);
-          showMessage(i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected', '');
+          showMessage(i18n.locale === 'fr' ? 'Tache refusee' : 'Task rejected', '');
           fetchData();
         } catch (error: any) {
           showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -335,7 +334,7 @@ export default function TaskerDashboardScreen() {
       await taskAPI.startTimer(taskId);
       setActiveTaskTimer(taskId);
       setElapsedTime(0);
-      showMessage(i18n.locale === 'fr' ? 'Chronomètre démarré' : 'Timer Started', '');
+      showMessage(i18n.locale === 'fr' ? 'Chronometre demarre' : 'Timer Started', '');
       fetchData();
     } catch (error: any) {
       showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -347,14 +346,14 @@ export default function TaskerDashboardScreen() {
   const handleStopTimer = async (taskId: string) => {
     showConfirm(
       i18n.locale === 'fr' ? 'Terminer?' : 'Finish work?',
-      i18n.locale === 'fr' ? 'Arrêter le chronomètre?' : 'Stop timer and complete?',
+      i18n.locale === 'fr' ? 'Arreter le chronometre?' : 'Stop timer and complete?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.stopTimer(taskId);
           setActiveTaskTimer(null);
           setElapsedTime(0);
-          showMessage(i18n.locale === 'fr' ? 'Terminé!' : 'Completed!', '');
+          showMessage(i18n.locale === 'fr' ? 'Termine!' : 'Completed!', '');
           fetchData();
         } catch (error: any) {
           showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -393,9 +392,9 @@ export default function TaskerDashboardScreen() {
     if (i18n.locale === 'fr') {
       switch (status) {
         case 'pending': return 'En attente';
-        case 'accepted': return 'Acceptée';
+        case 'accepted': return 'Acceptee';
         case 'in_progress': return 'En cours';
-        case 'completed': return 'Terminée';
+        case 'completed': return 'Terminee';
         default: return status;
       }
     }
@@ -451,12 +450,12 @@ export default function TaskerDashboardScreen() {
                 </Text>
               </View>
               <Text style={styles.motivationalText}>
-                {i18n.locale === 'fr' ? 'Prêt à améliorer la journée de quelqu\'un' : 'Ready to make someone\'s day better'}
+                {i18n.locale === 'fr' ? 'Pret a ameliorer la journee de quelqu'un' : 'Ready to make someone's day better'}
               </Text>
             </View>
             <Animated.View style={{ transform: [{ scale: notificationScale }] }}>
               <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress} activeOpacity={0.8}>
-                <Ionicons name="notifications" size={24} color="#fff" />
+                <Ionicons name=\"notifications\" size={24} color=\"#fff\" />
                 {unreadCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -464,17 +463,17 @@ export default function TaskerDashboardScreen() {
                 )}
               </TouchableOpacity>
             </Animated.View>
-            <View style={styles.decorCircle1} pointerEvents="none" />
-            <View style={styles.decorCircle2} pointerEvents="none" />
+            <View style={styles.decorCircle1} pointerEvents=\"none\" />
+            <View style={styles.decorCircle2} pointerEvents=\"none\" />
           </LinearGradient>
         </Animated.View>
 
         {/* Animated Stats Row */}
         <View style={styles.statsRow}>
           <AnimatedStatCard
-            icon="star"
-            iconColor="#f59e0b"
-            bgColor="#f59e0b15"
+            icon=\"star\"
+            iconColor=\"#f59e0b\"
+            bgColor=\"#f59e0b15\"
             value={stats.rating > 0 ? stats.rating.toFixed(1) : '-'}
             label={i18n.locale === 'fr' ? 'Note' : 'Rating'}
             subLabel={`(${stats.totalReviews})`}
@@ -482,22 +481,22 @@ export default function TaskerDashboardScreen() {
             onPress={() => router.push('/tasker/my-reviews')}
           />
           <AnimatedStatCard
-            icon="clipboard-outline"
-            iconColor="#3b82f6"
-            bgColor="#3b82f615"
+            icon=\"clipboard-outline\"
+            iconColor=\"#3b82f6\"
+            bgColor=\"#3b82f615\"
             value={stats.completedTasks}
-            label={i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}
-            subLabel={i18n.locale === 'fr' ? 'terminées' : 'complete'}
+            label={i18n.locale === 'fr' ? 'Taches' : 'Tasks'}
+            subLabel={i18n.locale === 'fr' ? 'terminees' : 'complete'}
             index={1}
             onPress={() => {}}
           />
           <AnimatedStatCard
-            icon="wallet-outline"
+            icon=\"wallet-outline\"
             iconColor={Colors.dark.success}
-            bgColor="#10b98115"
+            bgColor=\"#10b98115\"
             value={stats.totalEarnings > 1000 ? `${Math.round(stats.totalEarnings / 1000)}K` : stats.totalEarnings}
             label={i18n.locale === 'fr' ? 'Revenus' : 'Earned'}
-            subLabel="XOF"
+            subLabel=\"XOF\"
             index={2}
             onPress={() => router.push('/tasker/my-earnings')}
           />
@@ -529,7 +528,7 @@ export default function TaskerDashboardScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <View style={styles.urgentBadge}>
-                  <Ionicons name="alert-circle" size={16} color="#fff" />
+                  <Ionicons name=\"alert-circle\" size={16} color=\"#fff\" />
                 </View>
                 <Text style={styles.sectionTitle}>
                   {i18n.locale === 'fr' ? 'Demandes en attente' : 'Pending Requests'}
@@ -547,15 +546,15 @@ export default function TaskerDashboardScreen() {
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingTitle}>{task.title}</Text>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name="person" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name=\"person\" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{task.client_name || 'Client'}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name="location" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name=\"location\" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{task.city || task.address}</Text>
                       </View>
                     </View>
@@ -572,7 +571,7 @@ export default function TaskerDashboardScreen() {
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="close" size={18} color={Colors.dark.error} />
+                      <Ionicons name=\"close\" size={18} color={Colors.dark.error} />
                       <Text style={styles.rejectBtnText}>{i18n.locale === 'fr' ? 'Refuser' : 'Reject'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -581,7 +580,7 @@ export default function TaskerDashboardScreen() {
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="checkmark" size={18} color="#fff" />
+                      <Ionicons name=\"checkmark\" size={18} color=\"#fff\" />
                       <Text style={styles.acceptBtnText}>{i18n.locale === 'fr' ? 'Accepter' : 'Accept'}</Text>
                     </TouchableOpacity>
                   </View>
@@ -594,10 +593,14 @@ export default function TaskerDashboardScreen() {
         {/* Accepted Tasks */}
         {acceptedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Prêt à commencer' : 'Ready to Start'}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Pret a commencer' : 'Ready to Start'}</Text>
             {acceptedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
-                <View style={styles.taskCard}>
+                <TouchableOpacity
+                  style={styles.taskCard}
+                  onPress={() => router.push(`/task/${task.id}`)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.taskHeader}>
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
@@ -605,24 +608,34 @@ export default function TaskerDashboardScreen() {
                     </View>
                   </View>
                   <View style={styles.taskMeta}>
-                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
+                    <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
-                    <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
+                    <Ionicons name=\"location\" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
                     <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
                   </View>
                   <View style={styles.taskFooter}>
                     <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
+                  </View>
+                  {/* Chat + View Details */}
+                  <View style={styles.taskActionRow}>
                     <TouchableOpacity
-                      style={styles.startTimerBtn}
-                      onPress={() => handleStartTimer(task.id)}
-                      disabled={actionLoading === task.id}
+                      style={styles.chatBtn}
+                      onPress={() => router.push(`/chat/${task.id}`)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="play" size={18} color="#fff" />
-                      <Text style={styles.startTimerText}>{i18n.locale === 'fr' ? 'Démarrer' : 'Start'}</Text>
+                      <Ionicons name=\"chatbubble\" size={16} color={Colors.dark.primary} />
+                      <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.viewDetailsBtn}
+                      onPress={() => router.push(`/task/${task.id}`)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name=\"arrow-forward\" size={16} color=\"#fff\" />
+                      <Text style={styles.viewDetailsBtnText}>{i18n.locale === 'fr' ? 'Voir details' : 'View Details'}</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               </AnimatedTaskCard>
             ))}
           </View>
@@ -634,11 +647,15 @@ export default function TaskerDashboardScreen() {
             <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'En cours' : 'In Progress'}</Text>
             {inProgressTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
-                <View style={[styles.taskCard, styles.activeTaskCard]}>
+                <TouchableOpacity
+                  style={[styles.taskCard, styles.activeTaskCard]}
+                  onPress={() => router.push(`/task/${task.id}`)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.taskHeader}>
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: '#8b5cf6' }]}>
-                      <Ionicons name="time" size={12} color="#fff" />
+                      <Ionicons name=\"time\" size={12} color=\"#fff\" />
                       <Text style={styles.statusText}>{i18n.locale === 'fr' ? 'En cours' : 'Active'}</Text>
                     </View>
                   </View>
@@ -660,17 +677,29 @@ export default function TaskerDashboardScreen() {
                       <Text style={styles.taskMetaText}>{task.address}</Text>
                       <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
                     </View>
+                  </View>
+
+                  {/* Chat + Finish */}
+                  <View style={styles.taskActionRow}>
+                    <TouchableOpacity
+                      style={styles.chatBtn}
+                      onPress={() => router.push(`/chat/${task.id}`)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name=\"chatbubble\" size={16} color={Colors.dark.primary} />
+                      <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.stopTimerBtn}
                       onPress={() => handleStopTimer(task.id)}
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="stop" size={18} color="#fff" />
+                      <Ionicons name=\"stop\" size={16} color=\"#fff\" />
                       <Text style={styles.stopTimerText}>{i18n.locale === 'fr' ? 'Terminer' : 'Finish'}</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               </AnimatedTaskCard>
             ))}
           </View>
@@ -679,7 +708,7 @@ export default function TaskerDashboardScreen() {
         {/* Completed Tasks */}
         {completedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Récemment terminées' : 'Recently Completed'}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Recemment terminees' : 'Recently Completed'}</Text>
             {completedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
@@ -690,12 +719,12 @@ export default function TaskerDashboardScreen() {
                   <View style={styles.taskHeader}>
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: Colors.dark.success }]}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
+                      <Ionicons name=\"checkmark\" size={12} color=\"#fff\" />
                       <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
                     </View>
                   </View>
                   <View style={styles.taskMeta}>
-                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
+                    <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date)}</Text>
                   </View>
                   <Text style={styles.taskPrice}>{(task.final_price || task.estimated_total || 0).toLocaleString()} XOF</Text>
@@ -709,11 +738,11 @@ export default function TaskerDashboardScreen() {
         {tasks.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="briefcase-outline" size={48} color={Colors.dark.primary} />
+              <Ionicons name=\"briefcase-outline\" size={48} color={Colors.dark.primary} />
             </View>
-            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks yet'}</Text>
+            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tache' : 'No tasks yet'}</Text>
             <Text style={styles.emptySubtitle}>
-              {i18n.locale === 'fr' ? 'Les nouvelles demandes apparaîtront ici' : 'New task requests will appear here'}
+              {i18n.locale === 'fr' ? 'Les nouvelles demandes apparaitront ici' : 'New task requests will appear here'}
             </Text>
           </View>
         )}
@@ -857,10 +886,30 @@ const styles = StyleSheet.create({
   },
   startTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   stopTimerBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.error,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 6,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.dark.error,
+    paddingVertical: 10, borderRadius: 12, gap: 6,
   },
   stopTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  
+  // Task action row (Chat + secondary action)
+  taskActionRow: {
+    flexDirection: 'row', gap: 10, marginTop: 12,
+    borderTopWidth: 1, borderTopColor: Colors.dark.border, paddingTop: 12,
+  },
+  chatBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    paddingVertical: 10, borderRadius: 12, gap: 6,
+    borderWidth: 1, borderColor: Colors.dark.primary,
+  },
+  chatBtnText: { fontSize: 13, fontWeight: '600', color: Colors.dark.primary },
+  viewDetailsBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.dark.primary,
+    paddingVertical: 10, borderRadius: 12, gap: 6,
+  },
+  viewDetailsBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   
   // Timer
   timerContainer: { alignItems: 'center', marginVertical: 12 },
