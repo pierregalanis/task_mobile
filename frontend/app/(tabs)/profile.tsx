@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -85,7 +84,7 @@ function AnimatedMenuItem({
           </View>
         </View>
         <View style={[styles.chevronContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          <Ionicons name=\"chevron-forward\" size={18} color={colors.textSecondary} />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -161,7 +160,7 @@ export default function ProfileScreen() {
         showMessage(
           locale === 'fr' ? 'Permission refusée' : 'Permission Denied',
           locale === 'fr' 
-            ? 'Veuillez autoriser l\'accès à la galerie' 
+            ? \"Veuillez autoriser l'accès à la galerie\" 
             : 'Please allow access to your photo library'
         );
         return;
@@ -181,7 +180,7 @@ export default function ProfileScreen() {
       console.error('Error picking image:', error);
       showMessage(
         locale === 'fr' ? 'Erreur' : 'Error',
-        locale === 'fr' ? 'Impossible de sélectionner l\'image' : 'Unable to select image'
+        locale === 'fr' ? \"Impossible de sélectionner l'image\" : 'Unable to select image'
       );
     }
   };
@@ -203,7 +202,7 @@ export default function ProfileScreen() {
       console.error('Error uploading image:', error);
       showMessage(
         locale === 'fr' ? 'Erreur' : 'Error',
-        locale === 'fr' ? 'Impossible de télécharger l\'image' : 'Unable to upload image'
+        locale === 'fr' ? \"Impossible de télécharger l'image\" : 'Unable to upload image'
       );
     } finally {
       setUploadingImage(false);
@@ -265,7 +264,7 @@ export default function ProfileScreen() {
     } catch (error) {
       showMessage(
         locale === 'fr' ? 'Erreur' : 'Error',
-        locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+        locale === 'fr' ? \"Impossible d'ouvrir le lien\" : 'Unable to open link'
       );
     }
   };
@@ -276,7 +275,7 @@ export default function ProfileScreen() {
     } catch (error) {
       showMessage(
         locale === 'fr' ? 'Erreur' : 'Error',
-        locale === 'fr' ? 'Impossible d\'ouvrir le lien' : 'Unable to open link'
+        locale === 'fr' ? \"Impossible d'ouvrir le lien\" : 'Unable to open link'
       );
     }
   };
@@ -342,7 +341,7 @@ export default function ProfileScreen() {
             <View style={[styles.avatarContainer, { backgroundColor: colors.background }]}>
               {uploadingImage ? (
                 <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                  <ActivityIndicator size="large" color="#fff" />
+                  <ActivityIndicator size=\"large\" color=\"#fff\" />
                 </View>
               ) : profileImageUrl ? (
                 <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} />
@@ -356,7 +355,7 @@ export default function ProfileScreen() {
             </View>
             
             <View style={[styles.cameraIconContainer, { backgroundColor: colors.primary, borderColor: colors.card }]}>
-              <Ionicons name="camera" size={14} color="#fff" />
+              <Ionicons name=\"camera\" size={14} color=\"#fff\" />
             </View>
             
             <View
@@ -371,7 +370,7 @@ export default function ProfileScreen() {
               <Ionicons 
                 name={user?.role === 'tasker' ? 'construct' : 'person'} 
                 size={10} 
-                color="#fff" 
+                color=\"#fff\" 
               />
               <Text style={styles.roleBadgeText}>
                 {user?.role === 'tasker'
@@ -387,13 +386,13 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             {user?.phone && (
               <View style={[styles.profileInfoPill, { backgroundColor: `${colors.primary}15` }]}>
-                <Ionicons name="call" size={14} color={colors.primary} />
+                <Ionicons name=\"call\" size={14} color={colors.primary} />
                 <Text style={[styles.profileInfoText, { color: colors.text }]}>{user?.phone}</Text>
               </View>
             )}
             {user?.country && (
               <View style={[styles.profileInfoPill, { backgroundColor: `${colors.primary}15` }]}>
-                <Ionicons name="location" size={14} color={colors.primary} />
+                <Ionicons name=\"location\" size={14} color={colors.primary} />
                 <Text style={[styles.profileInfoText, { color: colors.text }]}>{user?.country}</Text>
               </View>
             )}
@@ -422,7 +421,7 @@ export default function ProfileScreen() {
             </Text>
             <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <AnimatedMenuItem
-                icon="calendar"
+                icon=\"calendar\"
                 title={locale === 'fr' ? 'Disponibilités' : 'Availability'}
                 subtitle={locale === 'fr' ? 'Gérer vos horaires' : 'Manage your schedule'}
                 onPress={() => router.push('/tasker/availability')}
@@ -431,30 +430,50 @@ export default function ProfileScreen() {
                 colors={colors}
               />
               <AnimatedMenuItem
-                icon="briefcase"
+                icon=\"briefcase\"
                 title={locale === 'fr' ? 'Mes Services' : 'My Services'}
                 subtitle={locale === 'fr' ? 'Gérer vos services' : 'Manage your services'}
                 onPress={() => router.push('/tasker/manage-services')}
                 index={1}
-                iconColor="#f59e0b"
+                iconColor=\"#f59e0b\"
                 colors={colors}
               />
               <AnimatedMenuItem
-                icon="star"
+                icon=\"star\"
                 title={locale === 'fr' ? 'Mes Avis' : 'My Reviews'}
                 subtitle={locale === 'fr' ? 'Voir les avis clients' : 'View customer reviews'}
                 onPress={() => router.push('/tasker/my-reviews')}
                 index={2}
-                iconColor="#fbbf24"
+                iconColor=\"#fbbf24\"
                 colors={colors}
               />
               <AnimatedMenuItem
-                icon="wallet"
+                icon=\"wallet\"
                 title={locale === 'fr' ? 'Mes Revenus' : 'My Earnings'}
                 subtitle={locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
                 onPress={() => router.push('/tasker/my-earnings')}
                 index={3}
                 iconColor={colors.success}
+                colors={colors}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Client Section - Only for Clients */}
+        {user?.role === 'client' && (
+          <View style={styles.menuSection}>
+            <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
+              {locale === 'fr' ? 'Mon Activité' : 'My Activity'}
+            </Text>
+            <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <AnimatedMenuItem
+                icon=\"heart\"
+                title={locale === 'fr' ? 'Mes Favoris' : 'My Favorites'}
+                subtitle={locale === 'fr' ? 'Tâcherons sauvegardés' : 'Saved taskers'}
+                onPress={() => router.push('/favorites')}
+                index={0}
+                iconColor=\"#ef4444\"
                 colors={colors}
               />
             </View>
@@ -468,25 +487,25 @@ export default function ProfileScreen() {
           </Text>
           <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <AnimatedMenuItem
-              icon="language"
+              icon=\"language\"
               title={t('profile.language')}
               subtitle={locale === 'en' ? 'English' : 'Français'}
               onPress={handleLanguageChange}
               index={0}
-              iconColor="#8b5cf6"
+              iconColor=\"#8b5cf6\"
               colors={colors}
             />
             <AnimatedMenuItem
-              icon="notifications-outline"
+              icon=\"notifications-outline\"
               title={locale === 'fr' ? 'Notifications' : 'Notifications'}
               subtitle={locale === 'fr' ? 'Gérer les alertes' : 'Manage alerts'}
               onPress={() => router.push('/notifications')}
               index={1}
-              iconColor="#f59e0b"
+              iconColor=\"#f59e0b\"
               colors={colors}
             />
             <AnimatedMenuItem
-              icon="settings-outline"
+              icon=\"settings-outline\"
               title={locale === 'fr' ? 'Paramètres' : 'Settings'}
               subtitle={locale === 'fr' ? 'Mot de passe, compte' : 'Password, account'}
               onPress={() => router.push('/settings')}
@@ -504,17 +523,17 @@ export default function ProfileScreen() {
           </Text>
           <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <AnimatedMenuItem
-              icon="help-circle-outline"
+              icon=\"help-circle-outline\"
               title={locale === 'fr' ? 'Aide & Support' : 'Help & Support'}
               subtitle={SUPPORT_EMAIL}
               onPress={() => router.push('/support')}
               index={3}
-              iconColor="#3b82f6"
+              iconColor=\"#3b82f6\"
               colors={colors}
             />
             <AnimatedMenuItem
-              icon="document-text-outline"
-              title={locale === 'fr' ? 'Conditions d\'utilisation' : 'Terms of Service'}
+              icon=\"document-text-outline\"
+              title={locale === 'fr' ? \"Conditions d'utilisation\" : 'Terms of Service'}
               subtitle={locale === 'fr' ? 'Lire les conditions' : 'Read our terms'}
               onPress={handleOpenTermsOfService}
               index={4}
@@ -522,7 +541,7 @@ export default function ProfileScreen() {
               colors={colors}
             />
             <AnimatedMenuItem
-              icon="shield-checkmark-outline"
+              icon=\"shield-checkmark-outline\"
               title={locale === 'fr' ? 'Confidentialité' : 'Privacy Policy'}
               subtitle={locale === 'fr' ? 'Vos données' : 'Your data'}
               onPress={handleOpenPrivacyPolicy}
@@ -556,10 +575,10 @@ export default function ProfileScreen() {
             activeOpacity={0.8}
           >
             {isLoggingOut ? (
-              <ActivityIndicator size="small" color={colors.error} />
+              <ActivityIndicator size=\"small\" color={colors.error} />
             ) : (
               <>
-                <Ionicons name="log-out-outline" size={22} color={colors.error} />
+                <Ionicons name=\"log-out-outline\" size={22} color={colors.error} />
                 <Text style={[styles.logoutButtonText, { color: colors.error }]}>{t('profile.logout')}</Text>
               </>
             )}

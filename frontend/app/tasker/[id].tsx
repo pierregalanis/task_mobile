@@ -167,11 +167,6 @@ export default function TaskerProfileScreen() {
     });
   };
 
-  // Navigate to favorites page
-  const goToFavorites = () => {
-    router.push('/favorites');
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -201,33 +196,26 @@ export default function TaskerProfileScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
         
-        <View style={styles.headerActions}>
-          {/* View All Favorites Button */}
-          <TouchableOpacity onPress={goToFavorites} style={styles.headerButton} activeOpacity={0.7}>
-            <Ionicons name="heart-circle-outline" size={24} color={Colors.dark.text} />
-          </TouchableOpacity>
-          
-          {/* Favorite This Tasker Button */}
-          <TouchableOpacity 
-            onPress={handleFavorite} 
-            style={[
-              styles.favoriteButton,
-              isFavorite && styles.favoriteButtonActive
-            ]} 
-            activeOpacity={0.7}
-            disabled={favoriteLoading}
-          >
-            {favoriteLoading ? (
-              <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#10b981'} />
-            ) : (
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={24}
-                color={isFavorite ? '#fff' : '#10b981'}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Favorite This Tasker Button */}
+        <TouchableOpacity 
+          onPress={handleFavorite} 
+          style={[
+            styles.favoriteButton,
+            isFavorite && styles.favoriteButtonActive
+          ]} 
+          activeOpacity={0.7}
+          disabled={favoriteLoading}
+        >
+          {favoriteLoading ? (
+            <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#10b981'} />
+          ) : (
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorite ? '#fff' : '#10b981'}
+            />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -545,20 +533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.dark.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerButton: {
     width: 40,
     height: 40,
     borderRadius: 20,

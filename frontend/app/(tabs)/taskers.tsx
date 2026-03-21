@@ -161,7 +161,7 @@ export default function TaskersScreen() {
       {/* Search Bar with Filter Button */}
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
+          <Ionicons name=\"search\" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder={isEn ? 'Search taskers...' : 'Rechercher un tasker...'}
@@ -169,11 +169,11 @@ export default function TaskersScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearchSubmit}
-            returnKeyType="search"
+            returnKeyType=\"search\"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"close-circle\" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -187,7 +187,7 @@ export default function TaskersScreen() {
           onPress={() => setShowFilters(true)}
         >
           <Ionicons
-            name="options"
+            name=\"options\"
             size={22}
             color={activeFilterCount > 0 ? Colors.dark.background : Colors.dark.text}
           />
@@ -205,19 +205,19 @@ export default function TaskersScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFiltersContent}>
             {/* Sort indicator */}
             <View style={styles.sortTag}>
-              <Ionicons name="swap-vertical" size={12} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"swap-vertical\" size={12} color={Colors.dark.textSecondary} />
               <Text style={styles.sortTagText}>{getSortLabel()}</Text>
             </View>
             
             {activeFilters.minRating && activeFilters.minRating > 0 && (
               <View style={styles.filterTag}>
-                <Ionicons name="star" size={12} color="#fbbf24" />
+                <Ionicons name=\"star\" size={12} color=\"#fbbf24\" />
                 <Text style={styles.filterTagText}>{activeFilters.minRating}+</Text>
               </View>
             )}
             {(activeFilters.minPrice || activeFilters.maxPrice) && (
               <View style={styles.filterTag}>
-                <Ionicons name="cash" size={12} color={Colors.dark.primary} />
+                <Ionicons name=\"cash\" size={12} color={Colors.dark.primary} />
                 <Text style={styles.filterTagText}>
                   {activeFilters.minPrice || '0'} - {activeFilters.maxPrice || '∞'} XOF
                 </Text>
@@ -225,7 +225,7 @@ export default function TaskersScreen() {
             )}
             {activeFilters.availableOnDate && (
               <View style={styles.filterTag}>
-                <Ionicons name="calendar" size={12} color={Colors.dark.primary} />
+                <Ionicons name=\"calendar\" size={12} color={Colors.dark.primary} />
                 <Text style={styles.filterTagText}>{activeFilters.availableOnDate}</Text>
               </View>
             )}
@@ -277,7 +277,7 @@ export default function TaskersScreen() {
       {/* Taskers List */}
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.dark.primary} />
+          <ActivityIndicator size=\"large\" color={Colors.dark.primary} />
         </View>
       ) : (
         <ScrollView
@@ -288,7 +288,7 @@ export default function TaskersScreen() {
         >
           {filteredTaskers.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={64} color={Colors.dark.textSecondary} />
+              <Ionicons name=\"search-outline\" size={64} color={Colors.dark.textSecondary} />
               <Text style={styles.emptyTitle}>
                 {isEn ? 'No taskers found' : 'Aucun tasker trouvé'}
               </Text>
@@ -331,23 +331,18 @@ export default function TaskersScreen() {
                 </View>
 
                 <View style={styles.taskerInfo}>
-                  <View style={styles.taskerHeader}>
-                    <Text style={styles.taskerName}>{tasker.full_name}</Text>
-                    <TouchableOpacity style={styles.favoriteButton}>
-                      <Ionicons name="heart-outline" size={20} color={Colors.dark.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
+                  <Text style={styles.taskerName}>{tasker.full_name}</Text>
 
                   <View style={styles.taskerMeta}>
                     <View style={styles.metaItem}>
-                      <Ionicons name="star" size={14} color="#f59e0b" />
+                      <Ionicons name=\"star\" size={14} color=\"#f59e0b\" />
                       <Text style={styles.metaText}>
                         {(tasker.tasker_profile?.average_rating || tasker.rating || 0).toFixed(1)} ({tasker.tasker_profile?.total_reviews || tasker.reviews_count || 0})
                       </Text>
                     </View>
                     <View style={styles.metaDivider} />
                     <View style={styles.metaItem}>
-                      <Ionicons name="checkmark-circle" size={14} color={Colors.dark.primary} />
+                      <Ionicons name=\"checkmark-circle\" size={14} color={Colors.dark.primary} />
                       <Text style={styles.metaText}>
                         {tasker.tasker_profile?.completed_tasks || tasker.completed_tasks || 0} {isEn ? 'tasks' : 'tâches'}
                       </Text>
@@ -356,7 +351,7 @@ export default function TaskersScreen() {
                       <>
                         <View style={styles.metaDivider} />
                         <View style={styles.metaItem}>
-                          <Ionicons name="location" size={14} color={Colors.dark.textSecondary} />
+                          <Ionicons name=\"location\" size={14} color={Colors.dark.textSecondary} />
                           <Text style={styles.metaText}>{tasker.city}</Text>
                         </View>
                       </>
@@ -664,20 +659,11 @@ const styles = StyleSheet.create({
   taskerInfo: {
     flex: 1,
   },
-  taskerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
   taskerName: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.dark.text,
-    flex: 1,
-  },
-  favoriteButton: {
-    padding: 4,
+    marginBottom: 8,
   },
   taskerMeta: {
     flexDirection: 'row',
