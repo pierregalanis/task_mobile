@@ -16,6 +16,7 @@ import { taskerAPI, categoryAPI, SearchFilters as SearchFiltersType } from '../.
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import SearchFilters from '../../components/SearchFilters';
+import { getServicePriceInfo } from '../../utils/pricingUtils';
 
 export default function SelectTaskerScreen() {
   const router = useRouter();
@@ -333,6 +334,8 @@ export default function SelectTaskerScreen() {
               const rating = getTaskerRating(tasker);
               const completedTasks = getCompletedTasks(tasker);
               const totalReviews = getTotalReviews(tasker);
+              const globalRate = tasker.tasker_profile?.hourly_rate || 0;
+              const priceInfo = getServicePriceInfo(service, globalRate, i18n.locale);
               
               return (
                 <TouchableOpacity
@@ -378,18 +381,9 @@ export default function SelectTaskerScreen() {
                     
                     {/* Price and Location */}
                     <View style={styles.priceRow}>
-                      {service ? (
-                        <Text style={styles.taskerPrice}>
-                          {service.pricing_type === 'fixed' 
-                            ? `${service.fixed_price || 0} XOF`
-                            : `${service.hourly_rate || 0} XOF/h`
-                          }
-                        </Text>
-                      ) : (
-                        <Text style={styles.taskerPrice}>
-                          {isEn ? 'Price on request' : 'Prix sur demande'}
-                        </Text>
-                      )}
+                      <Text style={styles.taskerPrice}>
+                        {priceInfo.displayText}
+                      </Text>
                       {tasker.city && (
                         <Text style={styles.taskerLocation}>{tasker.city}</Text>
                       )}

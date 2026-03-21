@@ -581,15 +581,58 @@ export const reviewAPI = {
 
 // ==================== FAVORITE API ====================
 
+export interface Favorite {
+  id: string;
+  user_id: string;
+  tasker_id: string;
+  tasker_name: string;
+  tasker_rating: number;
+  tasker_profile_image?: string | null;
+  tasker_services: string[];
+  added_at: string;
+}
+
 export const favoriteAPI = {
-  async toggleFavorite(taskerId: string) {
-    const response = await api.post('/api/favorites/toggle', { tasker_id: taskerId });
+  // Add a tasker to favorites
+  async addFavorite(taskerId: string): Promise<{ success: boolean; message: string }> {
+    const formData = new FormData();
+    formData.append('tasker_id', taskerId);
+    
+    const response = await api.post('/api/favorites', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 
-  async getFavorites() {
+  // Remove a tasker from favorites
+  async removeFavorite(taskerId: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(`/api/favorites/${taskerId}`);
+    return response.data;
+  },
+
+  // Check if a tasker is favorited
+  async checkIsFavorite(taskerId: string): Promise<{ is_favorite: boolean }> {
+    const response = await api.get(`/api/favorites/check/${taskerId}`);
+    return response.data;
+  },
+
+  // Get all favorites for current user
+  async getFavorites(): Promise<Favorite[]> {
     const response = await api.get('/api/favorites');
     return response.data;
+  },
+
+  // Toggle favorite status (convenience method)
+  async toggleFavorite(taskerId: string): Promise<{ is_favorite: boolean; message: string }> {
+    const { is_favorite } = await this.checkIsFavorite(taskerId);
+    
+    if (is_favorite) {
+      await this.removeFavorite(taskerId);
+      return { is_favorite: false, message: 'Removed from favorites' };
+    } else {
+      await this.addFavorite(taskerId);
+      return { is_favorite: true, message: 'Added to favorites' };
+    }
   },
 };
 
@@ -621,33 +664,61 @@ export const chatAPI = {
 
 // ==================== NOTIFICATION API ====================
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: {
+    task_id?: string;
+    sender_id?: string;
+    [key: string]: any;
+  };
+  task_id?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 export const notificationAPI = {
-  async getNotifications() {
+  // Get all notifications with unread count
+  async getNotifications(): Promise<{ notifications: Notification[]; unread_count: number }> {
     const response = await api.get('/api/notifications');
-    // Production returns { notifications: [], unread_count }
-    if (response.data.notifications) {
-      return response.data.notifications;
-    }
-    return response.data;
+    return {
+      notifications: response.data.notifications || response.data || [],
+      unread_count: response.data.unread_count || 0,
+    };
   },
 
-  async getUnreadCount() {
+  // Get unread count only
+  async getUnreadCount(): Promise<{ unread_count: number }> {
     const response = await api.get('/api/notifications');
-    if (response.data.unread_count !== undefined) {
-      return { unread_count: response.data.unread_count, count: response.data.unread_count };
-    }
-    return { unread_count: 0, count: 0 };
+    return { 
+      unread_count: response.data.unread_count || 0 
+    };
   },
 
   // Mark single notification as read
-  async markAsRead(notificationId: string) {
-    const response = await api.post(`/api/notifications/${notificationId}/read`);
+  async markAsRead(notificationId: string): Promise<{ success: boolean }> {
+    const response = await api.put(`/api/notifications/${notificationId}/read`);
     return response.data;
   },
 
   // Mark all notifications as read
-  async markAllAsRead() {
-    const response = await api.post('/api/notifications/mark-all-read');
+  async markAllAsRead(): Promise<{ success: boolean }> {
+    const response = await api.put('/api/notifications/mark-all-read');
+    return response.data;
+  },
+
+  // Delete single notification
+  async deleteNotification(notificationId: string): Promise<{ success: boolean }> {
+    const response = await api.delete(`/api/notifications/${notificationId}`);
+    return response.data;
+  },
+
+  // Clear all notifications
+  async clearAllNotifications(): Promise<{ success: boolean; deleted_count: number }> {
+    const response = await api.delete('/api/notifications/clear-all');
     return response.data;
   },
 };

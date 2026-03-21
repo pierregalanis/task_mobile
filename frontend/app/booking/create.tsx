@@ -23,6 +23,7 @@ import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 import * as Location from 'expo-location';
 import AvailabilityCalendar from '../../components/AvailabilityCalendar';
+import { formatHourlyRate, formatPrice } from '../../utils/pricingUtils';
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDnipL64xT_Cv_60MGUv1AmRFMk0D6oGA8';
@@ -582,7 +583,9 @@ export default function CreateBookingScreen() {
                     </Text>
                   </View>
                   <Text style={styles.servicePrice}>
-                    {pricingType === 'hourly' ? `${hourlyRate.toLocaleString()} XOF/h` : `${fixedPrice.toLocaleString()} XOF`}
+                    {pricingType === 'hourly' 
+                      ? formatHourlyRate(hourlyRate, i18n.locale) 
+                      : formatPrice(fixedPrice, i18n.locale)}
                   </Text>
                 </View>
               </View>
@@ -1027,12 +1030,12 @@ export default function CreateBookingScreen() {
             <Text style={styles.summaryTitle}>
               {i18n.locale === 'fr' ? 'Résumé du prix' : 'Price Summary'}
             </Text>
-            {pricingType === 'hourly' && (
+            {pricingType === 'hourly' && hourlyRate > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
-                  {hourlyRate.toLocaleString()} XOF/h × {duration} {i18n.locale === 'fr' ? 'heures' : 'hours'}
+                  {hourlyRate.toLocaleString()} CFA/h × {duration} {i18n.locale === 'fr' ? 'heures' : 'hours'}
                 </Text>
-                <Text style={styles.summaryValue}>{calculateTotal().toLocaleString()} XOF</Text>
+                <Text style={styles.summaryValue}>{formatPrice(calculateTotal(), i18n.locale)}</Text>
               </View>
             )}
             <View style={styles.summaryDivider} />
@@ -1040,7 +1043,7 @@ export default function CreateBookingScreen() {
               <Text style={styles.summaryTotalLabel}>
                 {i18n.locale === 'fr' ? 'Total' : 'Total'}
               </Text>
-              <Text style={styles.summaryTotalValue}>{calculateTotal().toLocaleString()} XOF</Text>
+              <Text style={styles.summaryTotalValue}>{formatPrice(calculateTotal(), i18n.locale)}</Text>
             </View>
           </View>
         </ScrollView>
@@ -1084,7 +1087,7 @@ export default function CreateBookingScreen() {
               </View>
               <View style={styles.confirmationDetailRow}>
                 <Ionicons name="cash" size={20} color={Colors.dark.primary} />
-                <Text style={styles.confirmationDetailText}>{calculateTotal().toLocaleString()} XOF</Text>
+                <Text style={styles.confirmationDetailText}>{formatPrice(calculateTotal(), i18n.locale)}</Text>
               </View>
             </View>
             <View style={styles.confirmationButtons}>

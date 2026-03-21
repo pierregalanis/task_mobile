@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
 import { categoryAPI } from '../../services/api';
+import { formatHourlyRate, formatPrice } from '../../utils/pricingUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,6 +31,7 @@ export default function TaskerProfileScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
   
@@ -48,14 +51,16 @@ export default function TaskerProfileScreen() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [taskerData, categoriesData, reviewsData] = await Promise.all([
+      const [taskerData, categoriesData, reviewsData, favoriteStatus] = await Promise.all([
         taskerAPI.getTasker(id as string),
         categoryAPI.getCategories().catch(() => []),
-        reviewAPI.getTaskerReviews(id as string).catch(() => [])
+        reviewAPI.getTaskerReviews(id as string).catch(() => []),
+        favoriteAPI.checkIsFavorite(id as string).catch(() => ({ is_favorite: false }))
       ]);
       setTasker(taskerData);
       setCategories(categoriesData || []);
       setReviews(reviewsData || []);
+      setIsFavorite(favoriteStatus.is_favorite);
       
       // Fetch portfolio images for each service
       if (taskerData?.tasker_profile?.services) {
@@ -103,33 +108,34 @@ export default function TaskerProfileScreen() {
     setShowImageViewer(true);
   };
 
-  const fetchTaskerProfile = async () => {
-    try {
-      setLoading(true);
-      const data = await taskerAPI.getTasker(id as string);
-      setTasker(data);
-    } catch (error) {
-      console.error('Error fetching tasker:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchReviews = async () => {
-    try {
-      const data = await reviewAPI.getTaskerReviews(id as string);
-      setReviews(data || []);
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    }
-  };
-
   const handleFavorite = async () => {
+    if (favoriteLoading) return;
+    
+    setFavoriteLoading(true);
     try {
-      await favoriteAPI.toggleFavorite(id as string);
-      setIsFavorite(!isFavorite);
-    } catch (error) {
+      if (isFavorite) {
+        await favoriteAPI.removeFavorite(id as string);
+        setIsFavorite(false);
+        Alert.alert(
+          i18n.locale === 'fr' ? 'Retiré' : 'Removed',
+          i18n.locale === 'fr' ? 'Retiré des favoris' : 'Removed from favorites'
+        );
+      } else {
+        await favoriteAPI.addFavorite(id as string);
+        setIsFavorite(true);
+        Alert.alert(
+          i18n.locale === 'fr' ? 'Ajouté' : 'Added',
+          i18n.locale === 'fr' ? 'Ajouté aux favoris' : 'Added to favorites'
+        );
+      }
+    } catch (error: any) {
       console.error('Error toggling favorite:', error);
+      Alert.alert(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec de la mise à jour des favoris' : 'Failed to update favorites')
+      );
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -161,6 +167,11 @@ export default function TaskerProfileScreen() {
     });
   };
 
+  // Navigate to favorites page
+  const goToFavorites = () => {
+    router.push('/favorites');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -189,13 +200,34 @@ export default function TaskerProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleFavorite} style={styles.favoriteButton} activeOpacity={0.7}>
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={24}
-            color={isFavorite ? Colors.dark.error : Colors.dark.text}
-          />
-        </TouchableOpacity>
+        
+        <View style={styles.headerActions}>
+          {/* View All Favorites Button */}
+          <TouchableOpacity onPress={goToFavorites} style={styles.headerButton} activeOpacity={0.7}>
+            <Ionicons name="heart-circle-outline" size={24} color={Colors.dark.text} />
+          </TouchableOpacity>
+          
+          {/* Favorite This Tasker Button */}
+          <TouchableOpacity 
+            onPress={handleFavorite} 
+            style={[
+              styles.favoriteButton,
+              isFavorite && styles.favoriteButtonActive
+            ]} 
+            activeOpacity={0.7}
+            disabled={favoriteLoading}
+          >
+            {favoriteLoading ? (
+              <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#10b981'} />
+            ) : (
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={24}
+                color={isFavorite ? '#fff' : '#10b981'}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -268,7 +300,9 @@ export default function TaskerProfileScreen() {
                             {i18n.locale === 'fr' ? 'Horaire' : 'Hourly'}
                           </Text>
                         </View>
-                        <Text style={styles.priceAmount}>{service.hourly_rate} XOF/h</Text>
+                        <Text style={styles.priceAmount}>
+                          {formatHourlyRate(service.hourly_rate, i18n.locale)}
+                        </Text>
                       </>
                     ) : (
                       <>
@@ -277,7 +311,9 @@ export default function TaskerProfileScreen() {
                             {i18n.locale === 'fr' ? 'Fixe' : 'Fixed'}
                           </Text>
                         </View>
-                        <Text style={styles.priceAmount}>{service.fixed_price} XOF</Text>
+                        <Text style={styles.priceAmount}>
+                          {formatPrice(service.fixed_price, i18n.locale)}
+                        </Text>
                       </>
                     )}
                   </View>
@@ -425,8 +461,8 @@ export default function TaskerProfileScreen() {
                     <Text style={styles.modalServiceName}>{categoryName}</Text>
                     <Text style={styles.modalServicePrice}>
                       {service.pricing_type === 'hourly'
-                        ? `${service.hourly_rate} XOF/h`
-                        : `${service.fixed_price} XOF`}
+                        ? formatHourlyRate(service.hourly_rate, i18n.locale)
+                        : formatPrice(service.fixed_price, i18n.locale)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -509,7 +545,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -524,6 +573,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.card,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
   },
   scrollView: {
     flex: 1,

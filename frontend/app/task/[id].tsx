@@ -1,15 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Modal,
-  TextInput,
-  Platform,
-  Image,
+View,
+
+Text,
+
+StyleSheet,
+
+ScrollView,
+
+TouchableOpacity,
+
+ActivityIndicator,
+
+Modal,
+
+TextInput,
+
+Platform,
+
+Image,
+
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +32,7 @@ import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryNam
 import UpcomingReminderBanner from '../../components/UpcomingReminderBanner';
 import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
+import { formatPrice } from '../../utils/pricingUtils';
 
 // Dispute reasons
 const DISPUTE_REASONS = [
@@ -841,7 +852,7 @@ export default function TaskDetailsScreen() {
             <Text style={styles.priceLabel}>
               {i18n.locale === 'fr' ? 'Total' : 'Total'}
             </Text>
-            <Text style={styles.priceValue}>{totalCost.toLocaleString()} XOF</Text>
+            <Text style={styles.priceValue}>{formatPrice(totalCost, i18n.locale)}</Text>
           </View>
         </View>
 
@@ -917,7 +928,7 @@ export default function TaskDetailsScreen() {
                 {i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting Payment'}
               </Text>
             </View>
-            <Text style={styles.paymentAmount}>{totalCost.toLocaleString()} XOF</Text>
+            <Text style={styles.paymentAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
             <View style={styles.paymentButtons}>
               <TouchableOpacity
                 style={styles.chatPaymentButton}
@@ -956,7 +967,7 @@ export default function TaskDetailsScreen() {
               <Text style={styles.paidTitle}>
                 {i18n.locale === 'fr' ? 'Paiement reçu' : 'Payment Received'}
               </Text>
-              <Text style={styles.paidAmount}>{totalCost.toLocaleString()} XOF</Text>
+              <Text style={styles.paidAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
             </View>
           </View>
         )}
@@ -1996,3 +2007,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+

@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryById, getCategoryName } from '../../constants/Categories';
+import { formatTaskPrice } from '../../utils/pricingUtils';
 
 const { width } = Dimensions.get('window');
 const TAB_WIDTH = (width - 32 - 16) / 3;
@@ -478,10 +479,7 @@ export default function BookingsScreen() {
                         {isClient ? (task.tasker_name || 'Tasker') : (task.client_name || 'Client')}
                       </Text>
                     </View>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.taskPrice}>{totalCost.toLocaleString()}</Text>
-                      <Text style={styles.priceCurrency}>XOF</Text>
-                    </View>
+                    <Text style={styles.taskPrice}>{formatTaskPrice(totalCost, i18n.locale)}</Text>
                   </View>
 
                   {/* Waiting Message for Client */}
@@ -707,9 +705,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   personName: { fontSize: 14, color: Colors.dark.text, fontWeight: '500' },
-  priceContainer: { alignItems: 'flex-end' },
-  taskPrice: { fontSize: 20, fontWeight: '700', color: Colors.dark.primary },
-  priceCurrency: { fontSize: 11, color: Colors.dark.textSecondary, marginTop: 2 },
+  taskPrice: { fontSize: 18, fontWeight: '700', color: Colors.dark.primary },
   
   // Waiting Message
   waitingMessage: {

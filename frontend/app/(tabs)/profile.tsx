@@ -18,13 +18,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
+import { ThemeMode } from '../../constants/Colors';
 import { showConfirm, showMessage } from '../../utils/alert';
 import { imageAPI } from '../../services/api';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
 const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
 const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
+
+// Theme option data
+const THEME_OPTIONS: { mode: ThemeMode; icon: keyof typeof Ionicons.glyphMap; labelEn: string; labelFr: string }[] = [
+  { mode: 'light', icon: 'sunny', labelEn: 'Light', labelFr: 'Clair' },
+  { mode: 'dark', icon: 'moon', labelEn: 'Dark', labelFr: 'Sombre' },
+  { mode: 'system', icon: 'phone-portrait', labelEn: 'System', labelFr: 'Système' },
+];
 
 // Animated Menu Item Component
 function AnimatedMenuItem({
@@ -33,7 +41,8 @@ function AnimatedMenuItem({
   subtitle,
   onPress,
   index,
-  iconColor = Colors.dark.primary,
+  iconColor,
+  colors,
 }: {
   icon: any;
   title: string;
@@ -41,10 +50,13 @@ function AnimatedMenuItem({
   onPress: () => void;
   index: number;
   iconColor?: string;
+  colors: any;
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  
+  const itemIconColor = iconColor || colors.primary;
 
   useEffect(() => {
     Animated.parallel([
@@ -64,23 +76,23 @@ function AnimatedMenuItem({
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateX: slideAnim }, { scale: scaleAnim }] }}>
       <TouchableOpacity 
-        style={styles.menuItem} 
+        style={[styles.menuItem, { borderBottomColor: colors.border }]} 
         onPress={onPress} 
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
       >
         <View style={styles.menuItemLeft}>
-          <View style={[styles.menuItemIconContainer, { backgroundColor: `${iconColor}15` }]}>
-            <Ionicons name={icon} size={20} color={iconColor} />
+          <View style={[styles.menuItemIconContainer, { backgroundColor: `${itemIconColor}15` }]}>
+            <Ionicons name={icon} size={20} color={itemIconColor} />
           </View>
           <View style={styles.menuItemContent}>
-            <Text style={styles.menuItemTitle}>{title}</Text>
-            {subtitle && <Text style={styles.menuItemSubtitle}>{subtitle}</Text>}
+            <Text style={[styles.menuItemTitle, { color: colors.text }]}>{title}</Text>
+            {subtitle && <Text style={[styles.menuItemSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
           </View>
         </View>
-        <View style={styles.chevronContainer}>
-          <Ionicons name="chevron-forward" size={18} color={Colors.dark.textSecondary} />
+        <View style={[styles.chevronContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -91,6 +103,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, refreshUser, logout } = useAuth();
   const { locale, setLocale, t } = useLanguage();
+  const { theme, setTheme, colors } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -304,11 +317,11 @@ export default function ProfileScreen() {
   const profileImageUrl = user?.profile_image || user?.avatar || user?.profile_picture;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Animated Header */}
       <Animated.View style={[styles.header, { opacity: headerFade }]}>
-        <Text style={styles.headerTitle}>{t('profile.title')}</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
           {locale === 'fr' ? 'Gérez votre compte' : 'Manage your account'}
         </Text>
       </Animated.View>
@@ -322,7 +335,12 @@ export default function ProfileScreen() {
         <Animated.View 
           style={[
             styles.profileCard, 
-            { opacity: profileFade, transform: [{ scale: profileScale }] }
+            { 
+              backgroundColor: colors.card, 
+              borderColor: colors.border,
+              opacity: profileFade, 
+              transform: [{ scale: profileScale }] 
+            }
           ]}
         >
           {/* Avatar with Gradient Ring - Now Tappable */}
@@ -334,21 +352,21 @@ export default function ProfileScreen() {
           >
             <Animated.View style={[styles.avatarGradientRing, { transform: [{ rotate: avatarBorderRotation }] }]}>
               <LinearGradient
-                colors={[Colors.dark.primary, '#059669', '#3b82f6', Colors.dark.primary]}
+                colors={[colors.primary, '#059669', '#3b82f6', colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientRing}
               />
             </Animated.View>
-            <View style={styles.avatarContainer}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.background }]}>
               {uploadingImage ? (
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                   <ActivityIndicator size="large" color="#fff" />
                 </View>
               ) : profileImageUrl ? (
                 <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} />
               ) : (
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.avatarText}>
                     {user?.full_name?.charAt(0).toUpperCase() || 'U'}
                   </Text>
@@ -357,14 +375,17 @@ export default function ProfileScreen() {
             </View>
             
             {/* Camera Icon Overlay */}
-            <View style={styles.cameraIconContainer}>
+            <View style={[styles.cameraIconContainer, { backgroundColor: colors.primary, borderColor: colors.card }]}>
               <Ionicons name="camera" size={14} color="#fff" />
             </View>
             
             <View
               style={[
                 styles.roleBadge,
-                { backgroundColor: user?.role === 'tasker' ? Colors.dark.primary : '#3b82f6' },
+                { 
+                  backgroundColor: user?.role === 'tasker' ? colors.primary : '#3b82f6',
+                  borderColor: colors.card,
+                },
               ]}
             >
               <Ionicons 
@@ -380,57 +401,99 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.profileName}>{user?.full_name}</Text>
-          <Text style={styles.profileEmail}>{user?.email}</Text>
+          <Text style={[styles.profileName, { color: colors.text }]}>{user?.full_name}</Text>
+          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
 
           {/* Profile Info Pills */}
           <View style={styles.profileInfo}>
             {user?.phone && (
-              <View style={styles.profileInfoPill}>
-                <Ionicons name="call" size={14} color={Colors.dark.primary} />
-                <Text style={styles.profileInfoText}>{user?.phone}</Text>
+              <View style={[styles.profileInfoPill, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="call" size={14} color={colors.primary} />
+                <Text style={[styles.profileInfoText, { color: colors.text }]}>{user?.phone}</Text>
               </View>
             )}
             {user?.country && (
-              <View style={styles.profileInfoPill}>
-                <Ionicons name="location" size={14} color={Colors.dark.primary} />
-                <Text style={styles.profileInfoText}>{user?.country}</Text>
+              <View style={[styles.profileInfoPill, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="location" size={14} color={colors.primary} />
+                <Text style={[styles.profileInfoText, { color: colors.text }]}>{user?.country}</Text>
               </View>
             )}
           </View>
 
           {/* Profile Completion */}
           {profileCompletion < 100 && (
-            <View style={styles.completionContainer}>
+            <View style={[styles.completionContainer, { borderTopColor: colors.border }]}>
               <View style={styles.completionHeader}>
-                <Text style={styles.completionTitle}>
+                <Text style={[styles.completionTitle, { color: colors.textSecondary }]}>
                   {locale === 'fr' ? 'Profil complété' : 'Profile Complete'}
                 </Text>
-                <Text style={styles.completionPercent}>{profileCompletion}%</Text>
+                <Text style={[styles.completionPercent, { color: colors.primary }]}>{profileCompletion}%</Text>
               </View>
-              <View style={styles.completionBarBg}>
-                <Animated.View style={[styles.completionBarFill, { width: `${profileCompletion}%` }]} />
+              <View style={[styles.completionBarBg, { backgroundColor: colors.border }]}>
+                <Animated.View style={[styles.completionBarFill, { width: `${profileCompletion}%`, backgroundColor: colors.primary }]} />
               </View>
             </View>
           )}
         </Animated.View>
 
-    
+        {/* Theme Toggle Section */}
+        <View style={styles.menuSection}>
+          <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
+            {locale === 'fr' ? 'Apparence' : 'Appearance'}
+          </Text>
+          <View style={[styles.themeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.themeHeader}>
+              <Ionicons name="color-palette" size={22} color={colors.primary} />
+              <Text style={[styles.themeTitle, { color: colors.text }]}>
+                {locale === 'fr' ? 'Thème' : 'Theme'}
+              </Text>
+            </View>
+            <View style={styles.themeOptions}>
+              {THEME_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.mode}
+                  style={[
+                    styles.themeOption,
+                    { 
+                      backgroundColor: theme === option.mode ? colors.primary : colors.background,
+                      borderColor: theme === option.mode ? colors.primary : colors.border,
+                    }
+                  ]}
+                  onPress={() => setTheme(option.mode)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={option.icon} 
+                    size={18} 
+                    color={theme === option.mode ? colors.background : colors.text} 
+                  />
+                  <Text style={[
+                    styles.themeOptionText,
+                    { color: theme === option.mode ? colors.background : colors.text }
+                  ]}>
+                    {locale === 'fr' ? option.labelFr : option.labelEn}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
 
-          {/* Tasker Management Section - Only for Taskers */}
+        {/* Tasker Management Section - Only for Taskers */}
         {user?.role === 'tasker' && (
           <View style={styles.menuSection}>
-            <Text style={styles.menuSectionTitle}>
+            <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
               {locale === 'fr' ? 'Gestion Tâcheron' : 'Tasker Management'}
             </Text>
-            <View style={styles.menuCard}>
+            <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <AnimatedMenuItem
                 icon="calendar"
                 title={locale === 'fr' ? 'Disponibilités' : 'Availability'}
                 subtitle={locale === 'fr' ? 'Gérer vos horaires' : 'Manage your schedule'}
                 onPress={() => router.push('/tasker/availability')}
                 index={0}
-                iconColor={Colors.dark.primary}
+                iconColor={colors.primary}
+                colors={colors}
               />
               <AnimatedMenuItem
                 icon="briefcase"
@@ -439,6 +502,7 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/tasker/manage-services')}
                 index={1}
                 iconColor="#f59e0b"
+                colors={colors}
               />
               <AnimatedMenuItem
                 icon="star"
@@ -447,6 +511,7 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/tasker/my-reviews')}
                 index={2}
                 iconColor="#fbbf24"
+                colors={colors}
               />
               <AnimatedMenuItem
                 icon="wallet"
@@ -454,19 +519,19 @@ export default function ProfileScreen() {
                 subtitle={locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
                 onPress={() => router.push('/tasker/my-earnings')}
                 index={3}
-                iconColor={Colors.dark.success}
+                iconColor={colors.success}
+                colors={colors}
               />
             </View>
           </View>
         )}
 
-
         {/* Menu Section */}
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>
+          <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
             {locale === 'fr' ? 'Préférences' : 'Preferences'}
           </Text>
-          <View style={styles.menuCard}>
+          <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <AnimatedMenuItem
               icon="language"
               title={t('profile.language')}
@@ -474,6 +539,7 @@ export default function ProfileScreen() {
               onPress={handleLanguageChange}
               index={0}
               iconColor="#8b5cf6"
+              colors={colors}
             />
             <AnimatedMenuItem
               icon="notifications-outline"
@@ -482,6 +548,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/notifications')}
               index={1}
               iconColor="#f59e0b"
+              colors={colors}
             />
             <AnimatedMenuItem
               icon="settings-outline"
@@ -489,17 +556,18 @@ export default function ProfileScreen() {
               subtitle={locale === 'fr' ? 'Mot de passe, compte' : 'Password, account'}
               onPress={() => router.push('/settings')}
               index={2}
-              iconColor={Colors.dark.textSecondary}
+              iconColor={colors.textSecondary}
+              colors={colors}
             />
           </View>
         </View>
 
         {/* Support Section */}
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>
+          <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
             {locale === 'fr' ? 'Support' : 'Support'}
           </Text>
-          <View style={styles.menuCard}>
+          <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <AnimatedMenuItem
               icon="help-circle-outline"
               title={locale === 'fr' ? 'Aide & Support' : 'Help & Support'}
@@ -507,6 +575,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/support')}
               index={3}
               iconColor="#3b82f6"
+              colors={colors}
             />
             <AnimatedMenuItem
               icon="document-text-outline"
@@ -514,7 +583,8 @@ export default function ProfileScreen() {
               subtitle={locale === 'fr' ? 'Lire les conditions' : 'Read our terms'}
               onPress={handleOpenTermsOfService}
               index={4}
-              iconColor={Colors.dark.textSecondary}
+              iconColor={colors.textSecondary}
+              colors={colors}
             />
             <AnimatedMenuItem
               icon="shield-checkmark-outline"
@@ -522,39 +592,40 @@ export default function ProfileScreen() {
               subtitle={locale === 'fr' ? 'Vos données' : 'Your data'}
               onPress={handleOpenPrivacyPolicy}
               index={5}
-              iconColor={Colors.dark.success}
+              iconColor={colors.success}
+              colors={colors}
             />
           </View>
         </View>
 
         {/* App Info */}
         <View style={styles.appInfo}>
-          <View style={styles.appLogoContainer}>
+          <View style={[styles.appLogoContainer, { backgroundColor: colors.primary }]}>
             <Text style={styles.appLogo}>S</Text>
           </View>
-          <Text style={styles.appName}>Soutrali</Text>
-          <Text style={styles.versionText}>
+          <Text style={[styles.appName, { color: colors.text }]}>Soutrali</Text>
+          <Text style={[styles.versionText, { color: colors.textSecondary }]}>
             {locale === 'fr' ? 'Version' : 'Version'} 1.0.0
           </Text>
-          <Text style={styles.versionSubtext}>
-            {locale === 'fr' ? 'Fait avec ❤️ au Sénégal' : 'Made with ❤️ in Senegal'}
+          <Text style={[styles.versionSubtext, { color: colors.textSecondary }]}>
+            {locale === 'fr' ? 'Fait avec ❤️ en Afrique' : 'Made with ❤️ in Africa'}
           </Text>
         </View>
 
         {/* Logout Button */}
         <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
           <TouchableOpacity
-            style={styles.logoutButton}
+            style={[styles.logoutButton, { borderColor: colors.error }]}
             onPress={handleLogout}
             disabled={isLoggingOut}
             activeOpacity={0.8}
           >
             {isLoggingOut ? (
-              <ActivityIndicator size="small" color={Colors.dark.error} />
+              <ActivityIndicator size="small" color={colors.error} />
             ) : (
               <>
-                <Ionicons name="log-out-outline" size={22} color={Colors.dark.error} />
-                <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
+                <Ionicons name="log-out-outline" size={22} color={colors.error} />
+                <Text style={[styles.logoutButtonText, { color: colors.error }]}>{t('profile.logout')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -565,20 +636,20 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.dark.background },
+  container: { flex: 1 },
   
   // Header
   header: { paddingHorizontal: 24, paddingVertical: 16 },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: Colors.dark.text, letterSpacing: -0.5 },
-  headerSubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 4 },
+  headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 14, marginTop: 4 },
   
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
   
   // Profile Card
   profileCard: {
-    backgroundColor: Colors.dark.card, padding: 24, borderRadius: 20, alignItems: 'center',
-    marginBottom: 20, borderWidth: 1, borderColor: Colors.dark.border,
+    padding: 24, borderRadius: 20, alignItems: 'center',
+    marginBottom: 20, borderWidth: 1,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 5,
   },
   
@@ -590,11 +661,11 @@ const styles = StyleSheet.create({
   },
   gradientRing: { width: '100%', height: '100%', borderRadius: 48 },
   avatarContainer: {
-    width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.dark.background,
+    width: 88, height: 88, borderRadius: 44,
     alignItems: 'center', justifyContent: 'center', padding: 4,
   },
   avatar: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.dark.primary,
+    width: 80, height: 80, borderRadius: 40,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarImage: {
@@ -608,81 +679,99 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.dark.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.dark.card,
   },
   roleBadge: {
     position: 'absolute', bottom: -4, left: -4,
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
-    borderWidth: 2, borderColor: Colors.dark.card,
+    borderWidth: 2,
   },
   roleBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
   
-  profileName: { fontSize: 22, fontWeight: '700', color: Colors.dark.text, marginBottom: 4 },
-  profileEmail: { fontSize: 14, color: Colors.dark.textSecondary, marginBottom: 16 },
+  profileName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
+  profileEmail: { fontSize: 14, marginBottom: 16 },
   
   // Info Pills
   profileInfo: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
   profileInfoPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: `${Colors.dark.primary}15`, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
   },
-  profileInfoText: { fontSize: 13, color: Colors.dark.text, fontWeight: '500' },
+  profileInfoText: { fontSize: 13, fontWeight: '500' },
   
   // Profile Completion
-  completionContainer: { width: '100%', marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.dark.border },
+  completionContainer: { width: '100%', marginTop: 20, paddingTop: 16, borderTopWidth: 1 },
   completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  completionTitle: { fontSize: 12, color: Colors.dark.textSecondary, fontWeight: '500' },
-  completionPercent: { fontSize: 12, color: Colors.dark.primary, fontWeight: '700' },
-  completionBarBg: { height: 6, backgroundColor: Colors.dark.border, borderRadius: 3, overflow: 'hidden' },
-  completionBarFill: { height: '100%', backgroundColor: Colors.dark.primary, borderRadius: 3 },
+  completionTitle: { fontSize: 12, fontWeight: '500' },
+  completionPercent: { fontSize: 12, fontWeight: '700' },
+  completionBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  completionBarFill: { height: '100%', borderRadius: 3 },
+
+  // Theme Toggle
+  themeCard: {
+    borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 4,
+  },
+  themeHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16,
+  },
+  themeTitle: {
+    fontSize: 16, fontWeight: '600',
+  },
+  themeOptions: {
+    flexDirection: 'row', gap: 8,
+  },
+  themeOption: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, paddingHorizontal: 8, borderRadius: 12, borderWidth: 1,
+  },
+  themeOptionText: {
+    fontSize: 13, fontWeight: '600',
+  },
    
   // Menu Sections
   menuSection: { marginBottom: 20 },
   menuSectionTitle: {
-    fontSize: 13, fontWeight: '600', color: Colors.dark.textSecondary,
+    fontSize: 13, fontWeight: '600',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginLeft: 4,
   },
   menuCard: {
-    backgroundColor: Colors.dark.card, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: Colors.dark.border,
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1,
   },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 14, borderBottomWidth: 1, borderBottomColor: Colors.dark.border,
+    padding: 14, borderBottomWidth: 1,
   },
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   menuItemIconContainer: {
     width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   menuItemContent: { flex: 1 },
-  menuItemTitle: { fontSize: 15, fontWeight: '600', color: Colors.dark.text, marginBottom: 2 },
-  menuItemSubtitle: { fontSize: 12, color: Colors.dark.textSecondary },
+  menuItemTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  menuItemSubtitle: { fontSize: 12 },
   chevronContainer: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.dark.background,
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
   
   // App Info
   appInfo: { alignItems: 'center', paddingVertical: 24 },
   appLogoContainer: {
-    width: 48, height: 48, borderRadius: 12, backgroundColor: Colors.dark.primary,
+    width: 48, height: 48, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   appLogo: { fontSize: 24, fontWeight: '700', color: '#fff' },
-  appName: { fontSize: 16, fontWeight: '700', color: Colors.dark.text },
-  versionText: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 4 },
-  versionSubtext: { fontSize: 11, color: Colors.dark.textSecondary, marginTop: 4 },
+  appName: { fontSize: 16, fontWeight: '700' },
+  versionText: { fontSize: 12, marginTop: 4 },
+  versionSubtext: { fontSize: 11, marginTop: 4 },
   
   // Logout Button
   logoutButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 16, borderRadius: 14,
-    borderWidth: 1, borderColor: Colors.dark.error, gap: 10,
+    borderWidth: 1, gap: 10,
   },
-  logoutButtonText: { fontSize: 16, fontWeight: '600', color: Colors.dark.error },
+  logoutButtonText: { fontSize: 16, fontWeight: '600' },
 });

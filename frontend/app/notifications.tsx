@@ -7,24 +7,15 @@ import {
   TouchableOpacity,
   RefreshControl,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { notificationAPI } from '../services/api';
+import { notificationAPI, Notification } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
-
-interface Notification {
-  id: string;
-  type: string;
-  task_id?: string;
-  task_title?: string;
-  message?: string | null;
-  is_read: boolean;
-  created_at: string;
-}
 
 // Skeleton Components
 const SkeletonBox = ({ width, height, style }: { width: number | string; height: number; style?: any }) => {
@@ -99,23 +90,26 @@ const PulsingDot = () => {
   );
 };
 
-// Animated Notification Card
+// Animated Notification Card with Delete
 const AnimatedNotificationCard = ({ 
   notification, 
   index, 
   onPress,
+  onDelete,
   icon,
   notifText,
 }: { 
   notification: Notification; 
   index: number;
   onPress: () => void;
+  onDelete: () => void;
   icon: { name: string; color: string };
   notifText: { title: string; message: string };
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const deleteAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -130,6 +124,12 @@ const AnimatedNotificationCard = ({
 
   const handlePressOut = () => {
     Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }).start();
+  };
+
+  const handleDelete = () => {
+    Animated.timing(deleteAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      onDelete();
+    });
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -150,8 +150,11 @@ const AnimatedNotificationCard = ({
   return (
     <Animated.View
       style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+        opacity: Animated.multiply(fadeAnim, deleteAnim),
+        transform: [
+          { translateY: slideAnim }, 
+          { scale: Animated.multiply(scaleAnim, deleteAnim) }
+        ],
       }}
     >
       <TouchableOpacity
@@ -179,9 +182,15 @@ const AnimatedNotificationCard = ({
             <Text style={styles.notificationTime}>{formatTimeAgo(notification.created_at)}</Text>
           </View>
         </View>
-        <View style={styles.chevronContainer}>
-          <Ionicons name="chevron-forward" size={16} color={Colors.dark.textSecondary} />
-        </View>
+        
+        {/* Delete Button */}
+        <TouchableOpacity 
+          style={styles.deleteButton} 
+          onPress={handleDelete}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="trash-outline" size={18} color={Colors.dark.textSecondary} />
+        </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -195,6 +204,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -209,7 +219,7 @@ export default function NotificationsScreen() {
   const fetchNotifications = async () => {
     try {
       const data = await notificationAPI.getNotifications();
-      setNotifications(data || []);
+      setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -221,12 +231,13 @@ export default function NotificationsScreen() {
   const handleRefresh = () => { setRefreshing(true); fetchNotifications(); };
 
   const handleMarkAsRead = async (notificationId: string) => {
-    try {
-      await notificationAPI.markAsRead(notificationId);
-      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
-    } catch (error) {
+    // Optimistic update
+    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+    
+    // Fire and forget API call
+    notificationAPI.markAsRead(notificationId).catch(error => {
       console.error('Error marking notification as read:', error);
-    }
+    });
   };
 
   const handleMarkAllAsRead = async () => {
@@ -236,9 +247,11 @@ export default function NotificationsScreen() {
       Animated.timing(markAllScale, { toValue: 1, duration: 100, useNativeDriver: true }),
     ]).start();
 
+    // Optimistic update
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+
     try {
       await notificationAPI.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       
       // Success animation
       Animated.sequence([
@@ -248,37 +261,150 @@ export default function NotificationsScreen() {
       ]).start();
     } catch (error) {
       console.error('Error marking all as read:', error);
+      // Revert on error
+      fetchNotifications();
     } finally {
       setMarkingAll(false);
     }
   };
 
+  const handleDeleteNotification = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    
+    // Optimistic update
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+
+    try {
+      await notificationAPI.deleteNotification(notificationId);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      // Revert on error
+      if (notification) {
+        setNotifications(prev => [...prev, notification]);
+      }
+    }
+  };
+
+  const handleClearAll = () => {
+    Alert.alert(
+      i18n.locale === 'fr' ? 'Supprimer tout' : 'Clear All',
+      i18n.locale === 'fr' 
+        ? 'Voulez-vous supprimer toutes les notifications ?' 
+        : 'Are you sure you want to delete all notifications?',
+      [
+        { text: i18n.locale === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
+        { 
+          text: i18n.locale === 'fr' ? 'Supprimer' : 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            // Optimistic update
+            setNotifications([]);
+            
+            try {
+              await notificationAPI.clearAllNotifications();
+            } catch (error) {
+              console.error('Error clearing all notifications:', error);
+              // Revert on error
+              fetchNotifications();
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const handleNotificationPress = (notification: Notification) => {
-    if (!notification.is_read) handleMarkAsRead(notification.id);
-    if (notification.task_id) router.push(`/task/${notification.task_id}`);
+    // Mark as read first
+    if (!notification.is_read) {
+      handleMarkAsRead(notification.id);
+    }
+
+    // Navigate based on notification type
+    const { type, task_id, data } = notification;
+    const taskId = task_id || data?.task_id;
+
+    switch (type) {
+      case 'new_message':
+        if (taskId) {
+          router.push({ pathname: `/task/${taskId}`, params: { tab: 'chat' } });
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+        
+      case 'review_received':
+        // Navigate to reviews or profile
+        if (user?.role === 'tasker') {
+          router.push('/(tabs)/profile');
+        } else if (taskId) {
+          router.push(`/task/${taskId}`);
+        }
+        break;
+        
+      case 'payment_confirmed':
+      case 'payment_received':
+        if (user?.role === 'tasker') {
+          router.push('/tasker/my-earnings');
+        } else if (taskId) {
+          router.push(`/task/${taskId}`);
+        }
+        break;
+        
+      case 'tasker_on_way':
+      case 'tasker_arrived':
+        // Navigate to task with tracking
+        if (taskId) {
+          router.push({ pathname: `/task/${taskId}`, params: { showTracking: 'true' } });
+        }
+        break;
+        
+      case 'new_task':
+      case 'new_booking_request':
+        if (user?.role === 'tasker') {
+          router.push('/tasker/dashboard');
+        } else if (taskId) {
+          router.push(`/task/${taskId}`);
+        }
+        break;
+        
+      default:
+        // Default: navigate to task detail if task_id exists
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+    }
   };
 
   const getNotificationText = (notification: Notification): { title: string; message: string } => {
-    const { type, task_title, message } = notification;
-    const title = task_title || (i18n.locale === 'fr' ? 'votre tâche' : 'your task');
+    const { type, title, message, data } = notification;
+    const taskTitle = data?.task_title || (i18n.locale === 'fr' ? 'votre tâche' : 'your task');
     
-    if (message) return { title: getNotificationTitle(type), message };
+    // Use message from notification if available
+    if (message) {
+      return { title: title || getNotificationTitle(type), message };
+    }
     
     const texts: { [key: string]: { fr: { title: string; message: string }; en: { title: string; message: string } } } = {
-      task_accepted: { fr: { title: 'Tâche acceptée', message: `Votre tâche "${title}" a été acceptée !` }, en: { title: 'Task Accepted', message: `Your task "${title}" has been accepted!` } },
-      task_rejected: { fr: { title: 'Tâche refusée', message: `Votre tâche "${title}" a été refusée.` }, en: { title: 'Task Declined', message: `Your task "${title}" was declined.` } },
-      task_completed: { fr: { title: 'Tâche terminée', message: `La tâche "${title}" a été complétée.` }, en: { title: 'Task Completed', message: `Task "${title}" has been completed.` } },
-      tasker_on_way: { fr: { title: 'Tâcheron en route', message: `Votre tâcheron est en route pour "${title}" !` }, en: { title: 'Tasker On The Way', message: `Your tasker is on the way for "${title}"!` } },
-      new_message: { fr: { title: 'Nouveau message', message: `Nouveau message concernant "${title}".` }, en: { title: 'New Message', message: `New message regarding "${title}".` } },
-      payment_confirmed: { fr: { title: 'Paiement confirmé', message: `Paiement confirmé pour "${title}".` }, en: { title: 'Payment Confirmed', message: `Payment confirmed for "${title}".` } },
-      review_received: { fr: { title: 'Nouvel avis', message: `Vous avez reçu un avis pour "${title}" !` }, en: { title: 'Review Received', message: `You received a review for "${title}"!` } },
-      new_task: { fr: { title: 'Nouvelle demande', message: `Vous avez une nouvelle demande : "${title}".` }, en: { title: 'New Request', message: `You have a new task request: "${title}".` } },
-      task_started: { fr: { title: 'Tâche commencée', message: `Le travail a commencé pour "${title}".` }, en: { title: 'Task Started', message: `Work has started for "${title}".` } },
-      task_cancelled: { fr: { title: 'Tâche annulée', message: `La tâche "${title}" a été annulée.` }, en: { title: 'Task Cancelled', message: `Task "${title}" has been cancelled.` } },
+      task_accepted: { fr: { title: 'Tâche acceptée', message: `Votre tâche "${taskTitle}" a été acceptée !` }, en: { title: 'Task Accepted', message: `Your task "${taskTitle}" has been accepted!` } },
+      task_rejected: { fr: { title: 'Tâche refusée', message: `Votre tâche "${taskTitle}" a été refusée.` }, en: { title: 'Task Declined', message: `Your task "${taskTitle}" was declined.` } },
+      task_completed: { fr: { title: 'Tâche terminée', message: `La tâche "${taskTitle}" a été complétée.` }, en: { title: 'Task Completed', message: `Task "${taskTitle}" has been completed.` } },
+      tasker_on_way: { fr: { title: 'Tâcheron en route', message: `Votre tâcheron est en route pour "${taskTitle}" !` }, en: { title: 'Tasker On The Way', message: `Your tasker is on the way for "${taskTitle}"!` } },
+      tasker_arrived: { fr: { title: 'Tâcheron arrivé', message: `Votre tâcheron est arrivé pour "${taskTitle}" !` }, en: { title: 'Tasker Arrived', message: `Your tasker has arrived for "${taskTitle}"!` } },
+      new_message: { fr: { title: 'Nouveau message', message: `Nouveau message concernant "${taskTitle}".` }, en: { title: 'New Message', message: `New message regarding "${taskTitle}".` } },
+      payment_confirmed: { fr: { title: 'Paiement confirmé', message: `Paiement confirmé pour "${taskTitle}".` }, en: { title: 'Payment Confirmed', message: `Payment confirmed for "${taskTitle}".` } },
+      payment_received: { fr: { title: 'Paiement reçu', message: `Vous avez reçu un paiement pour "${taskTitle}".` }, en: { title: 'Payment Received', message: `You received payment for "${taskTitle}".` } },
+      review_received: { fr: { title: 'Nouvel avis', message: `Vous avez reçu un avis pour "${taskTitle}" !` }, en: { title: 'Review Received', message: `You received a review for "${taskTitle}"!` } },
+      new_task: { fr: { title: 'Nouvelle demande', message: `Vous avez une nouvelle demande : "${taskTitle}".` }, en: { title: 'New Request', message: `You have a new task request: "${taskTitle}".` } },
+      new_booking_request: { fr: { title: 'Nouvelle réservation', message: `Nouvelle demande de réservation : "${taskTitle}".` }, en: { title: 'New Booking', message: `New booking request: "${taskTitle}".` } },
+      task_started: { fr: { title: 'Tâche commencée', message: `Le travail a commencé pour "${taskTitle}".` }, en: { title: 'Task Started', message: `Work has started for "${taskTitle}".` } },
+      task_cancelled: { fr: { title: 'Tâche annulée', message: `La tâche "${taskTitle}" a été annulée.` }, en: { title: 'Task Cancelled', message: `Task "${taskTitle}" has been cancelled.` } },
+      task_reminder: { fr: { title: 'Rappel', message: `Rappel pour votre tâche "${taskTitle}".` }, en: { title: 'Reminder', message: `Reminder for your task "${taskTitle}".` } },
     };
 
     const lang = i18n.locale === 'fr' ? 'fr' : 'en';
-    return texts[type]?.[lang] || { title: 'Notification', message: `Update for "${title}"` };
+    return texts[type]?.[lang] || { title: title || 'Notification', message: message || `Update for "${taskTitle}"` };
   };
 
   const getNotificationTitle = (type: string): string => {
@@ -287,12 +413,16 @@ export default function NotificationsScreen() {
       task_rejected: { fr: 'Tâche refusée', en: 'Task Declined' },
       task_completed: { fr: 'Tâche terminée', en: 'Task Completed' },
       tasker_on_way: { fr: 'Tâcheron en route', en: 'Tasker On The Way' },
+      tasker_arrived: { fr: 'Tâcheron arrivé', en: 'Tasker Arrived' },
       new_message: { fr: 'Nouveau message', en: 'New Message' },
       payment_confirmed: { fr: 'Paiement confirmé', en: 'Payment Confirmed' },
+      payment_received: { fr: 'Paiement reçu', en: 'Payment Received' },
       review_received: { fr: 'Nouvel avis', en: 'Review Received' },
       new_task: { fr: 'Nouvelle demande', en: 'New Request' },
+      new_booking_request: { fr: 'Nouvelle réservation', en: 'New Booking' },
       task_started: { fr: 'Tâche commencée', en: 'Task Started' },
       task_cancelled: { fr: 'Tâche annulée', en: 'Task Cancelled' },
+      task_reminder: { fr: 'Rappel', en: 'Reminder' },
     };
     return titles[type]?.[i18n.locale === 'fr' ? 'fr' : 'en'] || 'Notification';
   };
@@ -304,17 +434,26 @@ export default function NotificationsScreen() {
       task_started: { name: 'play-circle', color: '#8b5cf6' },
       task_completed: { name: 'trophy', color: '#f59e0b' },
       tasker_on_way: { name: 'car', color: '#3b82f6' },
+      tasker_arrived: { name: 'location', color: Colors.dark.success },
       new_message: { name: 'chatbubble', color: '#3b82f6' },
       payment_confirmed: { name: 'wallet', color: Colors.dark.success },
+      payment_received: { name: 'cash', color: Colors.dark.success },
       review_received: { name: 'star', color: '#f59e0b' },
       new_task: { name: 'briefcase', color: Colors.dark.primary },
+      new_booking_request: { name: 'calendar', color: Colors.dark.primary },
       task_cancelled: { name: 'close-circle', color: Colors.dark.error },
+      task_reminder: { name: 'alarm', color: '#f59e0b' },
     };
     return icons[type] || { name: 'notifications', color: Colors.dark.primary };
   };
 
+  // Filter notifications based on toggle
+  const displayedNotifications = showUnreadOnly 
+    ? notifications.filter(n => !n.is_read) 
+    : notifications;
+
   // Group notifications by date
-  const groupedNotifications = notifications.reduce((groups: any, notif) => {
+  const groupedNotifications = displayedNotifications.reduce((groups: any, notif) => {
     const date = new Date(notif.created_at);
     const today = new Date();
     const yesterday = new Date(today);
@@ -382,17 +521,64 @@ export default function NotificationsScreen() {
             </View>
           )}
         </View>
-        {unreadCount > 0 ? (
+        <View style={styles.headerActions}>
+          {/* Toggle Unread Only */}
+          <TouchableOpacity 
+            onPress={() => setShowUnreadOnly(!showUnreadOnly)} 
+            style={[styles.headerIconButton, showUnreadOnly && styles.headerIconButtonActive]}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={showUnreadOnly ? 'eye' : 'eye-outline'} 
+              size={20} 
+              color={showUnreadOnly ? '#fff' : Colors.dark.textSecondary} 
+            />
+          </TouchableOpacity>
+          
+          {/* Clear All */}
+          {notifications.length > 0 && (
+            <TouchableOpacity 
+              onPress={handleClearAll} 
+              style={styles.headerIconButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.dark.error} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animated.View>
+
+      {/* Filter Indicator */}
+      {showUnreadOnly && (
+        <View style={styles.filterIndicator}>
+          <Ionicons name="filter" size={14} color={Colors.dark.primary} />
+          <Text style={styles.filterText}>
+            {i18n.locale === 'fr' ? 'Non lues uniquement' : 'Unread only'}
+          </Text>
+          <TouchableOpacity onPress={() => setShowUnreadOnly(false)}>
+            <Ionicons name="close-circle" size={18} color={Colors.dark.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Mark All as Read Button (if unread exist) */}
+      {unreadCount > 0 && (
+        <View style={styles.markAllContainer}>
           <Animated.View style={{ transform: [{ scale: markAllScale }] }}>
-            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton} disabled={markingAll} activeOpacity={0.8}>
-              <Ionicons name="checkmark-done" size={16} color="#fff" />
-              <Text style={styles.markAllText}>{i18n.locale === 'fr' ? 'Tout lire' : 'Read all'}</Text>
+            <TouchableOpacity 
+              onPress={handleMarkAllAsRead} 
+              style={styles.markAllButton} 
+              disabled={markingAll} 
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-done" size={18} color="#fff" />
+              <Text style={styles.markAllText}>
+                {i18n.locale === 'fr' ? 'Tout marquer comme lu' : 'Mark all as read'}
+              </Text>
             </TouchableOpacity>
           </Animated.View>
-        ) : (
-          <View style={styles.placeholder} />
-        )}
-      </Animated.View>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -400,18 +586,38 @@ export default function NotificationsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.dark.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {notifications.length === 0 ? (
+        {displayedNotifications.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <Ionicons name="notifications-outline" size={48} color={Colors.dark.primary} />
             </View>
-            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune notification' : 'No notifications'}</Text>
-            <Text style={styles.emptySubtitle}>
-              {i18n.locale === 'fr' ? 'Vous recevrez des notifications ici' : 'You\'ll receive notifications here'}
+            <Text style={styles.emptyTitle}>
+              {showUnreadOnly 
+                ? (i18n.locale === 'fr' ? 'Aucune notification non lue' : 'No unread notifications')
+                : (i18n.locale === 'fr' ? 'Aucune notification' : 'No notifications')
+              }
             </Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={() => router.back()} activeOpacity={0.8}>
-              <Text style={styles.emptyButtonText}>{i18n.locale === 'fr' ? 'Retour' : 'Go Back'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.emptySubtitle}>
+              {showUnreadOnly
+                ? (i18n.locale === 'fr' ? 'Vous avez tout lu !' : 'You\'re all caught up!')
+                : (i18n.locale === 'fr' ? 'Vous recevrez des notifications ici' : 'You\'ll receive notifications here')
+              }
+            </Text>
+            {showUnreadOnly ? (
+              <TouchableOpacity 
+                style={styles.emptyButton} 
+                onPress={() => setShowUnreadOnly(false)} 
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emptyButtonText}>
+                  {i18n.locale === 'fr' ? 'Voir tout' : 'Show All'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.emptyButton} onPress={() => router.back()} activeOpacity={0.8}>
+                <Text style={styles.emptyButtonText}>{i18n.locale === 'fr' ? 'Retour' : 'Go Back'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           Object.entries(groupedNotifications).map(([date, notifs]: [string, any], groupIndex) => (
@@ -427,6 +633,7 @@ export default function NotificationsScreen() {
                   notification={notification}
                   index={groupIndex * 3 + index}
                   onPress={() => handleNotificationPress(notification)}
+                  onDelete={() => handleDeleteNotification(notification.id)}
                   icon={getNotificationIcon(notification.type)}
                   notifText={getNotificationText(notification)}
                 />
@@ -464,15 +671,35 @@ const styles = StyleSheet.create({
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.dark.text },
   headerBadge: {
-    backgroundColor: Colors.dark.primary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: Colors.dark.error, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   headerBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  markAllButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: Colors.dark.primary,
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerIconButton: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.dark.card,
+    alignItems: 'center', justifyContent: 'center',
   },
-  markAllText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  placeholder: { width: 90 },
+  headerIconButtonActive: {
+    backgroundColor: Colors.dark.primary,
+  },
+  
+  // Filter Indicator
+  filterIndicator: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 10, paddingHorizontal: 20, marginHorizontal: 20, marginBottom: 8,
+    backgroundColor: `${Colors.dark.primary}15`, borderRadius: 10,
+  },
+  filterText: { fontSize: 13, color: Colors.dark.primary, fontWeight: '500' },
+  
+  // Mark All Container
+  markAllContainer: {
+    paddingHorizontal: 20, marginBottom: 8,
+  },
+  markAllButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: 12, backgroundColor: Colors.dark.primary,
+  },
+  markAllText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   
   scrollView: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 40 },
@@ -521,8 +748,10 @@ const styles = StyleSheet.create({
   notificationMessage: { fontSize: 13, color: Colors.dark.textSecondary, marginTop: 4, lineHeight: 18 },
   notificationFooter: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
   notificationTime: { fontSize: 11, color: Colors.dark.textSecondary },
-  chevronContainer: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.dark.background,
+  
+  // Delete Button
+  deleteButton: {
+    width: 36, height: 36, borderRadius: 12, backgroundColor: Colors.dark.background,
     alignItems: 'center', justifyContent: 'center', marginLeft: 8,
   },
 });
