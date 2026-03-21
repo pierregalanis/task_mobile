@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -18,21 +19,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { ThemeMode } from '../../constants/Colors';
+import { Colors } from '../../constants/Colors';
 import { showConfirm, showMessage } from '../../utils/alert';
 import { imageAPI } from '../../services/api';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
 const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
 const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
-
-// Theme option data
-const THEME_OPTIONS: { mode: ThemeMode; icon: keyof typeof Ionicons.glyphMap; labelEn: string; labelFr: string }[] = [
-  { mode: 'light', icon: 'sunny', labelEn: 'Light', labelFr: 'Clair' },
-  { mode: 'dark', icon: 'moon', labelEn: 'Dark', labelFr: 'Sombre' },
-  { mode: 'system', icon: 'phone-portrait', labelEn: 'System', labelFr: 'Système' },
-];
 
 // Animated Menu Item Component
 function AnimatedMenuItem({
@@ -103,7 +96,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, refreshUser, logout } = useAuth();
   const { locale, setLocale, t } = useLanguage();
-  const { theme, setTheme, colors } = useTheme();
+  const colors = Colors.dark;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -198,7 +191,6 @@ export default function ProfileScreen() {
       setUploadingImage(true);
       await imageAPI.uploadProfileImage(imageUri);
       
-      // Refresh user data to get new profile image
       if (refreshUser) {
         await refreshUser();
       }
@@ -227,13 +219,9 @@ export default function ProfileScreen() {
       async () => {
         try {
           setUploadingImage(true);
-          // Call API to delete profile image if endpoint exists
-          // await imageAPI.deleteProfileImage();
-          
           if (refreshUser) {
             await refreshUser();
           }
-          
           showMessage(
             locale === 'fr' ? 'Succès' : 'Success',
             locale === 'fr' ? 'Photo supprimée' : 'Photo deleted'
@@ -271,7 +259,6 @@ export default function ProfileScreen() {
     );
   };
 
-  // Terms & Privacy Handlers
   const handleOpenPrivacyPolicy = async () => {
     try {
       await Linking.openURL(PRIVACY_POLICY_URL);
@@ -299,7 +286,6 @@ export default function ProfileScreen() {
     outputRange: ['0deg', '360deg'],
   });
 
-  // Calculate profile completion
   const getProfileCompletion = () => {
     let completed = 0;
     const total = 5;
@@ -312,13 +298,10 @@ export default function ProfileScreen() {
   };
 
   const profileCompletion = getProfileCompletion();
-  
-  // Get profile image URL
   const profileImageUrl = user?.profile_image || user?.avatar || user?.profile_picture;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Animated Header */}
       <Animated.View style={[styles.header, { opacity: headerFade }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
@@ -331,7 +314,6 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Animated Profile Card */}
         <Animated.View 
           style={[
             styles.profileCard, 
@@ -343,7 +325,6 @@ export default function ProfileScreen() {
             }
           ]}
         >
-          {/* Avatar with Gradient Ring - Now Tappable */}
           <TouchableOpacity 
             style={styles.avatarWrapper} 
             onPress={handleAvatarPress}
@@ -374,7 +355,6 @@ export default function ProfileScreen() {
               )}
             </View>
             
-            {/* Camera Icon Overlay */}
             <View style={[styles.cameraIconContainer, { backgroundColor: colors.primary, borderColor: colors.card }]}>
               <Ionicons name="camera" size={14} color="#fff" />
             </View>
@@ -404,7 +384,6 @@ export default function ProfileScreen() {
           <Text style={[styles.profileName, { color: colors.text }]}>{user?.full_name}</Text>
           <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
 
-          {/* Profile Info Pills */}
           <View style={styles.profileInfo}>
             {user?.phone && (
               <View style={[styles.profileInfoPill, { backgroundColor: `${colors.primary}15` }]}>
@@ -420,7 +399,6 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Profile Completion */}
           {profileCompletion < 100 && (
             <View style={[styles.completionContainer, { borderTopColor: colors.border }]}>
               <View style={styles.completionHeader}>
@@ -435,49 +413,6 @@ export default function ProfileScreen() {
             </View>
           )}
         </Animated.View>
-
-        {/* Theme Toggle Section */}
-        <View style={styles.menuSection}>
-          <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
-            {locale === 'fr' ? 'Apparence' : 'Appearance'}
-          </Text>
-          <View style={[styles.themeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.themeHeader}>
-              <Ionicons name="color-palette" size={22} color={colors.primary} />
-              <Text style={[styles.themeTitle, { color: colors.text }]}>
-                {locale === 'fr' ? 'Thème' : 'Theme'}
-              </Text>
-            </View>
-            <View style={styles.themeOptions}>
-              {THEME_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.mode}
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: theme === option.mode ? colors.primary : colors.background,
-                      borderColor: theme === option.mode ? colors.primary : colors.border,
-                    }
-                  ]}
-                  onPress={() => setTheme(option.mode)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons 
-                    name={option.icon} 
-                    size={18} 
-                    color={theme === option.mode ? colors.background : colors.text} 
-                  />
-                  <Text style={[
-                    styles.themeOptionText,
-                    { color: theme === option.mode ? colors.background : colors.text }
-                  ]}>
-                    {locale === 'fr' ? option.labelFr : option.labelEn}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
 
         {/* Tasker Management Section - Only for Taskers */}
         {user?.role === 'tasker' && (
@@ -526,7 +461,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Menu Section */}
+        {/* Preferences */}
         <View style={styles.menuSection}>
           <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
             {locale === 'fr' ? 'Préférences' : 'Preferences'}
@@ -562,7 +497,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Support Section */}
+        {/* Support */}
         <View style={styles.menuSection}>
           <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
             {locale === 'fr' ? 'Support' : 'Support'}
@@ -612,7 +547,7 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
           <TouchableOpacity
             style={[styles.logoutButton, { borderColor: colors.error }]}
@@ -637,23 +572,16 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  
-  // Header
   header: { paddingHorizontal: 24, paddingVertical: 16 },
   headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   headerSubtitle: { fontSize: 14, marginTop: 4 },
-  
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
-  
-  // Profile Card
   profileCard: {
     padding: 24, borderRadius: 20, alignItems: 'center',
     marginBottom: 20, borderWidth: 1,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 5,
   },
-  
-  // Avatar with Gradient Ring
   avatarWrapper: { position: 'relative', marginBottom: 16 },
   avatarGradientRing: {
     position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
@@ -668,78 +596,39 @@ const styles = StyleSheet.create({
     width: 80, height: 80, borderRadius: 40,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarImage: {
-    width: 80, height: 80, borderRadius: 40,
-  },
+  avatarImage: { width: 80, height: 80, borderRadius: 40 },
   avatarText: { fontSize: 32, fontWeight: '700', color: '#fff' },
   cameraIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
+    position: 'absolute', bottom: 0, right: 0,
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 2,
   },
   roleBadge: {
     position: 'absolute', bottom: -4, left: -4,
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
-    borderWidth: 2,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 2,
   },
   roleBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  
   profileName: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
   profileEmail: { fontSize: 14, marginBottom: 16 },
-  
-  // Info Pills
   profileInfo: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
   profileInfoPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
   },
   profileInfoText: { fontSize: 13, fontWeight: '500' },
-  
-  // Profile Completion
   completionContainer: { width: '100%', marginTop: 20, paddingTop: 16, borderTopWidth: 1 },
   completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   completionTitle: { fontSize: 12, fontWeight: '500' },
   completionPercent: { fontSize: 12, fontWeight: '700' },
   completionBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
   completionBarFill: { height: '100%', borderRadius: 3 },
-
-  // Theme Toggle
-  themeCard: {
-    borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 4,
-  },
-  themeHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16,
-  },
-  themeTitle: {
-    fontSize: 16, fontWeight: '600',
-  },
-  themeOptions: {
-    flexDirection: 'row', gap: 8,
-  },
-  themeOption: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, paddingHorizontal: 8, borderRadius: 12, borderWidth: 1,
-  },
-  themeOptionText: {
-    fontSize: 13, fontWeight: '600',
-  },
-   
-  // Menu Sections
   menuSection: { marginBottom: 20 },
   menuSectionTitle: {
     fontSize: 13, fontWeight: '600',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginLeft: 4,
   },
-  menuCard: {
-    borderRadius: 16, overflow: 'hidden', borderWidth: 1,
-  },
+  menuCard: { borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 14, borderBottomWidth: 1,
@@ -752,11 +641,8 @@ const styles = StyleSheet.create({
   menuItemTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
   menuItemSubtitle: { fontSize: 12 },
   chevronContainer: {
-    width: 28, height: 28, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
   },
-  
-  // App Info
   appInfo: { alignItems: 'center', paddingVertical: 24 },
   appLogoContainer: {
     width: 48, height: 48, borderRadius: 12,
@@ -766,8 +652,6 @@ const styles = StyleSheet.create({
   appName: { fontSize: 16, fontWeight: '700' },
   versionText: { fontSize: 12, marginTop: 4 },
   versionSubtext: { fontSize: 11, marginTop: 4 },
-  
-  // Logout Button
   logoutButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 16, borderRadius: 14,
