@@ -140,7 +140,7 @@ const AnimatedNotificationCard = ({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return i18n.locale === 'fr' ? 'À l\'instant' : 'Just now';
+    if (diffMins < 1) return i18n.locale === 'fr' ? "A l'instant" : 'Just now';
     if (diffMins < 60) return i18n.locale === 'fr' ? `Il y a ${diffMins} min` : `${diffMins}m ago`;
     if (diffHours < 24) return i18n.locale === 'fr' ? `Il y a ${diffHours}h` : `${diffHours}h ago`;
     if (diffDays < 7) return i18n.locale === 'fr' ? `Il y a ${diffDays}j` : `${diffDays}d ago`;
@@ -314,28 +314,30 @@ export default function NotificationsScreen() {
   };
 
   const handleNotificationPress = (notification: Notification) => {
-    // Mark as read first
+    // 1. Mark as read FIRST
     if (!notification.is_read) {
       handleMarkAsRead(notification.id);
     }
 
-    // Navigate based on notification type
+    // 2. Get task ID
     const { type, task_id, data } = notification;
     const taskId = task_id || data?.task_id;
 
+    // 3. Route based on notification type
     switch (type) {
       case 'new_message':
+        // Messages → Chat screen
         if (taskId) {
-          router.push({ pathname: `/task/${taskId}`, params: { tab: 'chat' } });
+          router.push(`/chat/${taskId}`);
         } else {
           router.push('/(tabs)/bookings');
         }
         break;
         
       case 'review_received':
-        // Navigate to reviews or profile
+        // Reviews → Reviews screen
         if (user?.role === 'tasker') {
-          router.push('/(tabs)/profile');
+          router.push('/tasker/my-reviews');
         } else if (taskId) {
           router.push(`/task/${taskId}`);
         }
@@ -361,7 +363,7 @@ export default function NotificationsScreen() {
       case 'new_task':
       case 'new_booking_request':
         if (user?.role === 'tasker') {
-          router.push('/tasker/dashboard');
+          router.push('/(tabs)/tasker-dashboard');
         } else if (taskId) {
           router.push(`/task/${taskId}`);
         }
@@ -461,7 +463,7 @@ export default function NotificationsScreen() {
 
     let groupKey: string;
     if (date.toDateString() === today.toDateString()) {
-      groupKey = i18n.locale === 'fr' ? 'Aujourd\'hui' : 'Today';
+      groupKey = i18n.locale === 'fr' ? "Aujourd'hui" : 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
       groupKey = i18n.locale === 'fr' ? 'Hier' : 'Yesterday';
     } else {
@@ -599,8 +601,8 @@ export default function NotificationsScreen() {
             </Text>
             <Text style={styles.emptySubtitle}>
               {showUnreadOnly
-                ? (i18n.locale === 'fr' ? 'Vous avez tout lu !' : 'You\'re all caught up!')
-                : (i18n.locale === 'fr' ? 'Vous recevrez des notifications ici' : 'You\'ll receive notifications here')
+                ? (i18n.locale === 'fr' ? 'Vous avez tout lu !' : "You're all caught up!")
+                : (i18n.locale === 'fr' ? 'Vous recevrez des notifications ici' : "You'll receive notifications here")
               }
             </Text>
             {showUnreadOnly ? (

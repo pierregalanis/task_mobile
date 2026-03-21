@@ -4,7 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { pushTokenAPI } from '../services/api';
+import { pushTokenAPI, notificationAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 // Configure notification handler
@@ -152,15 +152,28 @@ export function usePushNotifications() {
   }, []);
 
   // Handle notification response (user tapped notification)
-  const handleNotificationResponse = useCallback((response: Notifications.NotificationResponse) => {
+  // FLOW: Tap → Mark as read FIRST → Navigate to relevant screen
+  const handleNotificationResponse = useCallback(async (response: Notifications.NotificationResponse) => {
     console.log('Notification tapped:', response);
     
     const data = response.notification.request.content.data;
     console.log('Notification data:', JSON.stringify(data, null, 2));
     
-    // Backend uses snake_case: type, task_id
+    // Backend uses snake_case: type, task_id, notification_id
     const notificationType = data?.type || '';
     const taskId = data?.task_id;
+    const notificationId = data?.notification_id;
+
+    // ✅ MARK AS READ FIRST (before navigating)
+    if (notificationId) {
+      try {
+        await notificationAPI.markAsRead(notificationId);
+        console.log('Notification marked as read:', notificationId);
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err);
+        // Continue with navigation even if mark-as-read fails
+      }
+    }
 
     try {
       switch (notificationType) {
@@ -174,11 +187,11 @@ export function usePushNotifications() {
           }
           break;
 
-        // ==================== REVIEWS → PROFILE (where reviews are shown) ====================
+        // ==================== REVIEWS → REVIEWS SCREEN ====================
         case NotificationTypes.NEW_REVIEW:
         case NotificationTypes.REVIEW_RECEIVED:
-          console.log('Navigating to profile (reviews)');
-          router.push('/(tabs)/profile');
+          console.log('Navigating to reviews');
+          router.push('/tasker/my-reviews');
           break;
 
         // ==================== PAYMENT RECEIVED → EARNINGS ====================
@@ -297,7 +310,7 @@ export function usePushNotifications() {
   const unregisterToken = useCallback(async () => {
     if (expoPushToken) {
       try {
-        await pushTokenAPI.unregisterToken(expoPushToken);
+        await pushTokenAPI.unregisterToken();
         console.log('Push token unregistered');
       } catch (err) {
         console.error('Failed to unregister token:', err);
