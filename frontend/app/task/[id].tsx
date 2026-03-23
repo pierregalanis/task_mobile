@@ -30,7 +30,7 @@ const DISPUTE_REASONS = [
   { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualite' },
   { id: 'incomplete', en: 'Task Not Completed', fr: 'Tache non terminee' },
   { id: 'overcharge', en: 'Overcharged', fr: 'Surfacturation' },
-  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: 'Le tacheron ne s'est pas presente' },
+  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: \"Le tacheron ne s'est pas presente\" },
   { id: 'damage', en: 'Property Damage', fr: 'Dommages materiels' },
   { id: 'other', en: 'Other', fr: 'Autre' },
 ];
@@ -218,7 +218,7 @@ export default function TaskDetailsScreen() {
       console.error('Error accepting task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d'accepter' : 'Failed to accept'
+        i18n.locale === 'fr' ? \"Impossible d'accepter\" : 'Failed to accept'
       );
     } finally {
       setActionLoading(false);
@@ -355,7 +355,7 @@ export default function TaskDetailsScreen() {
       setTimerRunning(true);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d'arreter le chrono' : 'Failed to stop timer')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? \"Impossible d'arreter le chrono\" : 'Failed to stop timer')
       );
     } finally {
       setActionLoading(false);
@@ -433,7 +433,7 @@ export default function TaskDetailsScreen() {
       console.error('Error cancelling task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible d'annuler la tache' : 'Failed to cancel task'
+        i18n.locale === 'fr' ? \"Impossible d'annuler la tache\" : 'Failed to cancel task'
       );
     } finally {
       setCancelling(false);
@@ -469,7 +469,7 @@ export default function TaskDetailsScreen() {
       console.error('Error submitting review:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de soumettre l'avis' : 'Failed to submit review')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? \"Impossible de soumettre l'avis\" : 'Failed to submit review')
       );
     } finally {
       setSubmittingReview(false);
@@ -686,7 +686,7 @@ export default function TaskDetailsScreen() {
               </Text>
               <Text style={styles.waitingText}>
                 {i18n.locale === 'fr' 
-                  ? 'Le tacheron n'a pas encore accepte cette tache' 
+                  ? \"Le tacheron n'a pas encore accepte cette tache\" 
                   : 'The tasker has not yet accepted this task'}
               </Text>
             </View>
@@ -1250,7 +1250,7 @@ export default function TaskDetailsScreen() {
             <Button
               title={submittingReview 
                 ? (i18n.locale === 'fr' ? 'Envoi...' : 'Submitting...') 
-                : (i18n.locale === 'fr' ? 'Soumettre l'avis' : 'Submit Review')
+                : (i18n.locale === 'fr' ? \"Soumettre l'avis\" : 'Submit Review')
               }
               onPress={handleSubmitReview}
               loading={submittingReview}
@@ -1281,7 +1281,7 @@ export default function TaskDetailsScreen() {
 
             <View style={styles.commentSection}>
               <Text style={styles.commentLabel}>
-                {i18n.locale === 'fr' ? 'Raison de l'annulation' : 'Cancellation Reason'} *
+                {i18n.locale === 'fr' ? \"Raison de l'annulation\" : 'Cancellation Reason'} *
               </Text>
               <TextInput
                 style={styles.commentInput}
