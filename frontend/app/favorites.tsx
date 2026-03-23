@@ -50,7 +50,7 @@ const SkeletonCard = () => (
     <View style={{ flex: 1, marginLeft: 14 }}>
       <SkeletonBox width={140} height={16} style={{ marginBottom: 8 }} />
       <SkeletonBox width={80} height={14} style={{ marginBottom: 6 }} />
-      <SkeletonBox width=\"70%\" height={12} style={{}} />
+      <SkeletonBox width="70%" height={12} style={{}} />
     </View>
   </View>
 );
@@ -145,7 +145,7 @@ export default function FavoritesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-          <Ionicons name=\"arrow-back\" size={24} color={Colors.dark.text} />
+          <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
@@ -171,7 +171,7 @@ export default function FavoritesScreen() {
         {favorites.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name=\"heart-outline\" size={48} color={Colors.dark.primary} />
+              <Ionicons name="heart-outline" size={48} color={Colors.dark.primary} />
             </View>
             <Text style={styles.emptyTitle}>
               {isEn ? 'No favorites yet' : 'Aucun favori'}
@@ -186,7 +186,7 @@ export default function FavoritesScreen() {
               onPress={() => router.push('/(tabs)/taskers')}
               activeOpacity={0.8}
             >
-              <Ionicons name=\"search\" size={18} color={Colors.dark.primary} />
+              <Ionicons name="search" size={18} color={Colors.dark.primary} />
               <Text style={styles.emptyButtonText}>
                 {isEn ? 'Find Taskers' : 'Trouver un Tasker'}
               </Text>
@@ -223,7 +223,7 @@ export default function FavoritesScreen() {
                   </Text>
 
                   <View style={styles.ratingRow}>
-                    <Ionicons name=\"star\" size={14} color=\"#f59e0b\" />
+                    <Ionicons name="star" size={14} color="#f59e0b" />
                     <Text style={styles.ratingText}>
                       {(favorite.tasker_rating || 0).toFixed(1)}
                     </Text>

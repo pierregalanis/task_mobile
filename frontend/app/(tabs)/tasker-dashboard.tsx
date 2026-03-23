@@ -180,7 +180,7 @@ const PulsingTimer = ({ time, isActive }: { time: string; isActive: boolean }) =
       )}
       <View style={styles.timerDisplay}>
         <View style={styles.timerIconContainer}>
-          <Ionicons name=\"stopwatch\" size={28} color=\"#fff\" />
+          <Ionicons name="stopwatch" size={28} color="#fff" />
         </View>
         <Text style={styles.timerText}>{time}</Text>
       </View>
@@ -450,12 +450,12 @@ export default function TaskerDashboardScreen() {
                 </Text>
               </View>
               <Text style={styles.motivationalText}>
-                {i18n.locale === 'fr' ? 'Pret a ameliorer la journee de quelqu'un' : 'Ready to make someone's day better'}
+                {i18n.locale === 'fr' ? "Pret a ameliorer la journee de quelqu'un" : "Ready to make someone's day better"}
               </Text>
             </View>
             <Animated.View style={{ transform: [{ scale: notificationScale }] }}>
               <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress} activeOpacity={0.8}>
-                <Ionicons name=\"notifications\" size={24} color=\"#fff\" />
+                <Ionicons name="notifications" size={24} color="#fff" />
                 {unreadCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -463,17 +463,17 @@ export default function TaskerDashboardScreen() {
                 )}
               </TouchableOpacity>
             </Animated.View>
-            <View style={styles.decorCircle1} pointerEvents=\"none\" />
-            <View style={styles.decorCircle2} pointerEvents=\"none\" />
+            <View style={styles.decorCircle1} pointerEvents="none" />
+            <View style={styles.decorCircle2} pointerEvents="none" />
           </LinearGradient>
         </Animated.View>
 
         {/* Animated Stats Row */}
         <View style={styles.statsRow}>
           <AnimatedStatCard
-            icon=\"star\"
-            iconColor=\"#f59e0b\"
-            bgColor=\"#f59e0b15\"
+            icon="star"
+            iconColor="#f59e0b"
+            bgColor="#f59e0b15"
             value={stats.rating > 0 ? stats.rating.toFixed(1) : '-'}
             label={i18n.locale === 'fr' ? 'Note' : 'Rating'}
             subLabel={`(${stats.totalReviews})`}
@@ -481,9 +481,9 @@ export default function TaskerDashboardScreen() {
             onPress={() => router.push('/tasker/my-reviews')}
           />
           <AnimatedStatCard
-            icon=\"clipboard-outline\"
-            iconColor=\"#3b82f6\"
-            bgColor=\"#3b82f615\"
+            icon="clipboard-outline"
+            iconColor="#3b82f6"
+            bgColor="#3b82f615"
             value={stats.completedTasks}
             label={i18n.locale === 'fr' ? 'Taches' : 'Tasks'}
             subLabel={i18n.locale === 'fr' ? 'terminees' : 'complete'}
@@ -491,12 +491,12 @@ export default function TaskerDashboardScreen() {
             onPress={() => {}}
           />
           <AnimatedStatCard
-            icon=\"wallet-outline\"
+            icon="wallet-outline"
             iconColor={Colors.dark.success}
-            bgColor=\"#10b98115\"
+            bgColor="#10b98115"
             value={stats.totalEarnings > 1000 ? `${Math.round(stats.totalEarnings / 1000)}K` : stats.totalEarnings}
             label={i18n.locale === 'fr' ? 'Revenus' : 'Earned'}
-            subLabel=\"XOF\"
+            subLabel="XOF"
             index={2}
             onPress={() => router.push('/tasker/my-earnings')}
           />
@@ -528,7 +528,7 @@ export default function TaskerDashboardScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <View style={styles.urgentBadge}>
-                  <Ionicons name=\"alert-circle\" size={16} color=\"#fff\" />
+                  <Ionicons name="alert-circle" size={16} color="#fff" />
                 </View>
                 <Text style={styles.sectionTitle}>
                   {i18n.locale === 'fr' ? 'Demandes en attente' : 'Pending Requests'}
@@ -546,15 +546,15 @@ export default function TaskerDashboardScreen() {
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingTitle}>{task.title}</Text>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name=\"person\" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name="person" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{task.client_name || 'Client'}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name=\"location\" size={14} color={Colors.dark.textSecondary} />
+                        <Ionicons name="location" size={14} color={Colors.dark.textSecondary} />
                         <Text style={styles.pendingMetaText}>{task.city || task.address}</Text>
                       </View>
                     </View>
@@ -571,7 +571,7 @@ export default function TaskerDashboardScreen() {
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"close\" size={18} color={Colors.dark.error} />
+                      <Ionicons name="close" size={18} color={Colors.dark.error} />
                       <Text style={styles.rejectBtnText}>{i18n.locale === 'fr' ? 'Refuser' : 'Reject'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -580,7 +580,7 @@ export default function TaskerDashboardScreen() {
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"checkmark\" size={18} color=\"#fff\" />
+                      <Ionicons name="checkmark" size={18} color="#fff" />
                       <Text style={styles.acceptBtnText}>{i18n.locale === 'fr' ? 'Accepter' : 'Accept'}</Text>
                     </TouchableOpacity>
                   </View>
@@ -608,9 +608,9 @@ export default function TaskerDashboardScreen() {
                     </View>
                   </View>
                   <View style={styles.taskMeta}>
-                    <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
+                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
-                    <Ionicons name=\"location\" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
+                    <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
                     <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
                   </View>
                   <View style={styles.taskFooter}>
@@ -623,7 +623,7 @@ export default function TaskerDashboardScreen() {
                       onPress={() => router.push(`/chat/${task.id}`)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"chatbubble\" size={16} color={Colors.dark.primary} />
+                      <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
                       <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -631,7 +631,7 @@ export default function TaskerDashboardScreen() {
                       onPress={() => router.push(`/task/${task.id}`)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"arrow-forward\" size={16} color=\"#fff\" />
+                      <Ionicons name="arrow-forward" size={16} color="#fff" />
                       <Text style={styles.viewDetailsBtnText}>{i18n.locale === 'fr' ? 'Voir details' : 'View Details'}</Text>
                     </TouchableOpacity>
                   </View>
@@ -655,7 +655,7 @@ export default function TaskerDashboardScreen() {
                   <View style={styles.taskHeader}>
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: '#8b5cf6' }]}>
-                      <Ionicons name=\"time\" size={12} color=\"#fff\" />
+                      <Ionicons name="time" size={12} color="#fff" />
                       <Text style={styles.statusText}>{i18n.locale === 'fr' ? 'En cours' : 'Active'}</Text>
                     </View>
                   </View>
@@ -686,7 +686,7 @@ export default function TaskerDashboardScreen() {
                       onPress={() => router.push(`/chat/${task.id}`)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"chatbubble\" size={16} color={Colors.dark.primary} />
+                      <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
                       <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -695,7 +695,7 @@ export default function TaskerDashboardScreen() {
                       disabled={actionLoading === task.id}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name=\"stop\" size={16} color=\"#fff\" />
+                      <Ionicons name="stop" size={16} color="#fff" />
                       <Text style={styles.stopTimerText}>{i18n.locale === 'fr' ? 'Terminer' : 'Finish'}</Text>
                     </TouchableOpacity>
                   </View>
@@ -719,12 +719,12 @@ export default function TaskerDashboardScreen() {
                   <View style={styles.taskHeader}>
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: Colors.dark.success }]}>
-                      <Ionicons name=\"checkmark\" size={12} color=\"#fff\" />
+                      <Ionicons name="checkmark" size={12} color="#fff" />
                       <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
                     </View>
                   </View>
                   <View style={styles.taskMeta}>
-                    <Ionicons name=\"calendar\" size={14} color={Colors.dark.textSecondary} />
+                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
                     <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date)}</Text>
                   </View>
                   <Text style={styles.taskPrice}>{(task.final_price || task.estimated_total || 0).toLocaleString()} XOF</Text>
@@ -738,7 +738,7 @@ export default function TaskerDashboardScreen() {
         {tasks.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name=\"briefcase-outline\" size={48} color={Colors.dark.primary} />
+              <Ionicons name="briefcase-outline" size={48} color={Colors.dark.primary} />
             </View>
             <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tache' : 'No tasks yet'}</Text>
             <Text style={styles.emptySubtitle}>
@@ -940,3 +940,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.dark.text, marginTop: 8 },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
 });
+
