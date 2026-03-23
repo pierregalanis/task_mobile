@@ -248,7 +248,7 @@ export default function FavoritesScreen() {
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name=\"heart\" size={22} color=\"#ef4444\" />
+                  <Ionicons name="heart" size={22} color="#ef4444" />
                 </TouchableOpacity>
               </TouchableOpacity>
             </Animated.View>
