@@ -221,8 +221,8 @@ export default function TaskerProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          {tasker.profile_photo ? (
-            <Image source={{ uri: tasker.profile_photo }} style={styles.profileImage} />
+          {tasker.profile_image || tasker.profile_photo ? (
+          <Image source={{ uri: tasker.profile_image || tasker.profile_photo }} style={styles.profileImage} />
           ) : (
             <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
               <Text style={styles.profileInitials}>{tasker.full_name?.charAt(0).toUpperCase()}</Text>
