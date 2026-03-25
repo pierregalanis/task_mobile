@@ -245,8 +245,20 @@ export default function TaskDetailsScreen() {
     }
   };
 
-  const handleStartEnRoute = () => {
-    router.push(`/tracking/${task.id}?mode=tasker`);
+  const handleStartEnRoute = async () => {
+    try {
+      setActionLoading(true);
+      await taskAPI.startTracking(task.id);
+      await fetchTaskDetails();
+      router.push(`/tracking/${task.id}?mode=tasker`);
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || 'Failed to start en route'
+      );
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Navigate to Client - opens Google Maps with directions

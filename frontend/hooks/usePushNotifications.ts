@@ -212,8 +212,13 @@ export function usePushNotifications() {
           router.push('/notifications');
           break;
 
-        // ==================== ALL TASK-RELATED → TASK DETAILS ====================
+        // ==================== NEW BOOKING → BOOKINGS TAB (so tasker can accept/deny) ====================
         case NotificationTypes.NEW_BOOKING_REQUEST:
+          console.log('Navigating to bookings (new booking request)');
+          router.push('/(tabs)/bookings');
+          break;
+
+        // ==================== ALL TASK-RELATED → TASK DETAILS ====================
         case NotificationTypes.TASK_ACCEPTED:
         case NotificationTypes.TASK_REJECTED:
         case NotificationTypes.TASK_COMPLETED:

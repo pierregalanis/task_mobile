@@ -60,16 +60,14 @@ const SkeletonStatCard = () => (
 
 // Skeleton Task Card
 const SkeletonTaskCard = () => (
-  <View style={styles.taskCard}>
-    <View style={styles.taskHeader}>
-      <SkeletonBox width={150} height={18} style={{}} />
-      <SkeletonBox width={70} height={24} style={{ borderRadius: 12 }} />
-    </View>
+  <View style={styles.bookingCard}>
+    <SkeletonBox width={150} height={18} style={{}} />
+    <SkeletonBox width={70} height={24} style={{ borderRadius: 12, marginTop: 8 }} />
     <SkeletonBox width={200} height={14} style={{ marginTop: 12 }} />
     <SkeletonBox width={120} height={14} style={{ marginTop: 8 }} />
-    <View style={[styles.taskFooter, { marginTop: 16 }]}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
       <SkeletonBox width={80} height={20} style={{}} />
-      <SkeletonBox width={100} height={40} style={{ borderRadius: 20 }} />
+      <SkeletonBox width={100} height={20} style={{}} />
     </View>
   </View>
 );
@@ -139,51 +137,6 @@ const AnimatedTaskCard = ({ children, index, style }: any) => {
   return (
     <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }, style]}>
       {children}
-    </Animated.View>
-  );
-};
-
-// Pulsing Timer Component
-const PulsingTimer = ({ time, isActive }: { time: string; isActive: boolean }) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (isActive) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        ])
-      );
-      const glow = Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
-        ])
-      );
-      pulse.start();
-      glow.start();
-      return () => { pulse.stop(); glow.stop(); };
-    }
-  }, [isActive]);
-
-  const glowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.8],
-  });
-
-  return (
-    <Animated.View style={[styles.timerDisplayContainer, { transform: [{ scale: pulseAnim }] }]}>
-      {isActive && (
-        <Animated.View style={[styles.timerGlow, { opacity: glowOpacity }]} />
-      )}
-      <View style={styles.timerDisplay}>
-        <View style={styles.timerIconContainer}>
-          <Ionicons name="stopwatch" size={28} color="#fff" />
-        </View>
-        <Text style={styles.timerText}>{time}</Text>
-      </View>
     </Animated.View>
   );
 };
@@ -343,6 +296,22 @@ export default function TaskerDashboardScreen() {
     }
   };
 
+  const handleEnRoute = async (taskId: string) => {
+    try {
+      setActionLoading(taskId);
+      await taskAPI.startTracking(taskId);
+      fetchData();
+      router.push(`/tracking/${taskId}?mode=tasker`);
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || i18n.locale === 'fr' ? 'Echec de la mise a jour' : 'Failed to start en route'
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleStopTimer = async (taskId: string) => {
     showConfirm(
       i18n.locale === 'fr' ? 'Terminer?' : 'Finish work?',
@@ -376,6 +345,18 @@ export default function TaskerDashboardScreen() {
     return date.toLocaleDateString(i18n.locale === 'fr' ? 'fr-FR' : 'en-US', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
+  };
+
+  const formatTaskDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+  };
+
+  const formatTaskTime = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getStatusColor = (status: string) => {
@@ -419,8 +400,10 @@ export default function TaskerDashboardScreen() {
             <SkeletonStatCard />
             <SkeletonStatCard />
           </View>
-          <SkeletonTaskCard />
-          <SkeletonTaskCard />
+          <View style={{ paddingHorizontal: 20 }}>
+            <SkeletonTaskCard />
+            <SkeletonTaskCard />
+          </View>
         </ScrollView>
       </SafeAreaView>
     );
@@ -597,108 +580,132 @@ export default function TaskerDashboardScreen() {
             {acceptedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
-                  style={styles.taskCard}
+                  style={styles.bookingCard}
                   onPress={() => router.push(`/task/${task.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.taskHeader}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
-                      <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+                  <View style={styles.bookingHeader}>
+                    <View style={styles.bookingTitleContainer}>
+                      <Text style={styles.bookingTitle}>{task.title}</Text>
+                      <View style={[styles.bookingBadge, { backgroundColor: getStatusColor(task.status) }]}>
+                        <Text style={styles.bookingBadgeText}>{getStatusText(task.status)}</Text>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.taskMeta}>
-                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                    <Text style={styles.taskMetaText}>{formatDate(task.scheduled_date || task.task_date)}</Text>
-                    <Ionicons name="location" size={14} color={Colors.dark.textSecondary} style={{ marginLeft: 12 }} />
-                    <Text style={styles.taskMetaText}>{task.city || task.address}</Text>
+
+                  <View style={styles.bookingMeta}>
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="calendar-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{formatTaskDate(task.scheduled_date || task.task_date)}</Text>
+                    </View>
+                    <View style={styles.bookingMetaDivider} />
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="time-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{formatTaskTime(task.scheduled_date || task.task_date)}</Text>
+                    </View>
+                    <View style={styles.bookingMetaDivider} />
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="location-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{task.city || 'N/A'}</Text>
+                    </View>
                   </View>
-                  <View style={styles.taskFooter}>
-                    <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
+
+                  <View style={styles.bookingFooter}>
+                    <View style={styles.bookingPersonInfo}>
+                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
+                    </View>
+                    <Text style={styles.bookingPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
                   </View>
-                  {/* Chat + View Details */}
-                  <View style={styles.taskActionRow}>
-                    <TouchableOpacity
-                      style={styles.chatBtn}
-                      onPress={() => router.push(`/chat/${task.id}`)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
-                      <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.viewDetailsBtn}
-                      onPress={() => router.push(`/task/${task.id}`)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="arrow-forward" size={16} color="#fff" />
-                      <Text style={styles.viewDetailsBtnText}>{i18n.locale === 'fr' ? 'Voir details' : 'View Details'}</Text>
-                    </TouchableOpacity>
-                  </View>
+
+                  <TouchableOpacity
+                    style={styles.chatActionBtn}
+                    onPress={() => router.push(`/chat/${task.id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={18} color={Colors.dark.primary} />
+                    <Text style={styles.chatActionBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.enRouteBtn}
+                    onPress={() => handleEnRoute(task.id)}
+                    disabled={actionLoading === task.id}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="navigate" size={18} color={Colors.dark.background} />
+                    <Text style={styles.enRouteBtnText}>{i18n.locale === 'fr' ? 'En route' : 'En Route'}</Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
               </AnimatedTaskCard>
             ))}
           </View>
         )}
 
-        {/* In Progress Tasks with Pulsing Timer */}
+        {/* In Progress Tasks */}
         {inProgressTasks.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'En cours' : 'In Progress'}</Text>
             {inProgressTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
-                  style={[styles.taskCard, styles.activeTaskCard]}
+                  style={styles.bookingCard}
                   onPress={() => router.push(`/task/${task.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.taskHeader}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: '#8b5cf6' }]}>
-                      <Ionicons name="time" size={12} color="#fff" />
-                      <Text style={styles.statusText}>{i18n.locale === 'fr' ? 'En cours' : 'Active'}</Text>
+                  <View style={styles.bookingHeader}>
+                    <View style={styles.bookingTitleContainer}>
+                      <Text style={styles.bookingTitle}>{task.title}</Text>
+                      <View style={[styles.bookingBadge, { backgroundColor: getStatusColor(task.status) }]}>
+                        <Text style={styles.bookingBadgeText}>{getStatusText(task.status)}</Text>
+                      </View>
                     </View>
                   </View>
 
-                  <View style={styles.timerContainer}>
-                    <PulsingTimer
-                      time={activeTaskTimer === task.id ? formatTime(elapsedTime) : '--:--:--'}
-                      isActive={activeTaskTimer === task.id}
-                    />
-                    {task.pricing_type === 'hourly' && (
-                      <Text style={styles.timerSubtext}>
-                        {i18n.locale === 'fr' ? 'Taux:' : 'Rate:'} {task.hourly_rate?.toLocaleString()} XOF/h
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.taskFooter}>
-                    <View>
-                      <Text style={styles.taskMetaText}>{task.address}</Text>
-                      <Text style={styles.taskPrice}>{(task.estimated_total || 0).toLocaleString()} XOF</Text>
+                  <View style={styles.bookingMeta}>
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="calendar-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{formatTaskDate(task.scheduled_date || task.task_date)}</Text>
+                    </View>
+                    <View style={styles.bookingMetaDivider} />
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="time-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{formatTaskTime(task.scheduled_date || task.task_date)}</Text>
+                    </View>
+                    <View style={styles.bookingMetaDivider} />
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="location-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{task.city || 'N/A'}</Text>
                     </View>
                   </View>
 
-                  {/* Chat + Finish */}
-                  <View style={styles.taskActionRow}>
-                    <TouchableOpacity
-                      style={styles.chatBtn}
-                      onPress={() => router.push(`/chat/${task.id}`)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
-                      <Text style={styles.chatBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.stopTimerBtn}
-                      onPress={() => handleStopTimer(task.id)}
-                      disabled={actionLoading === task.id}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="stop" size={16} color="#fff" />
-                      <Text style={styles.stopTimerText}>{i18n.locale === 'fr' ? 'Terminer' : 'Finish'}</Text>
-                    </TouchableOpacity>
+                  <View style={styles.bookingFooter}>
+                    <View style={styles.bookingPersonInfo}>
+                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
+                    </View>
+                    <Text style={styles.bookingPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
                   </View>
+
+                  <TouchableOpacity
+                    style={styles.chatActionBtn}
+                    onPress={() => router.push(`/chat/${task.id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={18} color={Colors.dark.primary} />
+                    <Text style={styles.chatActionBtnText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.completeBtn}
+                    onPress={() => handleStopTimer(task.id)}
+                    disabled={actionLoading === task.id}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.completeBtnText}>
+                      {i18n.locale === 'fr' ? 'Marquer comme terminee' : 'Mark as Completed'}
+                    </Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
               </AnimatedTaskCard>
             ))}
@@ -712,22 +719,38 @@ export default function TaskerDashboardScreen() {
             {completedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
-                  style={[styles.taskCard, styles.completedCard]}
+                  style={styles.bookingCard}
                   onPress={() => router.push(`/task/${task.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.taskHeader}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: Colors.dark.success }]}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
-                      <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
+                  <View style={styles.bookingHeader}>
+                    <View style={styles.bookingTitleContainer}>
+                      <Text style={styles.bookingTitle}>{task.title}</Text>
+                      <View style={[styles.bookingBadge, { backgroundColor: Colors.dark.success }]}>
+                        <Text style={styles.bookingBadgeText}>{getStatusText(task.status)}</Text>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.taskMeta}>
-                    <Ionicons name="calendar" size={14} color={Colors.dark.textSecondary} />
-                    <Text style={styles.taskMetaText}>{formatDate(task.completed_at || task.scheduled_date)}</Text>
+
+                  <View style={styles.bookingMeta}>
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="calendar-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{formatTaskDate(task.completed_at || task.scheduled_date || task.task_date)}</Text>
+                    </View>
+                    <View style={styles.bookingMetaDivider} />
+                    <View style={styles.bookingMetaItem}>
+                      <Ionicons name="location-outline" size={14} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingMetaText}>{task.city || 'N/A'}</Text>
+                    </View>
                   </View>
-                  <Text style={styles.taskPrice}>{(task.final_price || task.estimated_total || 0).toLocaleString()} XOF</Text>
+
+                  <View style={styles.bookingFooter}>
+                    <View style={styles.bookingPersonInfo}>
+                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
+                    </View>
+                    <Text style={styles.bookingPrice}>{(task.final_price || task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
+                  </View>
                 </TouchableOpacity>
               </AnimatedTaskCard>
             ))}
@@ -863,72 +886,125 @@ const styles = StyleSheet.create({
   acceptBtn: { backgroundColor: Colors.dark.primary },
   acceptBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   
-  // Task Card
-  taskCard: {
-    backgroundColor: Colors.dark.card, borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: Colors.dark.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
+  // Booking-style Card (matches bookings.tsx design)
+  bookingCard: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
   },
-  activeTaskCard: { borderColor: '#8b5cf6', borderWidth: 2 },
-  completedCard: { opacity: 0.85 },
-  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  taskTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text, flex: 1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: '600', color: '#fff' },
-  taskMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  taskMetaText: { fontSize: 13, color: Colors.dark.textSecondary },
-  taskFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  taskPrice: { fontSize: 16, fontWeight: 'bold', color: Colors.dark.primary },
-  startTimerBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.dark.primary,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 6,
+  bookingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
-  startTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  stopTimerBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.dark.error,
-    paddingVertical: 10, borderRadius: 12, gap: 6,
+  bookingTitleContainer: {
+    flex: 1,
   },
-  stopTimerText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  
-  // Task action row (Chat + secondary action)
-  taskActionRow: {
-    flexDirection: 'row', gap: 10, marginTop: 12,
-    borderTopWidth: 1, borderTopColor: Colors.dark.border, paddingTop: 12,
+  bookingTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.dark.text,
+    marginBottom: 8,
   },
-  chatBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    paddingVertical: 10, borderRadius: 12, gap: 6,
-    borderWidth: 1, borderColor: Colors.dark.primary,
+  bookingBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  chatBtnText: { fontSize: 13, fontWeight: '600', color: Colors.dark.primary },
-  viewDetailsBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.dark.primary,
-    paddingVertical: 10, borderRadius: 12, gap: 6,
+  bookingBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.dark.background,
   },
-  viewDetailsBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  
-  // Timer
-  timerContainer: { alignItems: 'center', marginVertical: 12 },
-  timerDisplayContainer: { position: 'relative' },
-  timerGlow: {
-    position: 'absolute', top: -10, left: -10, right: -10, bottom: -10,
-    backgroundColor: Colors.dark.primary, borderRadius: 20, opacity: 0.3,
+  bookingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  timerDisplay: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: Colors.dark.primary, borderRadius: 16, padding: 16,
+  bookingMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  timerIconContainer: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center',
+  bookingMetaText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
   },
-  timerText: { fontSize: 32, fontWeight: 'bold', color: '#fff', fontFamily: 'monospace' },
-  timerSubtext: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 8 },
+  bookingMetaDivider: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.dark.textSecondary,
+    marginHorizontal: 8,
+  },
+  bookingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bookingPersonInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bookingPersonName: {
+    fontSize: 14,
+    color: Colors.dark.text,
+  },
+  bookingPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.dark.primary,
+  },
+  chatActionBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    backgroundColor: Colors.dark.card,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary,
+  },
+  chatActionBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.primary,
+  },
+  enRouteBtn: {
+    marginTop: 12,
+    backgroundColor: '#8b5cf6',
+    padding: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  enRouteBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark.background,
+  },
+  completeBtn: {
+    marginTop: 12,
+    backgroundColor: Colors.dark.success,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  completeBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark.background,
+  },
   
   // Empty State
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
@@ -940,4 +1016,3 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.dark.text, marginTop: 8 },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
 });
-
