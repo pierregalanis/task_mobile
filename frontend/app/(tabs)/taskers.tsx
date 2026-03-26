@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { taskerAPI, categoryAPI, SearchFilters as SearchFiltersType } from '../../services/api';
+import { taskerAPI, categoryAPI, searchAPI, UnifiedSearchResults, SearchFilters as SearchFiltersType } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
@@ -32,6 +32,12 @@ export default function TaskersScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<SearchFiltersType>({});
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  // Unified search state
+  const [unifiedResults, setUnifiedResults] = useState<UnifiedSearchResults | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isEn = i18n.locale === 'en';
 
@@ -100,7 +106,6 @@ export default function TaskersScreen() {
 
   // Handle advanced filter apply
   const handleApplyFilters = (newFilters: SearchFiltersType) => {
-    // If there's a search query from the modal, update the search bar too
     if (newFilters.searchQuery) {
       setSearchQuery(newFilters.searchQuery);
     }
@@ -109,8 +114,38 @@ export default function TaskersScreen() {
     fetchTaskers(newFilters);
   };
 
+  // Debounced unified search
+  const handleUnifiedSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current);
+    }
+
+    if (query.length < 2) {
+      setUnifiedResults(null);
+      setShowSearchResults(false);
+      return;
+    }
+
+    searchTimer.current = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const lang = isEn ? 'en' : 'fr';
+        const results = await searchAPI.unifiedSearch(query, lang);
+        setUnifiedResults(results);
+        setShowSearchResults(true);
+      } catch (error) {
+        console.log('Unified search error:', error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
+
   // Handle search submit (when user finishes typing)
   const handleSearchSubmit = () => {
+    setShowSearchResults(false);
     const filtersWithSearch = {
       ...activeFilters,
       searchQuery: searchQuery || undefined,
@@ -124,6 +159,8 @@ export default function TaskersScreen() {
     setActiveFilterCount(0);
     setSearchQuery('');
     setSelectedCategory(null);
+    setUnifiedResults(null);
+    setShowSearchResults(false);
     fetchTaskers({});
   };
 
@@ -164,15 +201,19 @@ export default function TaskersScreen() {
           <Ionicons name="search" size={20} color={Colors.dark.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={isEn ? 'Search taskers...' : 'Rechercher un tasker...'}
+            placeholder={isEn ? 'Search services, categories, taskers...' : 'Rechercher services, categories, taskers...'}
             placeholderTextColor={Colors.dark.textSecondary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleUnifiedSearch}
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => {
+              setSearchQuery('');
+              setUnifiedResults(null);
+              setShowSearchResults(false);
+            }}>
               <Ionicons name="close-circle" size={20} color={Colors.dark.textSecondary} />
             </TouchableOpacity>
           )}
@@ -198,6 +239,131 @@ export default function TaskersScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Unified Search Results Overlay */}
+      {showSearchResults && unifiedResults && (
+        <View style={styles.searchOverlay}>
+          <ScrollView style={styles.searchResultsScroll} keyboardShouldPersistTaps="handled">
+            {searchLoading && (
+              <View style={styles.searchLoadingRow}>
+                <ActivityIndicator size="small" color={Colors.dark.primary} />
+                <Text style={styles.searchLoadingText}>{isEn ? 'Searching...' : 'Recherche...'}</Text>
+              </View>
+            )}
+
+            {/* Categories */}
+            {unifiedResults.categories.length > 0 && (
+              <>
+                <Text style={styles.searchSectionHeader}>
+                  {isEn ? 'CATEGORIES' : 'CATEGORIES'}
+                </Text>
+                {unifiedResults.categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      setSelectedCategory(cat.id);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.searchResultIcon}>
+                      <Text style={{ fontSize: 20 }}>{cat.icon}</Text>
+                    </View>
+                    <Text style={styles.searchResultText}>{cat.name}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.dark.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {/* Subcategories / Services */}
+            {unifiedResults.subcategories.length > 0 && (
+              <>
+                <Text style={styles.searchSectionHeader}>
+                  {isEn ? 'SERVICES' : 'SERVICES'}
+                </Text>
+                {unifiedResults.subcategories.map((sub, idx) => (
+                  <TouchableOpacity
+                    key={`sub-${idx}`}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      setSelectedCategory(sub.category_id);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.searchResultIcon}>
+                      <Text style={{ fontSize: 20 }}>{sub.icon}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.searchResultText}>{sub.name}</Text>
+                      <Text style={styles.searchResultSub}>{sub.category_name}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.dark.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {/* Taskers */}
+            {unifiedResults.taskers.length > 0 && (
+              <>
+                <Text style={styles.searchSectionHeader}>
+                  {isEn ? 'TASKERS' : 'TACHERONS'}
+                </Text>
+                {unifiedResults.taskers.map((tasker) => (
+                  <TouchableOpacity
+                    key={tasker.id}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      router.push(`/tasker/${tasker.id}`);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.searchResultAvatar}>
+                      {tasker.profile_image ? (
+                        <Image source={{ uri: tasker.profile_image }} style={styles.searchResultAvatarImg} />
+                      ) : (
+                        <Ionicons name="person" size={20} color={Colors.dark.textSecondary} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={styles.searchResultText}>{tasker.name}</Text>
+                        {tasker.is_verified && (
+                          <Ionicons name="checkmark-circle" size={14} color={Colors.dark.primary} />
+                        )}
+                      </View>
+                      <Text style={styles.searchResultSub}>
+                        {tasker.rating.toFixed(1)} ({tasker.reviews} {isEn ? 'reviews' : 'avis'})
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.dark.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {/* No results */}
+            {!searchLoading && 
+              unifiedResults.categories.length === 0 && 
+              unifiedResults.subcategories.length === 0 && 
+              unifiedResults.taskers.length === 0 && (
+              <View style={styles.searchEmptyState}>
+                <Ionicons name="search-outline" size={32} color={Colors.dark.textSecondary} />
+                <Text style={styles.searchEmptyText}>
+                  {isEn ? 'No results found' : 'Aucun resultat'}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Active Filters Preview */}
       {(activeFilterCount > 0 || selectedCategory) && (
@@ -707,5 +873,92 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.dark.primary,
+  },
+
+  // Unified Search Overlay
+  searchOverlay: {
+    position: 'absolute',
+    top: 140,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.dark.background,
+    zIndex: 100,
+  },
+  searchResultsScroll: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  searchLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  searchLoadingText: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+  },
+  searchSectionHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.dark.textSecondary,
+    letterSpacing: 1,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  searchResultIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.dark.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchResultAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchResultAvatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  searchResultText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.dark.text,
+  },
+  searchResultSub: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    marginTop: 2,
+  },
+  searchEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  searchEmptyText: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
   },
 });

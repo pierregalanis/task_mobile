@@ -1063,4 +1063,41 @@ export const settingsAPI = {
   },
 };
 
+// ─── Unified Search API ──────────────────────────────────────────
+export interface UnifiedSearchResults {
+  query: string;
+  categories: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    type: 'category';
+  }>;
+  subcategories: Array<{
+    name: string;
+    category_id: string;
+    category_name: string;
+    icon: string;
+    type: 'subcategory';
+  }>;
+  taskers: Array<{
+    id: string;
+    name: string;
+    profile_image: string | null;
+    rating: number;
+    reviews: number;
+    hourly_rate: number;
+    is_verified: boolean;
+    type: 'tasker';
+  }>;
+}
+
+export const searchAPI = {
+  async unifiedSearch(query: string, lang: string = 'en', limit: number = 10): Promise<UnifiedSearchResults> {
+    const response = await api.get('/api/search/unified', {
+      params: { q: query, lang, limit },
+    });
+    return response.data;
+  },
+};
+
 export default api;
