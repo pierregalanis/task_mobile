@@ -9,6 +9,7 @@ import {
   Dimensions,
   Modal,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -703,10 +704,21 @@ export default function HomeScreen() {
                   key={category.id}
                   category={category}
                   index={index}
-                  onPress={() => router.push({
-                    pathname: '/booking/select-service',
-                    params: { categoryId: category.id }
-                  })}
+                    onPress={() => {
+                    if (user?.role === 'tasker') {
+                      Alert.alert(
+                        locale === 'fr' ? 'Action non disponible' : 'Not Available',
+                        locale === 'fr' 
+                          ? 'Les tâcherons ne peuvent pas réserver de services. Connectez-vous en tant que client pour réserver.' 
+                          : 'Taskers cannot book services. Log in as a client to book.'
+                      );
+                      return;
+                    }
+                    router.push({
+                      pathname: '/booking/select-service',
+                      params: { categoryId: category.id }
+                    });
+                  }}
                   locale={locale}
                 />
               ))}

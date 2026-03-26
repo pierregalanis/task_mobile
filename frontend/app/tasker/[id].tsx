@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { taskerAPI, reviewAPI, favoriteAPI, imageAPI, PortfolioImage } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
@@ -26,6 +27,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function TaskerProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { user } = useAuth();
+  const isClient = user?.role === 'client';
   const [tasker, setTasker] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -405,18 +408,38 @@ export default function TaskerProfileScreen() {
 
       {/* Book Now Button */}
       <View style={styles.bookButtonContainer}>
-        <TouchableOpacity
-          style={styles.bookButton}
-          onPress={() => setShowServiceModal(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.bookButtonText}>
-            {i18n.locale === 'fr' ? 'Réserver maintenant' : 'Book Now'}
-          </Text>
-          <Ionicons name="arrow-forward" size={20} color={Colors.dark.background} />
-        </TouchableOpacity>
+        {!user ? (
+          <TouchableOpacity
+            style={[styles.bookButton, { backgroundColor: Colors.dark.primary }]}
+            onPress={() => router.push('/(auth)/login')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.bookButtonText}>
+              {i18n.locale === 'fr' ? 'Connectez-vous pour réserver' : 'Login to Book'}
+            </Text>
+            <Ionicons name="log-in-outline" size={20} color={Colors.dark.background} />
+          </TouchableOpacity>
+        ) : isClient ? (
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => setShowServiceModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.bookButtonText}>
+              {i18n.locale === 'fr' ? 'Réserver maintenant' : 'Book Now'}
+            </Text>
+            <Ionicons name="arrow-forward" size={20} color={Colors.dark.background} />
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.bookButton, { backgroundColor: '#3a3a3a' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={Colors.dark.textSecondary} />
+            <Text style={[styles.bookButtonText, { color: Colors.dark.textSecondary }]}>
+              {i18n.locale === 'fr' ? 'Les tâcherons ne peuvent pas réserver' : 'Taskers cannot book services'}
+            </Text>
+          </View>
+        )}
       </View>
-
+      
       {/* Service Selection Modal */}
       <Modal
         visible={showServiceModal}

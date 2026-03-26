@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +105,19 @@ export default function CreateBookingScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
+
+  // Safety net: Taskers cannot book
+  useEffect(() => {
+    if (user && user.role === 'tasker') {
+      Alert.alert(
+        i18n.locale === 'fr' ? 'Accès refusé' : 'Access Denied',
+        i18n.locale === 'fr' 
+          ? 'Les tâcherons ne peuvent pas réserver de services.' 
+          : 'Taskers cannot book services.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    }
+  }, [user]);
   
   console.log('Booking form params:', params);
 
