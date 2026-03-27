@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -472,9 +473,16 @@ export default function BookingsScreen() {
 
                   <View style={styles.taskFooter}>
                     <View style={styles.personInfo}>
-                      <View style={styles.avatarContainer}>
-                        <Ionicons name="person" size={16} color={Colors.dark.primary} />
-                      </View>
+                      {(isClient ? task.tasker_profile_image : task.client_profile_image) ? (
+                        <Image 
+                          source={{ uri: isClient ? task.tasker_profile_image : task.client_profile_image }} 
+                          style={styles.avatarImage} 
+                        />
+                      ) : (
+                        <View style={styles.avatarContainer}>
+                          <Ionicons name="person" size={16} color={Colors.dark.primary} />
+                        </View>
+                      )}
                       <Text style={styles.personName}>
                         {isClient ? (task.tasker_name || 'Tasker') : (task.client_name || 'Client')}
                       </Text>
@@ -704,6 +712,10 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16, backgroundColor: `${Colors.dark.primary}15`,
     alignItems: 'center', justifyContent: 'center',
   },
+  avatarImage: {
+    width: 32, height: 32, borderRadius: 16,
+  },
+
   personName: { fontSize: 14, color: Colors.dark.text, fontWeight: '500' },
   taskPrice: { fontSize: 18, fontWeight: '700', color: Colors.dark.primary },
   

@@ -1100,4 +1100,120 @@ export const searchAPI = {
   },
 };
 
+// ==================== VERIFICATION API ====================
+
+export interface VerificationStatus {
+  status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+  is_verified: boolean;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
+  has_id_document: boolean;
+  has_selfie: boolean;
+}
+
+export const verificationAPI = {
+  // Get current verification status
+  async getStatus(): Promise<VerificationStatus> {
+    const response = await api.get('/api/verification/status');
+    return response.data;
+  },
+
+  // Submit verification documents (first time)
+  async submit(idDocumentUri: string, selfieUri: string, idType: string) {
+    const formData = new FormData();
+    formData.append('id_document', {
+      uri: idDocumentUri,
+      type: 'image/jpeg',
+      name: 'id_document.jpg',
+    } as any);
+    formData.append('selfie_with_id', {
+      uri: selfieUri,
+      type: 'image/jpeg',
+      name: 'selfie_with_id.jpg',
+    } as any);
+    formData.append('id_type', idType);
+
+    const response = await api.post('/api/verification/submit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
+  },
+
+  // Resubmit after rejection
+  async resubmit(idDocumentUri: string, selfieUri: string, idType: string) {
+    const formData = new FormData();
+    formData.append('id_document', {
+      uri: idDocumentUri,
+      type: 'image/jpeg',
+      name: 'id_document.jpg',
+    } as any);
+    formData.append('selfie_with_id', {
+      uri: selfieUri,
+      type: 'image/jpeg',
+      name: 'selfie_with_id.jpg',
+    } as any);
+    formData.append('id_type', idType);
+
+    const response = await api.post('/api/verification/resubmit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
+  },
+};
+
+// ==================== SOS API ====================
+
+export interface SOSResponse {
+  success: boolean;
+  alert_id: string;
+  message: string;
+  emergency_contacts: EmergencyContact[];
+  emergency_numbers: Record<string, string>;
+  location_link: string | null;
+  task_info: any | null;
+}
+
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  relationship: string;
+}
+
+export const sosAPI = {
+  async triggerAlert(params: {
+    task_id?: string;
+    latitude?: number;
+    longitude?: number;
+    message?: string;
+  }): Promise<SOSResponse> {
+    const queryParams = new URLSearchParams();
+    if (params.task_id) queryParams.append('task_id', params.task_id);
+    if (params.latitude !== undefined) queryParams.append('latitude', params.latitude.toString());
+    if (params.longitude !== undefined) queryParams.append('longitude', params.longitude.toString());
+    if (params.message) queryParams.append('message', params.message);
+
+    const qs = queryParams.toString();
+    const url = qs ? `/api/sos/alert?${qs}` : '/api/sos/alert';
+    const response = await api.post(url);
+    return response.data;
+  },
+};
+
+// ==================== EMERGENCY CONTACTS API ====================
+
+export const emergencyContactsAPI = {
+  async getContacts(): Promise<{ contacts: EmergencyContact[] }> {
+    const response = await api.get('/api/emergency-contacts');
+    return response.data;
+  },
+
+  async updateContacts(contacts: EmergencyContact[]): Promise<{ success: boolean; message: string; contacts: EmergencyContact[] }> {
+    const response = await api.put('/api/emergency-contacts', { contacts });
+    return response.data;
+  },
+};
+
 export default api;

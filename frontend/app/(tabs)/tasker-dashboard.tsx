@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -529,7 +530,11 @@ export default function TaskerDashboardScreen() {
                     <View style={styles.pendingInfo}>
                       <Text style={styles.pendingTitle}>{task.title}</Text>
                       <View style={styles.pendingMeta}>
-                        <Ionicons name="person" size={14} color={Colors.dark.textSecondary} />
+                        {task.client_profile_image ? (
+                          <Image source={{ uri: task.client_profile_image }} style={styles.pendingAvatar} />
+                        ) : (
+                          <Ionicons name="person" size={14} color={Colors.dark.textSecondary} />
+                        )}
                         <Text style={styles.pendingMetaText}>{task.client_name || 'Client'}</Text>
                       </View>
                       <View style={styles.pendingMeta}>
@@ -612,7 +617,11 @@ export default function TaskerDashboardScreen() {
 
                   <View style={styles.bookingFooter}>
                     <View style={styles.bookingPersonInfo}>
-                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      {task.client_profile_image ? (
+                        <Image source={{ uri: task.client_profile_image }} style={styles.clientAvatar} />
+                      ) : (
+                        <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      )}
                       <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
                     </View>
                     <Text style={styles.bookingPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
@@ -681,7 +690,11 @@ export default function TaskerDashboardScreen() {
 
                   <View style={styles.bookingFooter}>
                     <View style={styles.bookingPersonInfo}>
-                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      {task.client_profile_image ? (
+                        <Image source={{ uri: task.client_profile_image }} style={styles.clientAvatar} />
+                      ) : (
+                        <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      )}
                       <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
                     </View>
                     <Text style={styles.bookingPrice}>{(task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
@@ -746,7 +759,11 @@ export default function TaskerDashboardScreen() {
 
                   <View style={styles.bookingFooter}>
                     <View style={styles.bookingPersonInfo}>
-                      <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      {task.client_profile_image ? (
+                        <Image source={{ uri: task.client_profile_image }} style={styles.clientAvatar} />
+                      ) : (
+                        <Ionicons name="person-circle-outline" size={20} color={Colors.dark.textSecondary} />
+                      )}
                       <Text style={styles.bookingPersonName}>{task.client_name || 'Client'}</Text>
                     </View>
                     <Text style={styles.bookingPrice}>{(task.final_price || task.estimated_total || task.total_cost || 0).toLocaleString()} XOF</Text>
@@ -873,6 +890,7 @@ const styles = StyleSheet.create({
   pendingTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
   pendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   pendingMetaText: { fontSize: 13, color: Colors.dark.textSecondary },
+  pendingAvatar: { width: 16, height: 16, borderRadius: 8 },
   pendingPrice: { alignItems: 'flex-end' },
   pendingPriceValue: { fontSize: 22, fontWeight: 'bold', color: Colors.dark.primary },
   pendingPriceCurrency: { fontSize: 12, color: Colors.dark.textSecondary },
@@ -951,6 +969,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  clientAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   bookingPersonName: {
     fontSize: 14,

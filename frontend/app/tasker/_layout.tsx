@@ -14,6 +14,7 @@ export default function TaskerLayout() {
       <Stack.Screen name="my-reviews" />
       <Stack.Screen name="my-earnings" />
       <Stack.Screen name="availability" />
+      <Stack.Screen name="verification" />
       <Stack.Screen name="[id]" />
     </Stack>
   );
