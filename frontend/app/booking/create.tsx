@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { taskAPI, TimeSlot } from '../../services/api';
+import { taskAPI, categoryAPI, TimeSlot } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -106,6 +106,10 @@ export default function CreateBookingScreen() {
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
 
+    useEffect(() => {
+    categoryAPI.getCategories().then(setBackendCategories).catch(() => {});
+  }, []);
+
   // Safety net: Taskers cannot book
   useEffect(() => {
     if (user && user.role === 'tasker') {
@@ -163,6 +167,7 @@ export default function CreateBookingScreen() {
   // Confirmation modal
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
+  const [backendCategories, setBackendCategories] = useState<any[]>([]);
 
   // Params
   const pricingType = (params.pricingType as string) || 'hourly';
@@ -494,10 +499,17 @@ export default function CreateBookingScreen() {
     setLoading(true);
 
     try {
+      // Resolve category name to UUID if needed
+      const rawCatId = params.categoryId as string;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const resolvedCategoryId = uuidRegex.test(rawCatId)
+        ? rawCatId
+        : (backendCategories.find((c: any) => c.name_en === rawCatId || c.name_fr === rawCatId)?.id || rawCatId);
+
       const bookingData = {
         title: title.trim(),
         description: description.trim(),
-        category_id: params.categoryId as string,
+        category_id: resolvedCategoryId,
         subcategory: (params.subcategoryId as string) || null,
         tasker_id: params.taskerId as string,
         task_date: taskDate.toISOString(),
