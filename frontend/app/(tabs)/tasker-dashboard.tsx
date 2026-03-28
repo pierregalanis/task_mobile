@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { taskAPI, notificationAPI, taskerAPI } from '../../services/api';
+import { taskAPI, notificationAPI, taskerAPI, verificationAPI, VerificationStatus } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -74,15 +74,15 @@ const SkeletonTaskCard = () => (
 );
 
 // Animated Stat Card
-const AnimatedStatCard = ({ 
-  icon, 
-  iconColor, 
-  bgColor, 
-  value, 
-  label, 
-  subLabel, 
-  index, 
-  onPress 
+const AnimatedStatCard = ({
+  icon,
+  iconColor,
+  bgColor,
+  value,
+  label,
+  subLabel,
+  index,
+  onPress
 }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -145,24 +145,25 @@ const AnimatedTaskCard = ({ children, index, style }: any) => {
 export default function TaskerDashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
+
   const [stats, setStats] = useState({
     rating: 0,
     totalReviews: 0,
     completedTasks: 0,
     totalEarnings: 0,
   });
-  
+
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [activeTaskTimer, setActiveTaskTimer] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
   const notificationScale = useRef(new Animated.Value(1)).current;
@@ -213,24 +214,27 @@ export default function TaskerDashboardScreen() {
 
   const fetchData = async () => {
     try {
-      const [tasksData, unreadData, profileData] = await Promise.all([
+      const [tasksData, unreadData, profileData, verificationData] = await Promise.all([
         taskAPI.getTaskerTasks(),
         notificationAPI.getUnreadCount(),
         taskerAPI.getMyProfile().catch(() => null),
+        verificationAPI.getStatus().catch(() => null),
       ]);
-      
+
+      setVerificationStatus(verificationData);
+
       const taskList = tasksData || [];
       setTasks(taskList);
       setUnreadCount(unreadData?.unread_count || 0);
-      
+
       const completedTasks = taskList.filter((t: any) => t.status === 'completed');
       const paidTasks = completedTasks.filter((t: any) => t.is_paid === true || t.payment_status === 'paid');
-      const totalEarnings = paidTasks.reduce((sum: number, t: any) => 
+      const totalEarnings = paidTasks.reduce((sum: number, t: any) =>
         sum + (t.final_price || t.total_cost || t.estimated_total || 0), 0);
-      
+
       const rating = profileData?.average_rating || profileData?.tasker_profile?.average_rating || user?.tasker_profile?.average_rating || 0;
       const totalReviews = profileData?.total_reviews || profileData?.tasker_profile?.total_reviews || user?.tasker_profile?.total_reviews || 0;
-      
+
       setStats({ rating, totalReviews, completedTasks: completedTasks.length, totalEarnings });
     } catch (error) {
       console.error('Error fetching tasker data:', error);
@@ -306,7 +310,7 @@ export default function TaskerDashboardScreen() {
     } catch (error: any) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || i18n.locale === 'fr' ? 'Echec de la mise a jour' : 'Failed to start en route'
+        (error.response?.data?.detail || (i18n.locale === 'fr' ? 'Echec de la mise a jour' : 'Failed to start en route'))
       );
     } finally {
       setActionLoading(null);
@@ -452,6 +456,76 @@ export default function TaskerDashboardScreen() {
           </LinearGradient>
         </Animated.View>
 
+        {/* Verification Status Banner */}
+        {verificationStatus && !verificationStatus.is_verified && verificationStatus.status !== 'approved' && (
+          verificationStatus.status === 'pending' ? (
+            <View style={styles.verificationBanner}>
+              <LinearGradient
+                colors={['#3b82f6', '#4f46e5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.verificationGradient}
+              >
+                <View style={styles.verificationIconCircle}>
+                  <Ionicons name="hourglass" size={22} color="#fff" />
+                </View>
+                <View style={styles.verificationTextContainer}>
+                  <Text style={styles.verificationTitle}>
+                    {i18n.locale === 'fr' ? 'Verification en Cours' : 'Verification In Progress'}
+                  </Text>
+                  <Text style={styles.verificationSubtitle}>
+                    {i18n.locale === 'fr'
+                      ? "L'examen prend 24-48h. Votre profil sera visible apres approbation."
+                      : 'Review takes 24-48 hours. Your profile will be visible once approved.'}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
+          ) : (
+            <View style={styles.verificationBanner}>
+              <LinearGradient
+                colors={['#f97316', '#ea580c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.verificationGradient}
+              >
+                <View style={styles.verificationIconCircle}>
+                  <Ionicons name="eye-off" size={22} color="#fff" />
+                </View>
+                <View style={styles.verificationTextContainer}>
+                  <Text style={styles.verificationTitle}>
+                    {i18n.locale === 'fr' ? 'Votre Profil est Masque' : 'Your Profile is Hidden'}
+                  </Text>
+                  <Text style={styles.verificationSubtitle}>
+                    {i18n.locale === 'fr'
+                      ? 'Completez la verification pour apparaitre dans les recherches.'
+                      : 'Complete verification to appear in search and receive bookings.'}
+                  </Text>
+                  {verificationStatus.status === 'rejected' && verificationStatus.rejection_reason && (
+                    <View style={styles.rejectionReasonBox}>
+                      <Text style={styles.rejectionReasonText}>
+                        {i18n.locale === 'fr' ? 'Raison' : 'Reason'}: {verificationStatus.rejection_reason}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+              <TouchableOpacity
+                style={styles.verifyNowButton}
+                onPress={() => router.push('/tasker/verification')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="shield-checkmark" size={18} color="#f97316" />
+                <Text style={styles.verifyNowText}>
+                  {verificationStatus.status === 'rejected'
+                    ? (i18n.locale === 'fr' ? 'Resoumettre la Verification' : 'Resubmit Verification')
+                    : (i18n.locale === 'fr' ? 'Verifier Maintenant' : 'Verify Now')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
+        )}
+
         {/* Animated Stats Row */}
         <View style={styles.statsRow}>
           <AnimatedStatCard
@@ -493,7 +567,7 @@ export default function TaskerDashboardScreen() {
             { icon: 'construct-outline', label: i18n.locale === 'fr' ? 'Services' : 'Services', route: '/tasker/manage-services' },
             { icon: 'chatbubbles-outline', label: i18n.locale === 'fr' ? 'Avis' : 'Reviews', route: '/tasker/my-reviews' },
             { icon: 'cash-outline', label: i18n.locale === 'fr' ? 'Revenus' : 'Earnings', route: '/tasker/my-earnings' },
-          ].map((action, index) => (
+          ].map((action) => (
             <TouchableOpacity
               key={action.route}
               style={styles.quickActionBtn}
@@ -795,7 +869,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark.background },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
-  
+
   // Welcome Section
   welcomeSection: {
     flexDirection: 'row',
@@ -832,7 +906,66 @@ const styles = StyleSheet.create({
     width: 100, height: 100, borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  
+
+  // Verification Banner
+  verificationBanner: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  verificationGradient: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  verificationIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verificationTextContainer: {
+    flex: 1,
+  },
+  verificationTitle: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  verificationSubtitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rejectionReasonBox: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
+  },
+  rejectionReasonText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+  verifyNowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  verifyNowText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f97316',
+  },
+
   // Stats
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 20, marginBottom: 20 },
   statCard: {
@@ -848,7 +981,7 @@ const styles = StyleSheet.create({
   statNumber: { fontSize: 24, fontWeight: 'bold', marginTop: 8 },
   statLabel: { fontSize: 12, color: Colors.dark.textSecondary, marginTop: 2 },
   statSubLabel: { fontSize: 10, color: Colors.dark.textSecondary },
-  
+
   // Quick Actions
   quickActions: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -862,7 +995,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   quickActionText: { fontSize: 11, color: Colors.dark.text, fontWeight: '600' },
-  
+
   // Section
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -877,7 +1010,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4,
   },
   countBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  
+
   // Pending Card
   pendingCard: {
     backgroundColor: Colors.dark.card, borderRadius: 16, padding: 16,
@@ -903,8 +1036,8 @@ const styles = StyleSheet.create({
   rejectBtnText: { fontSize: 14, fontWeight: '600', color: Colors.dark.error },
   acceptBtn: { backgroundColor: Colors.dark.primary },
   acceptBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  
-  // Booking-style Card (matches bookings.tsx design)
+
+  // Booking-style Card
   bookingCard: {
     backgroundColor: Colors.dark.card,
     borderRadius: 16,
@@ -1028,7 +1161,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.dark.background,
   },
-  
+
   // Empty State
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyIconContainer: {

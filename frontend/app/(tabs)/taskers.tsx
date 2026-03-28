@@ -496,8 +496,15 @@ export default function TaskersScreen() {
                   {(tasker.is_available || tasker.tasker_profile?.is_available) && <View style={styles.availableBadge} />}
                 </View>
 
-                <View style={styles.taskerInfo}>
-                  <Text style={styles.taskerName}>{tasker.full_name}</Text>
+                 <View style={styles.taskerInfo}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.taskerName}>{tasker.full_name}</Text>
+                    {(tasker.is_identity_verified || tasker.verification?.status === 'approved') && (
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                      </View>
+                    )}
+                  </View>
 
                   <View style={styles.taskerMeta}>
                     <View style={styles.metaItem}>
@@ -831,6 +838,16 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     marginBottom: 8,
   },
+
+    verifiedBadge: {
+    backgroundColor: '#10b981',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
   taskerMeta: {
     flexDirection: 'row',
     alignItems: 'center',

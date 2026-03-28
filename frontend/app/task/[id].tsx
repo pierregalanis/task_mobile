@@ -11,6 +11,7 @@ import {
   Platform,
   Image,
   Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import UpcomingReminderBanner from '../../components/UpcomingReminderBanner';
 import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 import { formatPrice } from '../../utils/pricingUtils';
+import { SOSButton } from '../../components/SOSButton';
 
 // Dispute reasons
 const DISPUTE_REASONS = [
@@ -554,6 +556,37 @@ export default function TaskDetailsScreen() {
     router.push(`/chat/${task.id}`);
   };
 
+    const handleShareTask = async () => {
+    if (!task) return;
+    const isFr = i18n.locale === 'fr';
+    const taskUrl = `https://soutrali.net/task/${task.id}`;
+    const name = task.tasker_name || 'Tasker';
+    const date = task.task_date || task.scheduled_date;
+
+    const shareMessage = [
+      isFr ? '📍 Details de ma tache' : '📍 My Task Details',
+      '',
+      `${isFr ? 'Service' : 'Service'}: ${task.title}`,
+      `${isFr ? 'Prestataire' : 'Tasker'}: ${name}`,
+      `${isFr ? 'Date' : 'Date'}: ${formatDate(date)}`,
+      `${isFr ? 'Heure' : 'Time'}: ${formatTime(date)}`,
+      `${isFr ? 'Lieu' : 'Location'}: ${task.address || ''}${task.city ? `, ${task.city}` : ''}`,
+      '',
+      `${isFr ? 'Suivre ma tache' : 'Track my task'}: ${taskUrl}`,
+      '',
+      `${isFr ? 'Envoye via Soutrali' : 'Sent via Soutrali'}`,
+    ].join('\n');
+
+    try {
+      await Share.share({
+        message: shareMessage,
+        title: `${isFr ? 'Ma tache' : 'My Task'}: ${task.title}`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -652,6 +685,8 @@ export default function TaskDetailsScreen() {
   const showCancel = isPending || isAccepted;
   // Show dispute for completed tasks or active tasks (in case tasker didn't show)
   const showDispute = isClient && (isCompleted || isActive) && !task.has_dispute;
+  // for SOS button
+  const showSOSButton = isAccepted || isEnRoute || isInProgress;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -663,7 +698,9 @@ export default function TaskDetailsScreen() {
         <Text style={styles.headerTitle}>
           {i18n.locale === 'fr' ? 'Details de la tache' : 'Task Details'}
         </Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity onPress={handleShareTask} style={styles.shareButton} activeOpacity={0.7}>
+          <Ionicons name="share-outline" size={22} color={Colors.dark.text} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -1211,6 +1248,11 @@ export default function TaskDetailsScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* SOS Emergency Button */}
+        {showSOSButton && (
+          <SOSButton taskId={task.id} />
+        )}
       </ScrollView>
 
       {/* Review Modal */}
@@ -1468,6 +1510,14 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+    shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorContainer: {
     flex: 1,

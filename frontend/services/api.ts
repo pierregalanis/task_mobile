@@ -1182,22 +1182,19 @@ export interface EmergencyContact {
   relationship: string;
 }
 
-export const sosAPI = {
+  export const sosAPI = {
   async triggerAlert(params: {
     task_id?: string;
     latitude?: number;
     longitude?: number;
     message?: string;
   }): Promise<SOSResponse> {
-    const queryParams = new URLSearchParams();
-    if (params.task_id) queryParams.append('task_id', params.task_id);
-    if (params.latitude !== undefined) queryParams.append('latitude', params.latitude.toString());
-    if (params.longitude !== undefined) queryParams.append('longitude', params.longitude.toString());
-    if (params.message) queryParams.append('message', params.message);
-
-    const qs = queryParams.toString();
-    const url = qs ? `/api/sos/alert?${qs}` : '/api/sos/alert';
-    const response = await api.post(url);
+    const response = await api.post('/api/sos/alert', {
+      task_id: params.task_id,
+      latitude: params.latitude,
+      longitude: params.longitude,
+      message: params.message,
+    });
     return response.data;
   },
 };

@@ -231,7 +231,17 @@ export default function TaskerProfileScreen() {
               <Text style={styles.profileInitials}>{tasker.full_name?.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          <Text style={styles.profileName}>{tasker.full_name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.profileName}>{tasker.full_name}</Text>
+            {(tasker.is_identity_verified || tasker.verification?.status === 'approved') && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#fff" />
+                <Text style={styles.verifiedBadgeText}>
+                  {i18n.locale === 'fr' ? 'Verifie' : 'Verified'}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.profileLocation}>
             <Ionicons name="location" size={14} /> {tasker.city || tasker.country}
           </Text>
@@ -608,6 +618,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.dark.text,
     marginBottom: 8,
+  },
+    verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10b981',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  verifiedBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
   profileLocation: {
     fontSize: 14,

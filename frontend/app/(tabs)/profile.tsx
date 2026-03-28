@@ -430,11 +430,20 @@ export default function ProfileScreen() {
                 colors={colors}
               />
               <AnimatedMenuItem
+                icon="shield-checkmark"
+                title={locale === 'fr' ? "Vérification d'Identité" : 'Identity Verification'}
+                subtitle={locale === 'fr' ? 'Vérifier votre identité' : 'Verify your identity'}
+                onPress={() => router.push('/tasker/verification')}
+                index={1}
+                iconColor="#3b82f6"
+                colors={colors}
+              />
+              <AnimatedMenuItem
                 icon="briefcase"
                 title={locale === 'fr' ? 'Mes Services' : 'My Services'}
                 subtitle={locale === 'fr' ? 'Gérer vos services' : 'Manage your services'}
                 onPress={() => router.push('/tasker/manage-services')}
-                index={1}
+                index={2}
                 iconColor="#f59e0b"
                 colors={colors}
               />
@@ -443,7 +452,7 @@ export default function ProfileScreen() {
                 title={locale === 'fr' ? 'Mes Avis' : 'My Reviews'}
                 subtitle={locale === 'fr' ? 'Voir les avis clients' : 'View customer reviews'}
                 onPress={() => router.push('/tasker/my-reviews')}
-                index={2}
+                index={3}
                 iconColor="#fbbf24"
                 colors={colors}
               />
@@ -452,7 +461,7 @@ export default function ProfileScreen() {
                 title={locale === 'fr' ? 'Mes Revenus' : 'My Earnings'}
                 subtitle={locale === 'fr' ? 'Historique des paiements' : 'Payment history'}
                 onPress={() => router.push('/tasker/my-earnings')}
-                index={3}
+                index={4}
                 iconColor={colors.success}
                 colors={colors}
               />
@@ -479,6 +488,24 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
+
+              {/* Safety */}
+        <View style={styles.menuSection}>
+          <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
+            {locale === 'fr' ? 'Sécurité' : 'Safety'}
+          </Text>
+          <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <AnimatedMenuItem
+              icon="alert-circle"
+              title={locale === 'fr' ? "Contacts d'Urgence" : 'Emergency Contacts'}
+              subtitle={locale === 'fr' ? 'Gérer vos contacts SOS' : 'Manage your SOS contacts'}
+              onPress={() => router.push('/emergency-contacts')}
+              index={0}
+              iconColor="#dc2626"
+              colors={colors}
+            />
+          </View>
+        </View>
 
         {/* Preferences */}
         <View style={styles.menuSection}>
