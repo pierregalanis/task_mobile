@@ -50,8 +50,12 @@ const NotificationTypes = {
   DISPUTE_RAISED: 'dispute_raised',    // NOT "dispute_opened"
   DISPUTE_RESOLVED: 'dispute_resolved',
   
-  // Other
+  // Verification
   PROFILE_VERIFIED: 'profile_verified',
+  VERIFICATION_APPROVED: 'verification_approved',
+  VERIFICATION_REJECTED: 'verification_rejected',
+  
+  // Other
   GENERAL: 'general'
 };
 
@@ -164,7 +168,7 @@ export function usePushNotifications() {
     const taskId = data?.task_id;
     const notificationId = data?.notification_id;
 
-    // ✅ MARK AS READ FIRST (before navigating)
+    // MARK AS READ FIRST (before navigating)
     if (notificationId) {
       try {
         await notificationAPI.markAsRead(notificationId);
@@ -200,9 +204,11 @@ export function usePushNotifications() {
           router.push('/tasker/my-earnings');
           break;
 
-        // ==================== PROFILE VERIFIED → PROFILE ====================
+        // ==================== VERIFICATION → PROFILE ====================
         case NotificationTypes.PROFILE_VERIFIED:
-          console.log('Navigating to profile');
+        case NotificationTypes.VERIFICATION_APPROVED:
+        case NotificationTypes.VERIFICATION_REJECTED:
+          console.log('Navigating to profile (verification)');
           router.push('/(tabs)/profile');
           break;
 
@@ -215,7 +221,7 @@ export function usePushNotifications() {
         // ==================== NEW BOOKING → BOOKINGS TAB (so tasker can accept/deny) ====================
         case NotificationTypes.NEW_BOOKING_REQUEST:
           console.log('Navigating to bookings (new booking request)');
-          router.push('/(tabs)/bookings');
+          router.push('/(tabs)/bookings?tab=pending');
           break;
 
         // ==================== ALL TASK-RELATED → TASK DETAILS ====================

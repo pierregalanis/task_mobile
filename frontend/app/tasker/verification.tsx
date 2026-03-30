@@ -240,11 +240,11 @@ export default function VerificationScreen() {
             <Ionicons name="shield-checkmark" size={64} color={colors.success} />
           </View>
           <Text style={[styles.statusTitle, { color: colors.success }]}>
-            {isFrench ? 'Vous etes Verifie!' : "You're Verified!"}
+            {isFrench ? 'Vous etes Verifié!' : "You're Verified!"}
           </Text>
           <Text style={[styles.statusSubtitle, { color: colors.textSecondary }]}>
             {isFrench
-              ? 'Votre identite a ete verifiee. Vous avez le badge verifie et pouvez recevoir des reservations.'
+              ? 'Votre identite a ete verifiée. Vous avez le badge verifié et pouvez recevoir des reservations.'
               : 'Your identity has been verified. You now have a verified badge and can receive bookings.'}
           </Text>
           {status?.reviewed_at && (

@@ -243,7 +243,7 @@ export default function SignupScreen() {
             
             <Text style={styles.modalMessage}>
               {i18n.locale === 'fr' 
-                ? 'Un email de verification a ete envoye a :'
+                ? 'Un email de vérification a ete envoye a :'
                 : 'A verification email has been sent to:'}
             </Text>
             
@@ -251,7 +251,7 @@ export default function SignupScreen() {
             
             <Text style={styles.modalInstructions}>
               {i18n.locale === 'fr'
-                ? 'Veuillez verifier votre boite de reception et cliquer sur le lien de verification pour activer votre compte.'
+                ? 'Veuillez vérifier votre boite de reception et cliquer sur le lien de vérification pour activer votre compte.'
                 : 'Please check your inbox and click the verification link to activate your account.'}
             </Text>
             
@@ -259,7 +259,7 @@ export default function SignupScreen() {
               <Ionicons name="information-circle-outline" size={16} color={Colors.dark.textSecondary} />
               <Text style={styles.spamNoteText}>
                 {i18n.locale === 'fr'
-                  ? "Si vous ne trouvez pas l'email, verifiez votre dossier spam."
+                  ? "Si vous ne trouvez pas l'email, vérifiez votre dossier spam."
                   : "If you don't see the email, check your spam folder."}
               </Text>
             </View>

@@ -471,7 +471,7 @@ export default function TaskerDashboardScreen() {
                 </View>
                 <View style={styles.verificationTextContainer}>
                   <Text style={styles.verificationTitle}>
-                    {i18n.locale === 'fr' ? 'Verification en Cours' : 'Verification In Progress'}
+                    {i18n.locale === 'fr' ? 'vérification en Cours' : 'Verification In Progress'}
                   </Text>
                   <Text style={styles.verificationSubtitle}>
                     {i18n.locale === 'fr'
@@ -498,7 +498,7 @@ export default function TaskerDashboardScreen() {
                   </Text>
                   <Text style={styles.verificationSubtitle}>
                     {i18n.locale === 'fr'
-                      ? 'Completez la verification pour apparaitre dans les recherches.'
+                      ? 'Completez la vérification pour apparaitre dans les recherches.'
                       : 'Complete verification to appear in search and receive bookings.'}
                   </Text>
                   {verificationStatus.status === 'rejected' && verificationStatus.rejection_reason && (
@@ -518,8 +518,8 @@ export default function TaskerDashboardScreen() {
                 <Ionicons name="shield-checkmark" size={18} color="#f97316" />
                 <Text style={styles.verifyNowText}>
                   {verificationStatus.status === 'rejected'
-                    ? (i18n.locale === 'fr' ? 'Resoumettre la Verification' : 'Resubmit Verification')
-                    : (i18n.locale === 'fr' ? 'Verifier Maintenant' : 'Verify Now')}
+                    ? (i18n.locale === 'fr' ? 'Resoumettre la vérification' : 'Resubmit Verification')
+                    : (i18n.locale === 'fr' ? 'Vérifier Maintenant' : 'Verify Now')}
                 </Text>
               </TouchableOpacity>
             </View>

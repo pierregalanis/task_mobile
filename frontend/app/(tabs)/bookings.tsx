@@ -12,14 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { taskAPI, categoryAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryById, getCategoryName } from '../../constants/Categories';
 import { formatTaskPrice } from '../../utils/pricingUtils';
-
+import { useRouter, useLocalSearchParams } from 'expo-router';
 const { width } = Dimensions.get('window');
 const TAB_WIDTH = (width - 32 - 16) / 3;
 
@@ -110,6 +109,7 @@ const AnimatedTaskCard = ({ children, index }: { children: React.ReactNode; inde
 
 export default function BookingsScreen() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -128,6 +128,13 @@ export default function BookingsScreen() {
     Animated.timing(headerFade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     fetchData();
   }, []);
+  
+    // Switch to pending tab when navigated from notification
+  useEffect(() => {
+    if (tab === 'pending') {
+      setActiveTab('pending');
+    }
+  }, [tab]);
 
   // Animate tab indicator
   useEffect(() => {

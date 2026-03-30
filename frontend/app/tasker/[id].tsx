@@ -237,7 +237,7 @@ export default function TaskerProfileScreen() {
               <View style={styles.verifiedBadge}>
                 <Ionicons name="shield-checkmark" size={14} color="#fff" />
                 <Text style={styles.verifiedBadgeText}>
-                  {i18n.locale === 'fr' ? 'Verifie' : 'Verified'}
+                  {i18n.locale === 'fr' ? 'Verifié' : 'Verified'}
                 </Text>
               </View>
             )}
