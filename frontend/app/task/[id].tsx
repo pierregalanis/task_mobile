@@ -471,14 +471,16 @@ export default function TaskDetailsScreen() {
         rating,
         comment: reviewComment,
       });
-      setShowReviewModal(false);
-      setReviewComment('');
-      setRating(5);
-      showMessage(
-        i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
-        i18n.locale === 'fr' ? 'Votre avis a ete soumis' : 'Your review has been submitted'
-      );
-      fetchTaskDetails();
+setShowReviewModal(false);
+setReviewComment('');
+setRating(5);
+setTimeout(() => {
+  showMessage(
+    i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
+    i18n.locale === 'fr' ? 'Votre avis a été soumis' : 'Your review has been submitted'
+  );
+}, 500);
+fetchTaskDetails();
     } catch (error: any) {
       console.error('Error submitting review:', error);
       showMessage(
@@ -530,7 +532,7 @@ export default function TaskDetailsScreen() {
     router.push({
       pathname: '/booking/create',
       params: {
-        taskerId: task.tasker_id || task.assigned_tasker_id,
+        tasker_id: task.assigned_tasker_id || task.tasker_id,
         categoryId: task.category || task.category_id,
         subcategoryId: task.subcategory || '',
         serviceName: task.title,
