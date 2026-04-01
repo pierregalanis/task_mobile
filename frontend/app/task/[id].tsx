@@ -467,7 +467,6 @@ export default function TaskDetailsScreen() {
       setSubmittingReview(true);
       await reviewAPI.createReview({
         task_id: task.id,
-        tasker_id: task.tasker_id || task.assigned_tasker_id,
         rating,
         comment: reviewComment,
       });

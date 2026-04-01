@@ -566,7 +566,6 @@ export const reviewAPI = {
   // Submit a review
   async createReview(reviewData: {
     task_id: string;
-    tasker_id: string;
     rating: number;
     comment?: string;
   }) {
