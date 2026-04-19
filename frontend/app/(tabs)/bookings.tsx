@@ -131,8 +131,8 @@ export default function BookingsScreen() {
   
     // Switch to pending tab when navigated from notification
   useEffect(() => {
-    if (tab === 'pending') {
-      setActiveTab('pending');
+    if (tab === 'pending' || tab === 'active' || tab === 'upcoming' || tab === 'completed') {
+      setActiveTab(tab as ClientTab | TaskerTab);
     }
   }, [tab]);
 
@@ -181,8 +181,12 @@ export default function BookingsScreen() {
 
   const onRefresh = () => { setRefreshing(true); fetchTasks(); };
 
-  const handleAcceptTask = async (taskId: string) => {
-    try { await taskAPI.acceptTask(taskId); fetchTasks(); } catch (error) { console.error('Error:', error); }
+const handleAcceptTask = async (taskId: string) => {
+    try { 
+      await taskAPI.acceptTask(taskId); 
+      setActiveTab(isClient ? 'upcoming' : 'active');
+      fetchTasks(); 
+    } catch (error) { console.error('Error:', error); }
   };
 
   const handleRejectTask = async (taskId: string) => {
