@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskAPI, reviewAPI, categoryAPI, disputeAPI } from '../../services/api';
+import { taskAPI, reviewAPI, categoryAPI, disputeAPI, assessmentAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -68,6 +68,15 @@ export default function TaskDetailsScreen() {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDescription, setDisputeDescription] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
+
+  // Counter-offer Modal State (Client)
+  const [showCounterOfferModal, setShowCounterOfferModal] = useState(false);
+  const [counterOfferPrice, setCounterOfferPrice] = useState('');
+  const [counterOfferNote, setCounterOfferNote] = useState('');
+  const [submittingCounterOffer, setSubmittingCounterOffer] = useState(false);
+
+  // Assessment action loading (separate from main actionLoading)
+  const [assessActionLoading, setAssessActionLoading] = useState(false);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
@@ -176,6 +185,8 @@ export default function TaskDetailsScreen() {
       case 'accepted': return '#3b82f6';
       case 'en_route': return '#8b5cf6';
       case 'in_progress': return '#8b5cf6';
+      case 'pending_assessment': return '#f59e0b';
+      case 'assessment_pending_approval': return '#f59e0b';
       case 'completed': return '#f59e0b';
       case 'cancelled': return Colors.dark.error;
       default: return Colors.dark.textSecondary;
@@ -192,6 +203,8 @@ export default function TaskDetailsScreen() {
         case 'accepted': return 'Acceptee';
         case 'en_route': return 'En route';
         case 'in_progress': return 'En cours';
+        case 'pending_assessment': return 'Évaluation en cours';
+        case 'assessment_pending_approval': return 'En attente du client';
         case 'completed': return 'Terminee';
         case 'cancelled': return 'Annulee';
         default: return status;
@@ -201,7 +214,9 @@ export default function TaskDetailsScreen() {
     if (status === 'completed' && !isPaid) return 'Awaiting Payment';
     switch (status) {
       case 'assigned': return 'Pending Approval';
-      default: return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+      case 'pending_assessment': return 'Assessing Work';
+      case 'assessment_pending_approval': return 'Awaiting Client Response';
+      default: return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
     }
   };
 
@@ -470,16 +485,16 @@ export default function TaskDetailsScreen() {
         rating,
         comment: reviewComment,
       });
-setShowReviewModal(false);
-setReviewComment('');
-setRating(5);
-setTimeout(() => {
-  showMessage(
-    i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
-    i18n.locale === 'fr' ? 'Votre avis a été soumis' : 'Your review has been submitted'
-  );
-}, 500);
-fetchTaskDetails();
+      setShowReviewModal(false);
+      setReviewComment('');
+      setRating(5);
+      setTimeout(() => {
+        showMessage(
+          i18n.locale === 'fr' ? 'Merci!' : 'Thank you!',
+          i18n.locale === 'fr' ? 'Votre avis a été soumis' : 'Your review has been submitted'
+        );
+      }, 500);
+      fetchTaskDetails();
     } catch (error: any) {
       console.error('Error submitting review:', error);
       showMessage(
@@ -555,6 +570,165 @@ fetchTaskDetails();
 
   const handleChat = () => {
     router.push(`/chat/${task.id}`);
+  };
+
+  // ==================== ASSESSMENT (CERTIFY) ====================
+
+  // Tasker: I've Arrived → mark arrival + route to assess screen
+  const handleArrived = async () => {
+    try {
+      setActionLoading(true);
+      await taskAPI.markArrival(task.id);
+      router.push(`/task/assess/${task.id}`);
+    } catch (error: any) {
+      console.error('Error marking arrival:', error);
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail ||
+          (i18n.locale === 'fr' ? "Impossible de marquer l'arrivée" : 'Failed to mark arrival')
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Tasker: Resume assessment (if status is already pending_assessment)
+  const handleResumeAssessment = () => {
+    router.push(`/task/assess/${task.id}`);
+  };
+
+  // Tasker: Accept client's counter-offer
+  const handleAcceptCounterOffer = async () => {
+    try {
+      setAssessActionLoading(true);
+      await assessmentAPI.acceptCounterOffer(task.id);
+      showMessage(
+        i18n.locale === 'fr' ? 'Contre-offre acceptée' : 'Counter offer accepted',
+        i18n.locale === 'fr'
+          ? 'Vous pouvez démarrer le travail.'
+          : 'You can now start working.'
+      );
+      fetchTaskDetails();
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec' : 'Failed')
+      );
+    } finally {
+      setAssessActionLoading(false);
+    }
+  };
+
+  // Tasker: Decline client's counter-offer (cancels task)
+  const handleDeclineCounterOffer = async () => {
+    try {
+      setAssessActionLoading(true);
+      await assessmentAPI.declineCounterOffer(task.id);
+      showMessage(
+        i18n.locale === 'fr' ? 'Contre-offre refusée' : 'Counter offer declined',
+        i18n.locale === 'fr' ? 'La tâche a été annulée.' : 'The task has been cancelled.',
+        () => router.back()
+      );
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec' : 'Failed')
+      );
+    } finally {
+      setAssessActionLoading(false);
+    }
+  };
+
+  // Client: Accept tasker's adjustment request
+  const handleAcceptAdjustment = async () => {
+    try {
+      setAssessActionLoading(true);
+      await assessmentAPI.respondToAdjustment(task.id, { action: 'accept' });
+      showMessage(
+        i18n.locale === 'fr' ? 'Ajustement accepté' : 'Adjustment accepted',
+        i18n.locale === 'fr'
+          ? 'Le prestataire peut commencer.'
+          : 'The tasker can start working.'
+      );
+      fetchTaskDetails();
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec' : 'Failed')
+      );
+    } finally {
+      setAssessActionLoading(false);
+    }
+  };
+
+  // Client: Decline tasker's adjustment request (cancels task)
+  const handleDeclineAdjustment = async () => {
+    try {
+      setAssessActionLoading(true);
+      await assessmentAPI.respondToAdjustment(task.id, { action: 'decline' });
+      showMessage(
+        i18n.locale === 'fr' ? 'Ajustement refusé' : 'Adjustment declined',
+        i18n.locale === 'fr' ? 'La tâche a été annulée.' : 'The task has been cancelled.',
+        () => router.back()
+      );
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec' : 'Failed')
+      );
+    } finally {
+      setAssessActionLoading(false);
+    }
+  };
+
+  // Client: Submit counter-offer
+  const handleSubmitCounterOffer = async () => {
+    const price = parseInt(counterOfferPrice, 10);
+    const original = task?.work_assessment?.original_price ?? 0;
+    const proposed = task?.work_assessment?.proposed_price ?? 0;
+
+    if (!price || isNaN(price)) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Prix invalide' : 'Invalid price',
+        i18n.locale === 'fr' ? 'Entrez un prix valide.' : 'Enter a valid price.'
+      );
+      return;
+    }
+    if (price < original || price >= proposed) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Prix invalide' : 'Invalid price',
+        i18n.locale === 'fr'
+          ? `Le prix doit être entre ${formatPrice(original, i18n.locale)} et ${formatPrice(proposed, i18n.locale)}.`
+          : `Price must be between ${formatPrice(original, i18n.locale)} and ${formatPrice(proposed, i18n.locale)}.`
+      );
+      return;
+    }
+
+    try {
+      setSubmittingCounterOffer(true);
+      await assessmentAPI.respondToAdjustment(task.id, {
+        action: 'counter_offer',
+        counter_offer_price: price,
+        response_note: counterOfferNote.trim() || undefined,
+      });
+      setShowCounterOfferModal(false);
+      setCounterOfferPrice('');
+      setCounterOfferNote('');
+      showMessage(
+        i18n.locale === 'fr' ? 'Contre-offre envoyée' : 'Counter offer sent',
+        i18n.locale === 'fr'
+          ? 'En attente de la réponse du prestataire.'
+          : "Waiting for the tasker's response."
+      );
+      fetchTaskDetails();
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec' : 'Failed')
+      );
+    } finally {
+      setSubmittingCounterOffer(false);
+    }
   };
 
     const handleShareTask = async () => {
@@ -670,13 +844,29 @@ fetchTaskDetails();
   const isInProgress = status === 'in_progress';
   const isCompleted = status === 'completed';
   const isCancelled = status === 'cancelled';
-  const isActive = isAccepted || isEnRoute || isInProgress;
+  const isPendingAssessment = status === 'pending_assessment';
+  const isAssessmentPendingApproval = status === 'assessment_pending_approval';
+  const isActive =
+    isAccepted ||
+    isEnRoute ||
+    isInProgress ||
+    isPendingAssessment ||
+    isAssessmentPendingApproval;
+
+  // Assessment data (attached to task by backend)
+  const assessment = task.work_assessment || null;
+  const hasCounterOffer = assessment?.client_response === 'counter_offer';
 
   // Button visibility based on role and status
   const showAcceptReject = isTasker && isPending;
   const showWaitingMessage = isClient && isPending;
   const showEnRouteButton = isTasker && isAccepted;
   const showNavigateToClient = isTasker && (isEnRoute || isInProgress);
+  const showArrivedButton = isTasker && isEnRoute;
+  const showResumeAssessment = isTasker && isPendingAssessment;
+  const showTaskerWaitingCard = isTasker && isAssessmentPendingApproval && !hasCounterOffer;
+  const showCounterOfferCard = isTasker && isAssessmentPendingApproval && hasCounterOffer;
+  const showClientAdjustmentCard = isClient && isAssessmentPendingApproval;
   const showCompleteButton = isTasker && isInProgress;
   const showTrackTasker = isClient && (isEnRoute || isInProgress);
   const showChat = isActive || isCompleted;
@@ -687,7 +877,12 @@ fetchTaskDetails();
   // Show dispute for completed tasks or active tasks (in case tasker didn't show)
   const showDispute = isClient && (isCompleted || isActive) && !task.has_dispute;
   // for SOS button
-  const showSOSButton = isAccepted || isEnRoute || isInProgress;
+  const showSOSButton =
+    isAccepted ||
+    isEnRoute ||
+    isInProgress ||
+    isPendingAssessment ||
+    isAssessmentPendingApproval;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -718,6 +913,8 @@ fetchTaskDetails();
               isCancelled ? 'close-circle' : 
               isInProgress ? 'play-circle' :
               isEnRoute ? 'navigate' :
+              isPendingAssessment ? 'clipboard' :
+              isAssessmentPendingApproval ? 'hourglass' :
               'hourglass'
             } 
             size={24} 
@@ -798,6 +995,201 @@ fetchTaskDetails();
             <View style={styles.timerLiveBadge}>
               <View style={styles.liveDot} />
               <Text style={styles.liveText}>LIVE</Text>
+            </View>
+          </View>
+        )}
+
+        {/* TASKER — Waiting for client response */}
+        {showTaskerWaitingCard && assessment && (
+          <View style={styles.assessWaitCard}>
+            <Ionicons name="hourglass-outline" size={26} color="#f59e0b" />
+            <View style={styles.assessWaitContent}>
+              <Text style={styles.assessWaitTitle}>
+                {i18n.locale === 'fr'
+                  ? "En attente du client"
+                  : 'Waiting for client response'}
+              </Text>
+              <Text style={styles.assessWaitText}>
+                {i18n.locale === 'fr'
+                  ? `Vous avez proposé ${formatPrice(assessment.proposed_price ?? 0, i18n.locale)} (au lieu de ${formatPrice(assessment.original_price ?? 0, i18n.locale)}). Le client a 24h pour répondre.`
+                  : `You proposed ${formatPrice(assessment.proposed_price ?? 0, i18n.locale)} (was ${formatPrice(assessment.original_price ?? 0, i18n.locale)}). Client has 24h to respond.`}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* TASKER — Client made a counter-offer */}
+        {showCounterOfferCard && assessment && (
+          <View style={styles.counterOfferCard}>
+            <View style={styles.counterOfferHeader}>
+              <Ionicons name="swap-horizontal" size={24} color="#3b82f6" />
+              <Text style={styles.counterOfferTitle}>
+                {i18n.locale === 'fr' ? 'Contre-offre du client' : 'Client Counter-Offer'}
+              </Text>
+            </View>
+            <View style={styles.counterOfferRow}>
+              <Text style={styles.counterOfferLabel}>
+                {i18n.locale === 'fr' ? 'Vous demandiez' : 'You asked'}
+              </Text>
+              <Text style={styles.counterOfferStrike}>
+                {formatPrice(assessment.proposed_price ?? 0, i18n.locale)}
+              </Text>
+            </View>
+            <View style={styles.counterOfferRow}>
+              <Text style={styles.counterOfferLabel}>
+                {i18n.locale === 'fr' ? 'Le client propose' : 'Client offers'}
+              </Text>
+              <Text style={styles.counterOfferAmount}>
+                {formatPrice(assessment.client_counter_offer ?? 0, i18n.locale)}
+              </Text>
+            </View>
+            {assessment.counter_offer_note ? (
+              <Text style={styles.counterOfferNote}>"{assessment.counter_offer_note}"</Text>
+            ) : null}
+            <View style={styles.counterOfferButtons}>
+              <TouchableOpacity
+                style={styles.counterDeclineBtn}
+                onPress={handleDeclineCounterOffer}
+                disabled={assessActionLoading}
+                testID="counter-decline-btn"
+              >
+                {assessActionLoading ? (
+                  <ActivityIndicator size="small" color={Colors.dark.error} />
+                ) : (
+                  <Text style={styles.counterDeclineBtnText}>
+                    {i18n.locale === 'fr' ? 'Refuser' : 'Decline'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.counterAcceptBtn}
+                onPress={handleAcceptCounterOffer}
+                disabled={assessActionLoading}
+                testID="counter-accept-btn"
+              >
+                {assessActionLoading ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Text style={styles.counterAcceptBtnText}>
+                    {i18n.locale === 'fr' ? 'Accepter' : 'Accept'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* CLIENT — Adjustment request response */}
+        {showClientAdjustmentCard && assessment && (
+          <View style={styles.clientAdjustCard}>
+            <View style={styles.clientAdjustHeader}>
+              <Ionicons name="cash-outline" size={26} color="#f59e0b" />
+              <Text style={styles.clientAdjustTitle}>
+                {i18n.locale === 'fr'
+                  ? "Demande d'ajustement de prix"
+                  : 'Price Adjustment Request'}
+              </Text>
+            </View>
+
+            <View style={styles.clientAdjustRow}>
+              <Text style={styles.clientAdjustLabel}>
+                {i18n.locale === 'fr' ? 'Prix initial' : 'Original price'}
+              </Text>
+              <Text style={styles.clientAdjustStrike}>
+                {formatPrice(assessment.original_price ?? 0, i18n.locale)}
+              </Text>
+            </View>
+            <View style={styles.clientAdjustRow}>
+              <Text style={styles.clientAdjustLabel}>
+                {i18n.locale === 'fr' ? 'Prix proposé' : 'Proposed price'}
+              </Text>
+              <Text style={styles.clientAdjustAmount}>
+                {formatPrice(assessment.proposed_price ?? 0, i18n.locale)}
+              </Text>
+            </View>
+            <View style={styles.clientAdjustRow}>
+              <Text style={styles.clientAdjustLabel}>
+                {i18n.locale === 'fr' ? 'Différence' : 'Difference'}
+              </Text>
+              <Text style={styles.clientAdjustDiff}>
+                +{formatPrice(
+                  (assessment.proposed_price ?? 0) - (assessment.original_price ?? 0),
+                  i18n.locale
+                )}
+              </Text>
+            </View>
+
+            {assessment.adjustment_reason ? (
+              <View style={styles.clientAdjustReason}>
+                <Text style={styles.clientAdjustReasonLabel}>
+                  {i18n.locale === 'fr' ? 'Raison' : 'Reason'}
+                </Text>
+                <Text style={styles.clientAdjustReasonText}>
+                  {assessment.adjustment_reason}
+                </Text>
+              </View>
+            ) : null}
+
+            {assessment.assessment_photos && assessment.assessment_photos.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 8, marginBottom: 12 }}
+              >
+                {assessment.assessment_photos.map((p: any, i: number) => (
+                  <Image
+                    key={i}
+                    source={{ uri: p.url }}
+                    style={styles.clientAdjustPhoto}
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            <Text style={styles.clientAdjustExpiry}>
+              {i18n.locale === 'fr'
+                ? '⏱️ 24h pour répondre, sinon la tâche sera annulée.'
+                : '⏱️ 24h to respond, or the task will be cancelled.'}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.clientAdjustAcceptBtn}
+              onPress={handleAcceptAdjustment}
+              disabled={assessActionLoading}
+              testID="client-accept-adjustment-btn"
+            >
+              {assessActionLoading ? (
+                <ActivityIndicator size="small" color={Colors.dark.background} />
+              ) : (
+                <Text style={styles.clientAdjustAcceptText}>
+                  {i18n.locale === 'fr'
+                    ? `Accepter ${formatPrice(assessment.proposed_price ?? 0, i18n.locale)}`
+                    : `Accept ${formatPrice(assessment.proposed_price ?? 0, i18n.locale)}`}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.clientAdjustSecondaryRow}>
+              <TouchableOpacity
+                style={styles.clientAdjustCounterBtn}
+                onPress={() => setShowCounterOfferModal(true)}
+                disabled={assessActionLoading}
+                testID="client-counter-offer-btn"
+              >
+                <Text style={styles.clientAdjustCounterText}>
+                  {i18n.locale === 'fr' ? 'Contre-offre' : 'Counter-Offer'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.clientAdjustDeclineBtn}
+                onPress={handleDeclineAdjustment}
+                disabled={assessActionLoading}
+                testID="client-decline-adjustment-btn"
+              >
+                <Text style={styles.clientAdjustDeclineText}>
+                  {i18n.locale === 'fr' ? 'Refuser' : 'Decline'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1065,6 +1457,57 @@ fetchTaskDetails();
                 </Text>
                 <Text style={styles.actionSubtitle}>
                   {i18n.locale === 'fr' ? 'Commencer le trajet et partager votre position' : 'Start trip and share your location'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* I've Arrived & Assess Work — tasker, en_route only */}
+          {showArrivedButton && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.successActionButton]}
+              onPress={handleArrived}
+              activeOpacity={0.7}
+              disabled={actionLoading}
+              testID="arrived-btn"
+            >
+              <View style={[styles.actionIconContainer, { backgroundColor: Colors.dark.success }]}>
+                <Ionicons name="flag" size={20} color={Colors.dark.background} />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>
+                  {i18n.locale === 'fr' ? 'Je suis arrivé — évaluer' : "I've Arrived — Assess"}
+                </Text>
+                <Text style={styles.actionSubtitle}>
+                  {i18n.locale === 'fr'
+                    ? 'Confirmer le travail avant de démarrer'
+                    : 'Confirm the work before starting'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Continue Assessment — tasker, pending_assessment only */}
+          {showResumeAssessment && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.primaryActionButton]}
+              onPress={handleResumeAssessment}
+              activeOpacity={0.7}
+              testID="resume-assess-btn"
+            >
+              <View style={[styles.actionIconContainer, { backgroundColor: '#f59e0b' }]}>
+                <Ionicons name="clipboard" size={20} color={Colors.dark.background} />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>
+                  {i18n.locale === 'fr' ? "Reprendre l'évaluation" : 'Continue Assessment'}
+                </Text>
+                <Text style={styles.actionSubtitle}>
+                  {i18n.locale === 'fr'
+                    ? 'Certifier, ajuster ou refuser le travail'
+                    : 'Certify, adjust, or decline the work'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1465,6 +1908,91 @@ fetchTaskDetails();
                 ) : (
                   <Text style={styles.confirmCancelModalButtonText}>
                     {i18n.locale === 'fr' ? 'Soumettre' : 'Submit'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Counter-Offer Modal (Client) */}
+      <Modal visible={showCounterOfferModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {i18n.locale === 'fr' ? 'Faire une contre-offre' : 'Make a Counter-Offer'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCounterOfferModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.dark.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.disputeInfo}>
+              {i18n.locale === 'fr'
+                ? `Proposez un prix entre ${formatPrice(task?.work_assessment?.original_price ?? 0, i18n.locale)} et ${formatPrice(task?.work_assessment?.proposed_price ?? 0, i18n.locale)}.`
+                : `Propose a price between ${formatPrice(task?.work_assessment?.original_price ?? 0, i18n.locale)} and ${formatPrice(task?.work_assessment?.proposed_price ?? 0, i18n.locale)}.`}
+            </Text>
+
+            <View style={styles.commentSection}>
+              <Text style={styles.commentLabel}>
+                {i18n.locale === 'fr' ? 'Votre prix (CFA)' : 'Your price (CFA)'} *
+              </Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder={i18n.locale === 'fr' ? 'Ex: 7500' : 'e.g. 7500'}
+                placeholderTextColor={Colors.dark.textSecondary}
+                value={counterOfferPrice}
+                onChangeText={setCounterOfferPrice}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.commentSection}>
+              <Text style={styles.commentLabel}>
+                {i18n.locale === 'fr' ? 'Note (optionnel)' : 'Note (optional)'}
+              </Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder={
+                  i18n.locale === 'fr'
+                    ? 'Ajoutez un message au prestataire...'
+                    : 'Add a message to the tasker...'
+                }
+                placeholderTextColor={Colors.dark.textSecondary}
+                value={counterOfferNote}
+                onChangeText={setCounterOfferNote}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.cancelButtons}>
+              <TouchableOpacity
+                style={styles.cancelModalButton}
+                onPress={() => setShowCounterOfferModal(false)}
+              >
+                <Text style={styles.cancelModalButtonText}>
+                  {i18n.locale === 'fr' ? 'Annuler' : 'Cancel'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.confirmCancelModalButton,
+                  { backgroundColor: Colors.dark.primary },
+                  submittingCounterOffer && styles.disabledButton,
+                ]}
+                onPress={handleSubmitCounterOffer}
+                disabled={submittingCounterOffer}
+                testID="counter-offer-submit-btn"
+              >
+                {submittingCounterOffer ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Text style={styles.confirmCancelModalButtonText}>
+                    {i18n.locale === 'fr' ? 'Envoyer' : 'Send'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -2115,5 +2643,237 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#ef4444',
     alignItems: 'center',
+  },
+
+  // ==================== ASSESSMENT FLOW STYLES ====================
+
+  // Tasker waiting card
+  assessWaitCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  assessWaitContent: {
+    flex: 1,
+  },
+  assessWaitTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f59e0b',
+    marginBottom: 4,
+  },
+  assessWaitText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    lineHeight: 18,
+  },
+
+  // Tasker counter-offer received card
+  counterOfferCard: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    padding: 16,
+    marginBottom: 16,
+  },
+  counterOfferHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  counterOfferTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.dark.text,
+  },
+  counterOfferRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  counterOfferLabel: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+  },
+  counterOfferStrike: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  counterOfferAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3b82f6',
+  },
+  counterOfferNote: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  counterOfferButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  counterDeclineBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.dark.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterDeclineBtnText: {
+    color: Colors.dark.error,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  counterAcceptBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: Colors.dark.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterAcceptBtnText: {
+    color: Colors.dark.background,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // Client adjustment-response card
+  clientAdjustCard: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+    padding: 16,
+    marginBottom: 16,
+  },
+  clientAdjustHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  clientAdjustTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    flex: 1,
+  },
+  clientAdjustRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  clientAdjustLabel: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+  },
+  clientAdjustStrike: {
+    fontSize: 14,
+    color: Colors.dark.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  clientAdjustAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f59e0b',
+  },
+  clientAdjustDiff: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.error,
+  },
+  clientAdjustReason: {
+    backgroundColor: Colors.dark.background,
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  clientAdjustReasonLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.dark.textSecondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  clientAdjustReasonText: {
+    fontSize: 13,
+    color: Colors.dark.text,
+    lineHeight: 18,
+  },
+  clientAdjustPhoto: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  clientAdjustExpiry: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  clientAdjustAcceptBtn: {
+    backgroundColor: Colors.dark.success,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientAdjustAcceptText: {
+    color: Colors.dark.background,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  clientAdjustSecondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  clientAdjustCounterBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientAdjustCounterText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  clientAdjustDeclineBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.dark.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientAdjustDeclineText: {
+    color: Colors.dark.error,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

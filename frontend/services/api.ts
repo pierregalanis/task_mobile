@@ -1212,4 +1212,152 @@ export const emergencyContactsAPI = {
   },
 };
 
+// ==================== WORK ASSESSMENT (CERTIFY) ====================
+
+export type AssessmentAction = 'certify' | 'request_adjustment' | 'decline';
+export type ClientResponseAction = 'accept' | 'decline' | 'counter_offer';
+
+export type AssessmentStatusValue =
+  | 'certified'
+  | 'adjustment_requested'
+  | 'adjustment_approved'
+  | 'adjustment_declined'
+  | 'declined_by_tasker';
+
+export interface AssessmentPhoto {
+  url: string;
+  uploaded_at: string;
+  filename: string;
+}
+
+export interface WorkAssessment {
+  status: AssessmentStatusValue;
+  assessed_at: string;
+  certified: boolean;
+  original_price: number;
+  final_agreed_price?: number;
+  proposed_price?: number;
+  adjustment_reason?: string;
+  decline_reason?: string;
+  assessment_notes?: string;
+  client_response?: 'accepted' | 'declined' | 'counter_offer';
+  client_counter_offer?: number;
+  counter_offer_note?: string;
+  response_note?: string;
+  assessment_photos?: AssessmentPhoto[];
+  expires_at?: string;
+}
+
+export interface AssessmentStatusResponse {
+  task_id: string;
+  task_status: string;
+  assessment: WorkAssessment | null;
+  requires_assessment: boolean;
+  waiting_for_client: boolean;
+  waiting_for_tasker: boolean;
+}
+
+export const assessmentAPI = {
+  // --------- TASKER ACTIONS ---------
+
+  // Submit the work assessment (called after the tasker arrives)
+  async submitAssessment(
+    taskId: string,
+    payload: {
+      action: AssessmentAction;
+      proposed_price?: number;      // required when action = 'request_adjustment'
+      adjustment_reason?: string;   // required when action = 'request_adjustment'
+      decline_reason?: string;      // required when action = 'decline'
+      assessment_notes?: string;
+    }
+  ) {
+    const response = await api.post(`/api/tasks/${taskId}/assess`, payload);
+    return response.data as {
+      success: boolean;
+      message: string;
+      status: string;
+      assessment: WorkAssessment;
+      can_start_timer?: boolean;
+      waiting_for_client?: boolean;
+    };
+  },
+
+  // Upload up to 5 photos to support an adjustment request
+  async uploadAssessmentPhotos(taskId: string, photoUris: string[]) {
+    const formData = new FormData();
+    photoUris.slice(0, 5).forEach((uri, idx) => {
+      formData.append('photos', {
+        uri,
+        type: 'image/jpeg',
+        name: `assessment_${Date.now()}_${idx}.jpg`,
+      } as any);
+    });
+    const response = await api.post(
+      `/api/tasks/${taskId}/assess/photos`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      }
+    );
+    return response.data as {
+      success: boolean;
+      message: string;
+      photos: AssessmentPhoto[];
+    };
+  },
+
+  // Tasker accepts the client's counter-offer
+  async acceptCounterOffer(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/assess/accept-counter`);
+    return response.data as {
+      success: boolean;
+      message: string;
+      status: string;
+      final_price: number;
+      can_start_timer: boolean;
+    };
+  },
+
+  // Tasker declines the client's counter-offer (task will be cancelled)
+  async declineCounterOffer(taskId: string) {
+    const response = await api.post(`/api/tasks/${taskId}/assess/decline-counter`);
+    return response.data as {
+      success: boolean;
+      message: string;
+      status: string;
+    };
+  },
+
+  // --------- CLIENT ACTIONS ---------
+
+  // Client responds to the tasker's adjustment request
+  async respondToAdjustment(
+    taskId: string,
+    payload: {
+      action: ClientResponseAction;
+      counter_offer_price?: number; // required when action = 'counter_offer'
+      response_note?: string;
+    }
+  ) {
+    const response = await api.post(`/api/tasks/${taskId}/assess/respond`, payload);
+    return response.data as {
+      success: boolean;
+      message: string;
+      status: string;
+      final_price?: number;
+      counter_offer?: number;
+      assessment: WorkAssessment;
+    };
+  },
+
+  // --------- SHARED ---------
+
+  // Poll to know if an assessment step is required / pending
+  async getAssessmentStatus(taskId: string): Promise<AssessmentStatusResponse> {
+    const response = await api.get(`/api/tasks/${taskId}/assessment`);
+    return response.data;
+  },
+};
+
 export default api;
