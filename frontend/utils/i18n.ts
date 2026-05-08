@@ -89,7 +89,7 @@ const i18n = new I18n({
   fr: {
     welcome: {
       title: 'Bienvenue sur Soutrali',
-      subtitle: 'Trouvez des tâcherons de confiance en Afrique',
+      subtitle: 'Trouvez des pros de confiance en Afrique',
       getStarted: 'Commencer',
       login: 'Connexion',
     },
@@ -120,8 +120,8 @@ const i18n = new I18n({
         confirmPassword: 'Confirmer le mot de passe',
         confirmPasswordPlaceholder: 'Confirmez votre mot de passe',
         selectRole: 'Je veux:',
-        client: 'Embaucher un Tâcheron',
-        tasker: 'Devenir Tâcheron',
+        client: 'Embaucher un pro',
+        tasker: 'Devenir pro',
         button: "S'inscrire",
         haveAccount: 'Vous avez déjà un compte?',
         login: 'Connexion',
@@ -138,13 +138,13 @@ const i18n = new I18n({
       signupError: 'Échec de création du compte',
     },
     home: {
-      title: 'Trouver des Tâcherons',
+      title: 'Trouver des pros',
       search: 'Rechercher des services...',
       categories: 'Catégories',
-      featured: 'Tâcherons en vedette',
+      featured: 'pros en vedette',
     },
     taskers: {
-      title: 'Tâcherons',
+      title: 'pros',
     },
     bookings: {
       title: 'Mes Réservations',

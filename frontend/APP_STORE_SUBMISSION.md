@@ -132,9 +132,9 @@ Disponible en français et en anglais.
 📱 COMMENT ÇA MARCHE
 
 1. Parcourez les catégories - Choisissez parmi 14+ catégories de services
-2. Sélectionnez un Tâcheron - Consultez les profils, notes et tarifs
+2. Sélectionnez un pro - Consultez les profils, notes et tarifs
 3. Réservez un service - Choisissez votre date, heure et lieu
-4. C'est fait - Votre tâcheron arrive et accomplit le travail
+4. C'est fait - Votre pro arrive et accomplit le travail
 5. Payez & Évaluez - Paiement sécurisé et partagez votre avis
 
 🌍 DISPONIBLE EN
@@ -157,7 +157,7 @@ services,tasker,handyman,cleaning,plumber,africa,ivory coast,senegal,home,bookin
 
 ### French Keywords
 ```
-services,tâcheron,ménage,plombier,afrique,côte d'ivoire,sénégal,domicile,réservation,local
+services,pro,ménage,plombier,afrique,côte d'ivoire,sénégal,domicile,réservation,local
 ```
 
 ---

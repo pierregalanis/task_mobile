@@ -7,7 +7,8 @@ import { pushTokenAPI } from './api';
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -185,6 +186,82 @@ export function handleNotificationNavigation(data: any) {
       case 'timer_started':
       case 'work_started':
         // Work timer started
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      // ==================== WORK ASSESSMENT (CERTIFY) NOTIFICATIONS ====================
+
+      case 'work_certified':
+        // Client receives — tasker confirmed work matches description, work has started
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'adjustment_requested':
+        // Client receives — tasker is requesting a price adjustment.
+        // Task detail screen auto-renders the adjustment-response card.
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'adjustment_approved':
+        // Tasker receives — client approved the adjustment, can start working
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'adjustment_declined':
+        // Tasker receives — client declined, task is cancelled
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'counter_offer_received':
+        // Tasker receives — client made a counter-offer.
+        // Task detail screen auto-renders the counter-offer accept/decline card.
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'counter_offer_accepted':
+        // Client receives — tasker accepted the counter-offer, work is starting
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'counter_offer_declined':
+        // Client receives — tasker declined the counter-offer, task cancelled
+        if (taskId) {
+          router.push(`/task/${taskId}`);
+        } else {
+          router.push('/(tabs)/bookings');
+        }
+        break;
+
+      case 'assessment_expired':
+        // Both — 24h elapsed without client response, task auto-cancelled
         if (taskId) {
           router.push(`/task/${taskId}`);
         } else {

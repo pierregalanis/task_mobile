@@ -374,7 +374,7 @@ export default function ProfileScreen() {
               />
               <Text style={styles.roleBadgeText}>
                 {user?.role === 'tasker'
-                  ? locale === 'fr' ? 'Tâcheron' : 'Tasker'
+                  ? locale === 'fr' ? 'pro' : 'Tasker'
                   : locale === 'fr' ? 'Client' : 'Client'}
               </Text>
             </View>
@@ -417,7 +417,7 @@ export default function ProfileScreen() {
         {user?.role === 'tasker' && (
           <View style={styles.menuSection}>
             <Text style={[styles.menuSectionTitle, { color: colors.textSecondary }]}>
-              {locale === 'fr' ? 'Gestion Tâcheron' : 'Tasker Management'}
+              {locale === 'fr' ? 'Gestion pro' : 'Tasker Management'}
             </Text>
             <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <AnimatedMenuItem
@@ -479,7 +479,7 @@ export default function ProfileScreen() {
               <AnimatedMenuItem
                 icon="heart"
                 title={locale === 'fr' ? 'Mes Favoris' : 'My Favorites'}
-                subtitle={locale === 'fr' ? 'Tâcherons sauvegardés' : 'Saved taskers'}
+                subtitle={locale === 'fr' ? 'pros sauvegardés' : 'Saved taskers'}
                 onPress={() => router.push('/favorites')}
                 index={0}
                 iconColor="#ef4444"

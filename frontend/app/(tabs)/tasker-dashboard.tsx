@@ -215,7 +215,7 @@ export default function TaskerDashboardScreen() {
   const fetchData = async () => {
     try {
       const [tasksData, unreadData, profileData, verificationData] = await Promise.all([
-        taskAPI.getTaskerTasks(),
+        taskAPI.getMyTasks(),
         notificationAPI.getUnreadCount(),
         taskerAPI.getMyProfile().catch(() => null),
         verificationAPI.getStatus().catch(() => null),

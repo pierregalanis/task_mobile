@@ -506,7 +506,7 @@ const handleAcceptTask = async (taskId: string) => {
                     <View style={styles.waitingMessage}>
                       <View style={styles.pulsingDot} />
                       <Text style={styles.waitingMessageText}>
-                        {i18n.locale === 'fr' ? 'En attente de confirmation du tâcheron' : 'Waiting for tasker approval'}
+                        {i18n.locale === 'fr' ? 'En attente de confirmation du pro' : 'Waiting for tasker approval'}
                       </Text>
                     </View>
                   )}

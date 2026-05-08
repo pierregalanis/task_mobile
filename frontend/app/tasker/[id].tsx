@@ -272,10 +272,17 @@ export default function TaskerProfileScreen() {
           </View>
         )}
 
-        {/* Services Section with Per-Service Portfolio */}
+       {/* Services Section with Per-Service Portfolio */}
         {tasker.tasker_profile?.services && tasker.tasker_profile.services.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Services' : 'Services'}</Text>
+            {isClient && (
+              <Text style={styles.servicesSubtitle}>
+                {i18n.locale === 'fr'
+                  ? 'Appuyez sur un service pour le réserver directement.'
+                  : 'Tap a service to book it directly.'}
+              </Text>
+            )}
             {tasker.tasker_profile.services.map((service: any, index: number) => {
               const category = getCategoryById(categories, service.category);
               const subcategory = service.subcategory ? getSubcategoryById(category, service.subcategory) : null;
@@ -283,13 +290,29 @@ export default function TaskerProfileScreen() {
               const subcategoryName = subcategory ? getSubcategoryName(subcategory, i18n.locale) : service.subcategory;
               const portfolioKey = `${service.category}-${service.subcategory}`;
               const portfolioImages = servicePortfolios[portfolioKey] || [];
-              
-              return (
-                <View key={index} style={styles.serviceCard}>
-                  <View style={styles.serviceHeader}>
-                    <Text style={styles.serviceName}>{categoryName}</Text>
-                    {subcategoryName && (
-                      <Text style={styles.serviceSubcategory}>{subcategoryName}</Text>
+
+              // Only clickable when:
+              //   - viewer is a client (taskers can't book)
+              //   - service.category is a real UUID (legacy services without UUID stay non-clickable)
+              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              const isClickable = isClient && uuidRegex.test(String(service.category || ''));
+
+              const cardContent = (
+                <>
+                  <View style={styles.serviceHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.serviceName}>{categoryName}</Text>
+                      {subcategoryName && (
+                        <Text style={styles.serviceSubcategory}>{subcategoryName}</Text>
+                      )}
+                    </View>
+                    {isClickable && (
+                      <View style={styles.bookPill}>
+                        <Ionicons name="calendar" size={11} color={Colors.dark.background} />
+                        <Text style={styles.bookPillText}>
+                          {i18n.locale === 'fr' ? 'Réserver' : 'Book'}
+                        </Text>
+                      </View>
                     )}
                   </View>
                   {service.bio && <Text style={styles.serviceBio}>{service.bio}</Text>}
@@ -318,7 +341,7 @@ export default function TaskerProfileScreen() {
                       </>
                     )}
                   </View>
-                  
+
                   {/* Per-Service Portfolio Images */}
                   {portfolioImages.length > 0 && (
                     <View style={styles.servicePortfolio}>
@@ -326,9 +349,9 @@ export default function TaskerProfileScreen() {
                         <Ionicons name="images-outline" size={14} color={Colors.dark.textSecondary} />
                         {' '}{i18n.locale === 'fr' ? 'Travaux réalisés' : 'Work samples'}
                       </Text>
-                      <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
                         style={styles.servicePortfolioScroll}
                       >
                         {portfolioImages.map((img, imgIndex) => (
@@ -340,15 +363,38 @@ export default function TaskerProfileScreen() {
                             )}
                             activeOpacity={0.8}
                           >
-                            <Image 
-                              source={{ uri: img.image_url }} 
-                              style={styles.servicePortfolioImage} 
+                            <Image
+                              source={{ uri: img.image_url }}
+                              style={styles.servicePortfolioImage}
                             />
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
                     </View>
                   )}
+                </>
+              );
+
+              if (isClickable) {
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.serviceCard, styles.serviceCardClickable]}
+                    onPress={() => handleServiceSelect(service)}
+                    activeOpacity={0.7}
+                    testID={`service-card-${index}`}
+                  >
+                    {cardContent}
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <View
+                  key={index}
+                  style={[styles.serviceCard, !isClient && styles.serviceCardLegacy]}
+                >
+                  {cardContent}
                 </View>
               );
             })}
@@ -444,7 +490,7 @@ export default function TaskerProfileScreen() {
           <View style={[styles.bookButton, { backgroundColor: '#3a3a3a' }]}>
             <Ionicons name="information-circle-outline" size={20} color={Colors.dark.textSecondary} />
             <Text style={[styles.bookButtonText, { color: Colors.dark.textSecondary }]}>
-              {i18n.locale === 'fr' ? 'Les tâcherons ne peuvent pas réserver' : 'Taskers cannot book services'}
+              {i18n.locale === 'fr' ? 'Les pros ne peuvent pas réserver' : 'Taskers cannot book services'}
             </Text>
           </View>
         )}
@@ -685,8 +731,43 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
-  serviceHeader: {
+   serviceHeader: {
     marginBottom: 8,
+  },
+  servicesSubtitle: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    marginTop: -8,
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  serviceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  serviceCardClickable: {
+    borderColor: Colors.dark.primary,
+  },
+  serviceCardLegacy: {
+    opacity: 0.7,
+  },
+  bookPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  bookPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.dark.background,
+    letterSpacing: 0.3,
   },
   serviceName: {
     fontSize: 16,

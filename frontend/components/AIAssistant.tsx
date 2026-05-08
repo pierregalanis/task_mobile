@@ -63,7 +63,7 @@ export default function AIAssistant() {
       const greeting: Message = {
         id: 'greeting',
         text: i18n.locale === 'fr'
-          ? `Bonjour${user?.full_name ? ' ' + user.full_name.split(' ')[0] : ''} ! 👋\n\nJe suis Soutou, votre assistant Soutrali. Comment puis-je vous aider aujourd'hui?\n\n• Trouver un tâcheron\n• Questions sur les prix\n• Aide à la réservation\n• Conseils pour votre service`
+          ? `Bonjour${user?.full_name ? ' ' + user.full_name.split(' ')[0] : ''} ! 👋\n\nJe suis Soutou, votre assistant Soutrali. Comment puis-je vous aider aujourd'hui?\n\n• Trouver un pro\n• Questions sur les prix\n• Aide à la réservation\n• Conseils pour votre service`
           : `Hello${user?.full_name ? ' ' + user.full_name.split(' ')[0] : ''} ! 👋\n\nI'm Soutou, your Soutrali assistant. How can I help you today?\n\n• Find a tasker\n• Pricing questions\n• Booking help\n• Service advice`,
         isUser: false,
         timestamp: new Date(),

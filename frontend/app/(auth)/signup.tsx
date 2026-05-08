@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +25,6 @@ import { showMessage } from '../../utils/alert';
 interface SignupFormData {
   fullName: string;
   email: string;
-  phone: string;
   password: string;
   confirmPassword: string;
 }
@@ -42,12 +42,13 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'client' | 'tasker'>('client');
   const [country, setCountry] = useState<'ivory_coast' | 'senegal'>('ivory_coast');
+  const [phoneLocal, setPhoneLocal] = useState('');
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
-    defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
+    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
   });
 
   const password = watch('password');
@@ -85,17 +86,25 @@ export default function SignupScreen() {
   };
 
   const onSubmit = async (data: SignupFormData) => {
+    if (!phoneLocal.trim()) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Telephone requis' : 'Phone required',
+        i18n.locale === 'fr' ? 'Veuillez entrer votre numero de telephone' : 'Please enter your phone number'
+      );
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       const lat = location?.latitude || selectedCountry.latitude;
       const lng = location?.longitude || selectedCountry.longitude;
-      
+
       await register({
         email: data.email,
         password: data.password,
         full_name: data.fullName,
-        phone: data.phone,
+        phone: selectedCountry.phonePrefix + phoneLocal.trim(),
         country: country,
         city: location?.address?.split(',')[0] || selectedCountry.defaultCity,
         latitude: lat,
@@ -192,12 +201,27 @@ export default function SignupScreen() {
               )}
             />
 
-            <Controller control={control} name="phone"
-              rules={{ required: i18n.locale === 'fr' ? 'Telephone requis' : 'Phone is required' }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.phone')} placeholder={selectedCountry.phonePrefix + ' XX XX XX XX'} value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="phone-pad" error={errors.phone?.message} leftIcon={<Ionicons name="call-outline" size={20} color={Colors.dark.textSecondary} />} />
-              )}
-            />
+            <View>
+              <Text style={styles.phoneLabel}>
+                {i18n.locale === 'fr' ? 'Numéro de téléphone' : 'Phone Number'}
+              </Text>
+              <View style={styles.phoneRow}>
+                <View style={styles.phonePrefixBox}>
+                  <Ionicons name="call-outline" size={16} color={Colors.dark.primary} />
+                  <Text style={styles.phonePrefixText}>{selectedCountry.phonePrefix}</Text>
+                  <Ionicons name="lock-closed" size={12} color={Colors.dark.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.phoneInput}
+                  value={phoneLocal}
+                  onChangeText={setPhoneLocal}
+                  placeholder="XX XX XX XX"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  keyboardType="phone-pad"
+                  testID="phone-local-input"
+                />
+              </View>
+            </View>
 
             <Controller control={control} name="password"
               rules={{ required: i18n.locale === 'fr' ? 'Mot de passe requis' : 'Password is required', minLength: { value: 6, message: i18n.locale === 'fr' ? 'Minimum 6 caracteres' : 'Minimum 6 characters' } }}
@@ -298,6 +322,38 @@ const styles = StyleSheet.create({
   countryButtonText: { fontSize: 13, fontWeight: '600', color: Colors.dark.textSecondary },
   countryButtonTextActive: { color: Colors.dark.background },
   form: { gap: 16, marginBottom: 24 },
+  phoneLabel: { fontSize: 14, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    borderRadius: 12,
+    backgroundColor: Colors.dark.card,
+    overflow: 'hidden',
+  },
+  phonePrefixBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: `${Colors.dark.primary}15`,
+    borderRightWidth: 1,
+    borderRightColor: Colors.dark.border,
+  },
+  phonePrefixText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.dark.primary,
+  },
+  phoneInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: Colors.dark.text,
+  },
   signupButton: { marginBottom: 24 },
   loginContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4 },
   loginText: { color: Colors.dark.textSecondary, fontSize: 14 },

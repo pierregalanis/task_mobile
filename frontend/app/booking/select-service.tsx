@@ -304,7 +304,7 @@ export default function SelectServiceScreen() {
                   {getSubcategoryName(subcategory)}
                 </Text>
                 <Text style={styles.serviceDescription}>
-                  {i18n.locale === 'fr' ? 'Appuyez pour voir les tâcherons disponibles' : 'Tap to see available taskers'}
+                  {i18n.locale === 'fr' ? 'Appuyez pour voir les pros disponibles' : 'Tap to see available taskers'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />

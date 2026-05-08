@@ -33,7 +33,7 @@ const slides: SlideData[] = [
     id: 1,
     icon: 'people',
     titleEn: 'Find Trusted Taskers',
-    titleFr: 'Trouvez des Tâcherons',
+    titleFr: 'Trouvez des pros',
     subtitleEn: 'Connect with verified professionals for any job',
     subtitleFr: 'Connectez-vous avec des professionnels vérifiés',
     gradient: ['#10b981', '#059669'],
@@ -49,7 +49,7 @@ const slides: SlideData[] = [
     titleEn: 'Real-Time Tracking',
     titleFr: 'Suivi en Temps Réel',
     subtitleEn: 'Know exactly when your tasker arrives',
-    subtitleFr: 'Sachez exactement quand votre tâcheron arrive',
+    subtitleFr: 'Sachez exactement quand votre pro arrive',
     gradient: ['#3b82f6', '#1d4ed8'],
     features: [
       { icon: 'navigate', textEn: 'Live Location', textFr: 'Position en Direct' },

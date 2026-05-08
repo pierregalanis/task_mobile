@@ -116,7 +116,7 @@ export default function CreateBookingScreen() {
       Alert.alert(
         i18n.locale === 'fr' ? 'Accès refusé' : 'Access Denied',
         i18n.locale === 'fr' 
-          ? 'Les tâcherons ne peuvent pas réserver de services.' 
+          ? 'Les pros ne peuvent pas réserver de services.' 
           : 'Taskers cannot book services.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
@@ -125,11 +125,16 @@ export default function CreateBookingScreen() {
   
   console.log('Booking form params:', params);
 
-  // Get service name from params for auto-fill
-  const serviceName = params.serviceName as string || '';
-  
-  // Form state - Auto-fill title with service name
-  const [title, setTitle] = useState(serviceName);
+// Get service name from params for auto-fill
+const serviceName = params.serviceName as string || '';
+
+// Title is LOCKED when the user came here by picking a specific service
+// (either "Book Now" on a tasker profile or tapping a service card).
+// This prevents vague free-text bookings that break admin moderation and search.
+const isLocked = !!serviceName;
+
+// Form state - Auto-fill title with service name
+const [title, setTitle] = useState(serviceName);
   const [description, setDescription] = useState('');
   const [taskDate, setTaskDate] = useState(() => {
     const tomorrow = new Date();
@@ -490,7 +495,7 @@ export default function CreateBookingScreen() {
       showMessage(
         i18n.locale === 'fr' ? 'Distance trop éloignée' : 'Too far away',
         i18n.locale === 'fr' 
-          ? `Le tâcheron ne peut pas se déplacer au-delà de ${maxTravelDistance} km. Votre emplacement est à ${calculatedDistance?.toFixed(1)} km.` 
+          ? `Le pro ne peut pas se déplacer au-delà de ${maxTravelDistance} km. Votre emplacement est à ${calculatedDistance?.toFixed(1)} km.` 
           : `The tasker cannot travel beyond ${maxTravelDistance} km. Your location is ${calculatedDistance?.toFixed(1)} km away.`
       );
       return;
@@ -623,18 +628,33 @@ export default function CreateBookingScreen() {
               {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
             </Text>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {i18n.locale === 'fr' ? 'Titre' : 'Title'} <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder={i18n.locale === 'fr' ? 'Ex: Nettoyage maison' : 'e.g. House cleaning'}
-                placeholderTextColor={Colors.dark.textSecondary}
-                value={title}
-                onChangeText={setTitle}
-              />
-            </View>
+<View style={styles.inputContainer}>
+  <Text style={styles.inputLabel}>
+    {i18n.locale === 'fr' ? 'Titre' : 'Title'} <Text style={styles.required}>*</Text>
+  </Text>
+
+  {isLocked ? (
+    <View style={[styles.input, styles.lockedInput]}>
+      <Text style={styles.lockedInputText} numberOfLines={1}>
+        {title || (i18n.locale === 'fr' ? 'Chargement...' : 'Loading...')}
+      </Text>
+      <View style={styles.lockedPill}>
+        <Ionicons name="lock-closed" size={12} color={Colors.dark.background} />
+        <Text style={styles.lockedPillText}>
+          {i18n.locale === 'fr' ? 'Verrouillé' : 'Locked'}
+        </Text>
+      </View>
+    </View>
+  ) : (
+    <TextInput
+      style={styles.input}
+      placeholder={i18n.locale === 'fr' ? 'Ex: Nettoyage maison' : 'e.g. House cleaning'}
+      placeholderTextColor={Colors.dark.textSecondary}
+      value={title}
+      onChangeText={setTitle}
+    />
+  )}
+</View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
@@ -998,7 +1018,7 @@ export default function CreateBookingScreen() {
                     ]}>
                       {distanceValid 
                         ? (i18n.locale === 'fr' 
-                            ? `Le tâcheron peut se déplacer (${calculatedDistance?.toFixed(1)} km)` 
+                            ? `Le pro peut se déplacer (${calculatedDistance?.toFixed(1)} km)` 
                             : `Tasker can reach (${calculatedDistance?.toFixed(1)} km)`)
                         : (i18n.locale === 'fr' 
                             ? `Trop loin (${calculatedDistance?.toFixed(1)} km > ${maxTravelDistance} km max)` 
@@ -1099,7 +1119,7 @@ export default function CreateBookingScreen() {
             </Text>
             <Text style={styles.confirmationMessage}>
               {i18n.locale === 'fr'
-                ? 'Votre réservation a été créée avec succès. Le tâcheron recevra une notification.'
+                ? 'Votre réservation a été créée avec succès. Le pro recevra une notification.'
                 : 'Your booking has been created successfully. The tasker will receive a notification.'}
             </Text>
             <View style={styles.confirmationDetails}>
@@ -1206,6 +1226,37 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     marginBottom: 8,
   },
+
+  lockedInput: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: `${Colors.dark.primary}15`,
+  borderColor: Colors.dark.primary,
+  borderWidth: 1,
+},
+lockedInputText: {
+  flex: 1,
+  color: Colors.dark.text,
+  fontSize: 16,
+  fontWeight: '600',
+},
+lockedPill: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 4,
+  backgroundColor: Colors.dark.primary,
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 12,
+  marginLeft: 8,
+},
+lockedPillText: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: Colors.dark.background,
+  textTransform: 'uppercase',
+},
   priceBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',

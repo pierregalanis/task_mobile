@@ -160,15 +160,15 @@ export default function TrackingScreen() {
   const pollTaskerLocation = async () => {
     if (!id) return;
     try {
-      const data = await taskAPI.getTaskLocation(id as string);
-      if (data?.latitude && data?.longitude) {
-        const newLocation = { latitude: data.latitude, longitude: data.longitude };
+      const data = await taskAPI.getTaskerLocation(id as string);
+      if (data?.tracking_available && data?.location) {
+        const newLocation = { latitude: data.location.latitude, longitude: data.location.longitude };
         setTaskerLocation(newLocation);
-        
+
         // Calculate distance and ETA if we have both locations
         if (clientLocation) {
           const dist = calculateDistance(
-            newLocation.latitude, 
+            newLocation.latitude,
             newLocation.longitude,
             clientLocation.latitude,
             clientLocation.longitude
@@ -176,7 +176,7 @@ export default function TrackingScreen() {
           setDistance(dist);
           setEta(calculateETA(dist));
         }
-        
+
         // Update map to fit markers
         fitMapToMarkers(newLocation, clientLocation);
       }
@@ -594,7 +594,7 @@ export default function TrackingScreen() {
             {taskerLocation && Marker && (
               <Marker
                 coordinate={taskerLocation}
-                title={isFrench ? 'Tâcheron' : 'Tasker'}
+                title={isFrench ? 'pro' : 'Tasker'}
               >
                 <View style={styles.taskerMarker}>
                   <Ionicons name="car" size={24} color={Colors.dark.background} />
@@ -634,7 +634,7 @@ export default function TrackingScreen() {
               <View style={styles.locationInfo}>
                 <Ionicons name="navigate" size={20} color={Colors.dark.primary} />
                 <Text style={styles.locationText}>
-                  {isFrench ? 'Position du tâcheron:' : 'Tasker location:'} {taskerLocation.latitude.toFixed(4)}, {taskerLocation.longitude.toFixed(4)}
+                  {isFrench ? 'Position du pro:' : 'Tasker location:'} {taskerLocation.latitude.toFixed(4)}, {taskerLocation.longitude.toFixed(4)}
                 </Text>
               </View>
             )}
@@ -782,7 +782,7 @@ export default function TrackingScreen() {
               <View style={styles.trackingIndicator}>
                 <View style={styles.pulsingDot} />
                 <Text style={styles.trackingText}>
-                  {isFrench ? 'Le tâcheron est en route...' : 'Tasker is on the way...'}
+                  {isFrench ? 'Le pro est en route...' : 'Tasker is on the way...'}
                 </Text>
               </View>
             )}
@@ -790,7 +790,7 @@ export default function TrackingScreen() {
               <View style={[styles.arrivalBanner, { backgroundColor: Colors.dark.primary }]}>
                 <Ionicons name="checkmark-circle" size={24} color={Colors.dark.background} />
                 <Text style={styles.arrivalText}>
-                  {isFrench ? 'Le tâcheron est arrivé!' : 'Tasker has arrived!'}
+                  {isFrench ? 'Le pro est arrivé!' : 'Tasker has arrived!'}
                 </Text>
               </View>
             )}

@@ -427,7 +427,14 @@ export const taskAPI = {
     return response.data;
   },
 
-  // Get available tasks for tasker
+  // Get all tasks for the current user (role-aware: client → client_id, tasker → assigned_tasker_id)
+  // Preferred over getTaskerTasks() — no static status filter, future-proof
+  async getMyTasks() {
+    const response = await api.get('/api/tasks/my-tasks');
+    return response.data;
+  },
+
+  // Get available tasks for tasker (legacy — static status filter, use getMyTasks() instead)
   async getTaskerTasks() {
     const response = await api.get('/api/tasks/available');
     return response.data;
@@ -516,10 +523,23 @@ export const taskAPI = {
     return response.data;
   },
 
-  // Get current tasker location (for client to track)
+  // Get current tasker location (for client to track live on map)
+  async getTaskerLocation(taskId: string) {
+    const response = await api.get(`/api/tasks/${taskId}/tasker-location`);
+    return response.data as {
+      tracking_available: boolean;
+      location?: {
+        latitude: number;
+        longitude: number;
+        updated_at: string;
+      };
+      message?: string;
+    };
+  },
+
+  // Deprecated alias — kept so old callers don't crash during migration
   async getTaskLocation(taskId: string) {
-    const response = await api.get(`/api/tasks/${taskId}/location`);
-    return response.data;
+    return this.getTaskerLocation(taskId);
   },
 
   // Legacy methods (keeping for backward compatibility)

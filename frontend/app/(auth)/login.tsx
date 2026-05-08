@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,8 +27,20 @@ interface LoginFormData {
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const { verified } = useLocalSearchParams<{ verified?: string }>();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (verified === 'true') {
+      showMessage(
+        i18n.locale === 'fr' ? 'Email verifie !' : 'Email Verified!',
+        i18n.locale === 'fr'
+          ? 'Votre compte est active. Connectez-vous pour continuer.'
+          : 'Your account is now active. Please log in to continue.'
+      );
+    }
+  }, [verified]);
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     defaultValues: {

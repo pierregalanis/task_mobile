@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { verificationAPI, VerificationStatus } from '../../services/api';
 import { Colors } from '../../constants/Colors';
@@ -47,6 +46,7 @@ export default function VerificationScreen() {
 
   // Camera modal
   const [showCamera, setShowCamera] = useState(false);
+  const [cameraMode, setCameraMode] = useState<'id' | 'selfie'>('selfie');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -78,38 +78,8 @@ export default function VerificationScreen() {
     }
   };
 
-  // ========== ID DOCUMENT (Gallery or Camera OK) ==========
-  const handlePickIdDocument = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        showMessage(
-          isFrench ? 'Permission refusee' : 'Permission Denied',
-          isFrench ? "Veuillez autoriser l'acces a la galerie" : 'Please allow access to your photo library'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.85,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setIdDocumentUri(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking ID document:', error);
-      showMessage(
-        isFrench ? 'Erreur' : 'Error',
-        isFrench ? "Impossible de selectionner l'image" : 'Unable to select image'
-      );
-    }
-  };
-
-  // ========== LIVE SELFIE (Camera ONLY - NO GALLERY) ==========
-  const handleOpenCamera = async () => {
+  // ========== SHARED CAMERA OPENER ==========
+  const openCamera = async (mode: 'id' | 'selfie') => {
     if (!cameraPermission?.granted) {
       const result = await requestCameraPermission();
       if (!result.granted) {
@@ -122,9 +92,13 @@ export default function VerificationScreen() {
         return;
       }
     }
+    setCameraMode(mode);
     setCapturedPhoto(null);
     setShowCamera(true);
   };
+
+  const handleOpenIdCamera = () => openCamera('id');
+  const handleOpenCamera = () => openCamera('selfie');
 
   const handleCapturePhoto = async () => {
     if (!cameraRef.current || capturing) return;
@@ -154,7 +128,11 @@ export default function VerificationScreen() {
 
   const handleConfirmPhoto = () => {
     if (capturedPhoto) {
-      setSelfieUri(capturedPhoto);
+      if (cameraMode === 'id') {
+        setIdDocumentUri(capturedPhoto);
+      } else {
+        setSelfieUri(capturedPhoto);
+      }
       setShowCamera(false);
       setCapturedPhoto(null);
     }
@@ -369,7 +347,7 @@ export default function VerificationScreen() {
           <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        {/* ID Document Upload */}
+        {/* ID Document Capture */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
           {isFrench ? "Document d'Identite (Recto)" : 'ID Document (Front)'}
         </Text>
@@ -381,26 +359,33 @@ export default function VerificationScreen() {
               borderColor: idDocumentUri ? colors.success : colors.border,
             },
           ]}
-          onPress={handlePickIdDocument}
-          data-testid="id-document-upload"
+          onPress={handleOpenIdCamera}
+          testID="id-document-capture-btn"
         >
           {idDocumentUri ? (
-            <Image source={{ uri: idDocumentUri }} style={styles.previewImage} />
+            <>
+              <Image source={{ uri: idDocumentUri }} style={styles.previewImage} />
+              <View style={styles.liveBadge}>
+                <Ionicons name="checkmark" size={12} color="#fff" />
+                <Text style={styles.liveBadgeText}>Live</Text>
+              </View>
+              <View style={[styles.changeOverlay]}>
+                <Ionicons name="camera" size={16} color="#fff" />
+                <Text style={styles.changeText}>{isFrench ? 'Reprendre' : 'Retake'}</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.uploadPlaceholder}>
-              <Ionicons name="cloud-upload" size={40} color={colors.textSecondary} />
+              <Ionicons name="camera" size={40} color={colors.textSecondary} />
               <Text style={[styles.uploadText, { color: colors.textSecondary }]}>
-                {isFrench ? "Appuyez pour telecharger l'ID" : 'Tap to upload ID'}
+                {isFrench ? "Appuyez pour photographier l'ID" : 'Tap to photograph ID'}
               </Text>
-              <Text style={[styles.uploadHint, { color: colors.border }]}>
-                {isFrench ? 'Camera ou Galerie' : 'Camera or Gallery'}
-              </Text>
-            </View>
-          )}
-          {idDocumentUri && (
-            <View style={[styles.changeOverlay]}>
-              <Ionicons name="swap-horizontal" size={16} color="#fff" />
-              <Text style={styles.changeText}>{isFrench ? 'Changer' : 'Change'}</Text>
+              <View style={[styles.liveRequiredBadge, { backgroundColor: '#f59e0b20' }]}>
+                <Ionicons name="videocam" size={14} color="#f59e0b" />
+                <Text style={[styles.liveRequiredText, { color: '#f59e0b' }]}>
+                  {isFrench ? 'Photo en direct requise' : 'Live photo required'}
+                </Text>
+              </View>
             </View>
           )}
         </TouchableOpacity>
@@ -549,27 +534,36 @@ export default function VerificationScreen() {
       </Modal>
 
       {/* ========== LIVE CAMERA MODAL ========== */}
-      <Modal visible={showCamera} animationType="slide" data-testid="camera-modal">
+      <Modal visible={showCamera} animationType="slide" testID="camera-modal">
         <View style={styles.cameraContainer}>
           {capturedPhoto ? (
-            // Preview captured photo
             <Image source={{ uri: capturedPhoto }} style={styles.cameraPreview} resizeMode="contain" />
           ) : (
-            // Live camera
             <CameraView
               ref={cameraRef}
               style={styles.cameraPreview}
-              facing="front"
+              facing={cameraMode === 'id' ? 'back' : 'front'}
             />
           )}
 
-          {/* Face guide overlay (during capture only) */}
+          {/* Guide overlay (during capture only) */}
           {!capturedPhoto && (
             <View style={styles.faceGuideContainer} pointerEvents="none">
-              <View style={styles.faceGuide} />
-              <Text style={styles.faceGuideText}>
-                {isFrench ? "Tenez votre ID a cote de votre visage" : 'Hold your ID next to your face'}
-              </Text>
+              {cameraMode === 'id' ? (
+                <>
+                  <View style={styles.idGuide} />
+                  <Text style={styles.faceGuideText}>
+                    {isFrench ? "Centrez votre document dans le cadre" : 'Center your document in the frame'}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.faceGuide} />
+                  <Text style={styles.faceGuideText}>
+                    {isFrench ? "Tenez votre ID a cote de votre visage" : 'Hold your ID next to your face'}
+                  </Text>
+                </>
+              )}
             </View>
           )}
 
@@ -581,12 +575,14 @@ export default function VerificationScreen() {
                 setCapturedPhoto(null);
               }}
               style={styles.cameraCloseButton}
-              data-testid="camera-close-btn"
+              testID="camera-close-btn"
             >
               <Ionicons name="close" size={28} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.cameraTitle}>
-              {isFrench ? 'Selfie en Direct' : 'Take Live Selfie'}
+              {cameraMode === 'id'
+                ? (isFrench ? "Photographier l'ID" : 'Capture ID Document')
+                : (isFrench ? 'Selfie en Direct' : 'Take Live Selfie')}
             </Text>
             <View style={{ width: 44 }} />
           </SafeAreaView>
@@ -595,13 +591,13 @@ export default function VerificationScreen() {
           <SafeAreaView style={styles.cameraBottomBar} edges={['bottom']}>
             {capturedPhoto ? (
               <View style={styles.cameraActions}>
-                <TouchableOpacity style={styles.cameraActionBtn} onPress={handleRetakePhoto} data-testid="selfie-retake-btn">
+                <TouchableOpacity style={styles.cameraActionBtn} onPress={handleRetakePhoto} testID="camera-retake-btn">
                   <View style={[styles.cameraActionCircle, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Ionicons name="refresh" size={28} color="#fff" />
                   </View>
                   <Text style={styles.cameraActionLabel}>{isFrench ? 'Reprendre' : 'Retake'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cameraActionBtn} onPress={handleConfirmPhoto} data-testid="selfie-confirm-btn">
+                <TouchableOpacity style={styles.cameraActionBtn} onPress={handleConfirmPhoto} testID="camera-confirm-btn">
                   <View style={[styles.cameraActionCircle, { backgroundColor: colors.success }]}>
                     <Ionicons name="checkmark" size={28} color="#fff" />
                   </View>
@@ -614,7 +610,7 @@ export default function VerificationScreen() {
                   style={styles.captureButton}
                   onPress={handleCapturePhoto}
                   disabled={capturing}
-                  data-testid="selfie-capture-shutter"
+                  testID="camera-shutter-btn"
                 >
                   <View style={styles.captureButtonInner}>
                     {capturing && <ActivityIndicator size="small" color="#333" />}
@@ -934,6 +930,13 @@ const styles = StyleSheet.create({
     width: 220,
     height: 280,
     borderRadius: 110,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  idGuide: {
+    width: 300,
+    height: 190,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.35)',
   },

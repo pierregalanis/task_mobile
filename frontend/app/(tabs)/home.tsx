@@ -203,7 +203,7 @@ const ReviewPromptModal = ({
           {/* Description */}
           <Text style={styles.modalDescription}>
             {locale === 'fr' 
-              ? 'Votre avis aide les autres clients à trouver des tâcherons de qualité et aide les tâcherons à améliorer leurs services.'
+              ? 'Votre avis aide les autres clients à trouver des pros de qualité et aide les pros à améliorer leurs services.'
               : 'Your review helps other clients find quality taskers and helps taskers improve their services.'}
           </Text>
 
@@ -310,7 +310,7 @@ const ReviewBanner = ({
 
         <View style={styles.bannerContent}>
           <Text style={styles.bannerTitle}>
-            {locale === 'fr' ? 'Notez votre tâcheron' : 'Rate your tasker'}
+            {locale === 'fr' ? 'Notez votre pro' : 'Rate your tasker'}
           </Text>
           <Text style={styles.bannerSubtitle} numberOfLines={1}>
             {review.tasker_name} - {review.task_title}
@@ -660,7 +660,7 @@ export default function HomeScreen() {
               <Text style={styles.welcomeTitle}>
                 {user?.role === 'client'
                   ? locale === 'fr'
-                    ? 'Trouvez le Tâcheron parfait'
+                    ? 'Trouvez le pro parfait'
                     : 'Find the Perfect Tasker'
                   : locale === 'fr'
                   ? 'Commencez à accepter des tâches'
@@ -709,7 +709,7 @@ export default function HomeScreen() {
                       Alert.alert(
                         locale === 'fr' ? 'Action non disponible' : 'Not Available',
                         locale === 'fr' 
-                          ? 'Les tâcherons ne peuvent pas réserver de services. Connectez-vous en tant que client pour réserver.' 
+                          ? 'Les pros ne peuvent pas réserver de services. Connectez-vous en tant que client pour réserver.' 
                           : 'Taskers cannot book services. Log in as a client to book.'
                       );
                       return;
@@ -739,7 +739,7 @@ export default function HomeScreen() {
               </Text>
               <Text style={styles.comingSoonSubtitle}>
                 {locale === 'fr'
-                  ? 'Parcourir les tâcherons sera disponible dans la Phase 2'
+                  ? 'Parcourir les pros sera disponible dans la Phase 2'
                   : 'Browse taskers will be available in Phase 2'}
               </Text>
             </View>

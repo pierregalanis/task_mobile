@@ -200,7 +200,7 @@ export default function SelectTaskerScreen() {
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>
-            {getServiceName() || (isEn ? 'Select a tasker' : 'Sélectionner un tâcheron')}
+            {getServiceName() || (isEn ? 'Select a tasker' : 'Sélectionner un pro')}
           </Text>
           <Text style={styles.headerSubtitle}>
             {getCategoryName()}
@@ -211,7 +211,7 @@ export default function SelectTaskerScreen() {
       {/* Filter Bar */}
       <View style={styles.filterBar}>
         <Text style={styles.resultCount}>
-          {taskers.length} {isEn ? 'tasker' : 'tâcheron'}
+          {taskers.length} {isEn ? 'tasker' : 'pro'}
           {taskers.length !== 1 ? 's' : ''}{' '}
           {isEn ? 'found' : 'trouvé'}
           {taskers.length !== 1 && !isEn ? 's' : ''}
@@ -309,7 +309,7 @@ export default function SelectTaskerScreen() {
             <View style={styles.emptyState}>
               <Ionicons name="search-outline" size={64} color={Colors.dark.textSecondary} />
               <Text style={styles.emptyText}>
-                {isEn ? 'No taskers found' : 'Aucun tâcheron trouvé'}
+                {isEn ? 'No taskers found' : 'Aucun pro trouvé'}
               </Text>
               <Text style={styles.emptySubtext}>
                 {activeFilterCount > 0
