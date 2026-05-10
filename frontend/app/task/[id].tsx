@@ -29,10 +29,10 @@ import { SOSButton } from '../../components/SOSButton';
 
 // Dispute reasons
 const DISPUTE_REASONS = [
-  { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualite' },
-  { id: 'incomplete', en: 'Task Not Completed', fr: 'Tache non terminee' },
+  { id: 'quality', en: 'Poor Quality Service', fr: 'Service de mauvaise qualité' },
+  { id: 'incomplete', en: 'Task Not Completed', fr: 'Tâche non terminée' },
   { id: 'overcharge', en: 'Overcharged', fr: 'Surfacturation' },
-  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: "Le tacheron ne s'est pas presente" },
+  { id: 'no_show', en: 'Tasker Did Not Show Up', fr: "Le prestataire ne s'est pas présenté" },
   { id: 'damage', en: 'Property Damage', fr: 'Dommages materiels' },
   { id: 'other', en: 'Other', fr: 'Autre' },
 ];
@@ -163,7 +163,7 @@ export default function TaskDetailsScreen() {
       console.error('Error fetching task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de charger les details' : 'Failed to load details'
+        i18n.locale === 'fr' ? 'Impossible de charger les détails' : 'Failed to load details'
       );
     } finally {
       setLoading(false);
@@ -200,13 +200,13 @@ export default function TaskDetailsScreen() {
       switch (status) {
         case 'assigned': return 'En attente';
         case 'pending': return 'En attente';
-        case 'accepted': return 'Acceptee';
+        case 'accepted': return 'Acceptée';
         case 'en_route': return 'En route';
         case 'in_progress': return 'En cours';
         case 'pending_assessment': return 'Évaluation en cours';
         case 'assessment_pending_approval': return 'En attente du client';
-        case 'completed': return 'Terminee';
-        case 'cancelled': return 'Annulee';
+        case 'completed': return 'Terminée';
+        case 'cancelled': return 'Annulée';
         default: return status;
       }
     }
@@ -227,8 +227,8 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.acceptTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Succes' : 'Success',
-        i18n.locale === 'fr' ? 'Tache acceptee!' : 'Task accepted!'
+        i18n.locale === 'fr' ? 'Succès' : 'Success',
+        i18n.locale === 'fr' ? 'Tâche acceptée !' : 'Task accepted!'
       );
       fetchTaskDetails();
     } catch (error) {
@@ -247,8 +247,8 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.rejectTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Tache refusee' : 'Task Declined',
-        i18n.locale === 'fr' ? 'Vous avez refuse cette tache' : 'You have declined this task',
+        i18n.locale === 'fr' ? 'Tâche refusée' : 'Task Declined',
+        i18n.locale === 'fr' ? 'Vous avez refusé cette tâche' : 'You have declined this task',
         () => router.back()
       );
     } catch (error) {
@@ -333,15 +333,15 @@ export default function TaskDetailsScreen() {
       }));
       
       showMessage(
-        i18n.locale === 'fr' ? 'Chrono demarre' : 'Timer Started',
-        i18n.locale === 'fr' ? 'Le temps de travail est maintenant comptabilise' : 'Work time is now being tracked'
+        i18n.locale === 'fr' ? 'Chrono démarré' : 'Timer Started',
+        i18n.locale === 'fr' ? 'Le temps de travail est maintenant comptabilisé' : 'Work time is now being tracked'
       );
       // Note: NOT calling fetchTaskDetails() to avoid race condition
     } catch (error: any) {
       console.error('Error starting timer:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de demarrer le chrono' : 'Failed to start timer')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de démarrer le chrono' : 'Failed to start timer')
       );
     } finally {
       setActionLoading(false);
@@ -374,8 +374,8 @@ export default function TaskDetailsScreen() {
       }));
       
       showMessage(
-        i18n.locale === 'fr' ? 'Chrono arrete' : 'Timer Stopped',
-        i18n.locale === 'fr' ? 'Le temps de travail a ete enregistre' : 'Work time has been recorded'
+        i18n.locale === 'fr' ? 'Chrono arrêté' : 'Timer Stopped',
+        i18n.locale === 'fr' ? 'Le temps de travail a été enregistré' : 'Work time has been recorded'
       );
       // Note: NOT calling fetchTaskDetails() to avoid race condition that could re-enable timer
     } catch (error: any) {
@@ -384,7 +384,7 @@ export default function TaskDetailsScreen() {
       setTimerRunning(true);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? "Impossible d'arreter le chrono" : 'Failed to stop timer')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? "Impossible d'arrêter le chrono" : 'Failed to stop timer')
       );
     } finally {
       setActionLoading(false);
@@ -404,7 +404,7 @@ export default function TaskDetailsScreen() {
       }
       await taskAPI.completeTask(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Tache terminee!' : 'Task Completed!',
+        i18n.locale === 'fr' ? 'Tâche terminée !' : 'Task Completed!',
         i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting payment'
       );
       fetchTaskDetails();
@@ -424,8 +424,8 @@ export default function TaskDetailsScreen() {
       setActionLoading(true);
       await taskAPI.markPaidCash(task.id);
       showMessage(
-        i18n.locale === 'fr' ? 'Paiement confirme!' : 'Payment Confirmed!',
-        i18n.locale === 'fr' ? 'Le paiement en especes a ete enregistre' : 'Cash payment has been recorded'
+        i18n.locale === 'fr' ? 'Paiement confirmé !' : 'Payment Confirmed!',
+        i18n.locale === 'fr' ? 'Le paiement en espèces a été enregistré' : 'Cash payment has been recorded'
       );
       fetchTaskDetails();
     } catch (error) {
@@ -454,15 +454,15 @@ export default function TaskDetailsScreen() {
       setShowCancelModal(false);
       setCancelReason('');
       showMessage(
-        i18n.locale === 'fr' ? 'Succes' : 'Success',
-        i18n.locale === 'fr' ? 'Tache annulee' : 'Task cancelled',
+        i18n.locale === 'fr' ? 'Succès' : 'Success',
+        i18n.locale === 'fr' ? 'Tâche annulée' : 'Task cancelled',
         () => router.back()
       );
     } catch (error) {
       console.error('Error cancelling task:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? "Impossible d'annuler la tache" : 'Failed to cancel task'
+        i18n.locale === 'fr' ? "Impossible d'annuler la tâche" : 'Failed to cancel task'
       );
     } finally {
       setCancelling(false);
@@ -510,14 +510,14 @@ export default function TaskDetailsScreen() {
     if (!disputeReason) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Veuillez selectionner une raison' : 'Please select a reason'
+        i18n.locale === 'fr' ? 'Veuillez sélectionner une raison' : 'Please select a reason'
       );
       return;
     }
     if (!disputeDescription.trim()) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Veuillez decrire le probleme' : 'Please describe the issue'
+        i18n.locale === 'fr' ? 'Veuillez décrire le problème' : 'Please describe the issue'
       );
       return;
     }
@@ -530,7 +530,7 @@ export default function TaskDetailsScreen() {
       setDisputeDescription('');
       showMessage(
         i18n.locale === 'fr' ? 'Litige soumis' : 'Dispute Submitted',
-        i18n.locale === 'fr' ? 'Notre equipe examinera votre demande sous peu.' : 'Our team will review your request shortly.'
+        i18n.locale === 'fr' ? 'Notre équipe examinera votre demande sous peu.' : 'Our team will review your request shortly.'
       );
     } catch (error: any) {
       console.error('Error submitting dispute:', error);
@@ -739,7 +739,7 @@ export default function TaskDetailsScreen() {
     const date = task.task_date || task.scheduled_date;
 
     const shareMessage = [
-      isFr ? '📍 Details de ma tache' : '📍 My Task Details',
+      isFr ? '📍 Détails de ma tâche' : '📍 My Task Details',
       '',
       `${isFr ? 'Service' : 'Service'}: ${task.title}`,
       `${isFr ? 'Prestataire' : 'Tasker'}: ${name}`,
@@ -800,14 +800,14 @@ export default function TaskDetailsScreen() {
             <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {i18n.locale === 'fr' ? 'Details de la tache' : 'Task Details'}
+            {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
           </Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={Colors.dark.error} />
           <Text style={styles.errorText}>
-            {i18n.locale === 'fr' ? 'Tache non trouvee' : 'Task not found'}
+            {i18n.locale === 'fr' ? 'Tâche non trouvée' : 'Task not found'}
           </Text>
           <Button
             title={i18n.locale === 'fr' ? 'Retour' : 'Go Back'}
@@ -892,7 +892,7 @@ export default function TaskDetailsScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {i18n.locale === 'fr' ? 'Details de la tache' : 'Task Details'}
+          {i18n.locale === 'fr' ? 'Détails de la tâche' : 'Task Details'}
         </Text>
         <TouchableOpacity onPress={handleShareTask} style={styles.shareButton} activeOpacity={0.7}>
           <Ionicons name="share-outline" size={22} color={Colors.dark.text} />
@@ -933,7 +933,7 @@ export default function TaskDetailsScreen() {
               </Text>
               <Text style={styles.waitingText}>
                 {i18n.locale === 'fr' 
-                  ? "Le tacheron n'a pas encore accepte cette tache" 
+                  ? "Le prestataire n'a pas encore accepté cette tâche"
                   : 'The tasker has not yet accepted this task'}
               </Text>
             </View>
@@ -1201,7 +1201,7 @@ export default function TaskDetailsScreen() {
               {i18n.locale === 'fr' ? 'Nouvelle demande de service' : 'New Service Request'}
             </Text>
             <Text style={styles.acceptRejectSubtitle}>
-              {i18n.locale === 'fr' ? 'Voulez-vous accepter cette tache?' : 'Do you want to accept this task?'}
+              {i18n.locale === 'fr' ? 'Voulez-vous accepter cette tâche ?' : 'Do you want to accept this task?'}
             </Text>
             <View style={styles.acceptRejectButtons}>
               <TouchableOpacity
@@ -1285,7 +1285,7 @@ export default function TaskDetailsScreen() {
                 <Ionicons name="hourglass" size={20} color={Colors.dark.primary} />
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>
-                    {i18n.locale === 'fr' ? 'Duree estimee' : 'Estimated Duration'}
+                    {i18n.locale === 'fr' ? 'Durée estimée' : 'Estimated Duration'}
                   </Text>
                   <Text style={styles.detailValue}>
                     {task.duration_hours} {i18n.locale === 'fr' ? 'heures' : 'hours'}
@@ -1308,7 +1308,7 @@ export default function TaskDetailsScreen() {
           {task.special_instructions && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>
-                {i18n.locale === 'fr' ? 'Instructions speciales' : 'Special Instructions'}
+                {i18n.locale === 'fr' ? 'Instructions spéciales' : 'Special Instructions'}
               </Text>
               <Text style={styles.instructionsText}>{task.special_instructions}</Text>
             </View>
@@ -1342,7 +1342,7 @@ export default function TaskDetailsScreen() {
             )}
             <View style={styles.personInfo}>
               <Text style={styles.personLabel}>
-                {i18n.locale === 'fr' ? 'Tacheron assigne' : 'Assigned Tasker'}
+                {i18n.locale === 'fr' ? 'Prestataire assigné' : 'Assigned Tasker'}
               </Text>
               <Text style={styles.personName}>{taskerName}</Text>
               {taskerRating && taskerRating > 0 && (
@@ -1417,7 +1417,7 @@ export default function TaskDetailsScreen() {
                   <>
                     <Ionicons name="cash" size={18} color={Colors.dark.background} />
                     <Text style={styles.confirmCashButtonText}>
-                      {i18n.locale === 'fr' ? 'Confirmer especes' : 'Confirm Cash'}
+                      {i18n.locale === 'fr' ? 'Confirmer espèces' : 'Confirm Cash'}
                     </Text>
                   </>
                 )}
@@ -1432,7 +1432,7 @@ export default function TaskDetailsScreen() {
             <Ionicons name="checkmark-circle" size={32} color={Colors.dark.success} />
             <View style={styles.paidContent}>
               <Text style={styles.paidTitle}>
-                {i18n.locale === 'fr' ? 'Paiement recu' : 'Payment Received'}
+                {i18n.locale === 'fr' ? 'Paiement reçu' : 'Payment Received'}
               </Text>
               <Text style={styles.paidAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
             </View>
@@ -1545,10 +1545,10 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Marquer comme terminee' : 'Mark as Completed'}
+                  {i18n.locale === 'fr' ? 'Marquer comme terminée' : 'Mark as Completed'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Le travail est termine' : 'The work is finished'}
+                  {i18n.locale === 'fr' ? 'Le travail est terminé' : 'The work is finished'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1563,10 +1563,10 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Suivre le tacheron' : 'Track Tasker'}
+                  {i18n.locale === 'fr' ? 'Suivre le prestataire' : 'Track Tasker'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Voir la position en temps reel' : 'See real-time location'}
+                  {i18n.locale === 'fr' ? 'Voir la position en temps réel' : 'See real-time location'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1585,7 +1585,7 @@ export default function TaskDetailsScreen() {
                 </Text>
                 <Text style={styles.actionSubtitle}>
                   {isClient 
-                    ? (i18n.locale === 'fr' ? 'Envoyer un message au tacheron' : 'Message the tasker')
+                    ? (i18n.locale === 'fr' ? 'Envoyer un message au prestataire' : 'Message the tasker')
                     : (i18n.locale === 'fr' ? 'Envoyer un message au client' : 'Message the client')
                   }
                 </Text>
@@ -1605,7 +1605,7 @@ export default function TaskDetailsScreen() {
                   {i18n.locale === 'fr' ? 'Laisser un avis' : 'Leave a Review'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Partagez votre experience' : 'Share your experience'}
+                  {i18n.locale === 'fr' ? 'Partagez votre expérience' : 'Share your experience'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1620,10 +1620,10 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>
-                  {i18n.locale === 'fr' ? 'Reserver a nouveau' : 'Book Again'}
+                  {i18n.locale === 'fr' ? 'Réserver à nouveau' : 'Book Again'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Reserver le meme service' : 'Book the same service again'}
+                  {i18n.locale === 'fr' ? 'Réserver le même service' : 'Book the same service again'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1641,7 +1641,7 @@ export default function TaskDetailsScreen() {
                   {i18n.locale === 'fr' ? 'Voir le profil' : 'View Tasker Profile'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Voir les details du tacheron' : 'See tasker details'}
+                  {i18n.locale === 'fr' ? 'Voir les détails du prestataire' : 'See tasker details'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.textSecondary} />
@@ -1660,10 +1660,10 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={[styles.actionTitle, { color: '#ef4444' }]}>
-                  {i18n.locale === 'fr' ? 'Signaler un probleme' : 'Raise a Dispute'}
+                  {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Signaler un probleme avec cette tache' : 'Report an issue with this task'}
+                  {i18n.locale === 'fr' ? 'Signaler un problème avec cette tâche' : 'Report an issue with this task'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#ef4444" />
@@ -1682,10 +1682,10 @@ export default function TaskDetailsScreen() {
               </View>
               <View style={styles.actionContent}>
                 <Text style={[styles.actionTitle, { color: Colors.dark.error }]}>
-                  {i18n.locale === 'fr' ? 'Annuler la tache' : 'Cancel Task'}
+                  {i18n.locale === 'fr' ? 'Annuler la tâche' : 'Cancel Task'}
                 </Text>
                 <Text style={styles.actionSubtitle}>
-                  {i18n.locale === 'fr' ? 'Annuler cette reservation' : 'Cancel this booking'}
+                  {i18n.locale === 'fr' ? 'Annuler cette réservation' : 'Cancel this booking'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.dark.error} />
@@ -1735,7 +1735,7 @@ export default function TaskDetailsScreen() {
               </Text>
               <TextInput
                 style={styles.commentInput}
-                placeholder={i18n.locale === 'fr' ? 'Partagez votre experience...' : 'Share your experience...'}
+                placeholder={i18n.locale === 'fr' ? 'Partagez votre expérience...' : 'Share your experience...'}
                 placeholderTextColor={Colors.dark.textSecondary}
                 value={reviewComment}
                 onChangeText={setReviewComment}
@@ -1773,7 +1773,7 @@ export default function TaskDetailsScreen() {
 
             <Text style={styles.cancelWarning}>
               {i18n.locale === 'fr' 
-                ? 'Etes-vous sur de vouloir annuler cette tache? Cette action est irreversible.'
+                ? 'Êtes-vous sûr de vouloir annuler cette tâche ? Cette action est irréversible.'
                 : 'Are you sure you want to cancel this task? This action cannot be undone.'}
             </Text>
 
@@ -1826,7 +1826,7 @@ export default function TaskDetailsScreen() {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {i18n.locale === 'fr' ? 'Signaler un probleme' : 'Raise a Dispute'}
+                {i18n.locale === 'fr' ? 'Signaler un problème' : 'Raise a Dispute'}
               </Text>
               <TouchableOpacity onPress={() => setShowDisputeModal(false)}>
                 <Ionicons name="close" size={24} color={Colors.dark.text} />
@@ -1835,7 +1835,7 @@ export default function TaskDetailsScreen() {
 
             <Text style={styles.disputeInfo}>
               {i18n.locale === 'fr' 
-                ? 'Notre equipe examinera votre demande et vous contactera sous 24-48 heures.'
+                ? 'Notre équipe examinera votre demande et vous contactera sous 24-48 heures.'
                 : 'Our team will review your request and contact you within 24-48 hours.'}
             </Text>
 
@@ -1875,11 +1875,11 @@ export default function TaskDetailsScreen() {
             {/* Description */}
             <View style={styles.commentSection}>
               <Text style={styles.commentLabel}>
-                {i18n.locale === 'fr' ? 'Decrivez le probleme' : 'Describe the Issue'} *
+                {i18n.locale === 'fr' ? 'Décrivez le problème' : 'Describe the Issue'} *
               </Text>
               <TextInput
                 style={styles.commentInput}
-                placeholder={i18n.locale === 'fr' ? 'Expliquez le probleme en detail...' : 'Explain the issue in detail...'}
+                placeholder={i18n.locale === 'fr' ? 'Expliquez le problème en détail...' : 'Explain the issue in detail...'}
                 placeholderTextColor={Colors.dark.textSecondary}
                 value={disputeDescription}
                 onChangeText={setDisputeDescription}

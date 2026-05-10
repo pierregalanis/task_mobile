@@ -34,9 +34,9 @@ export default function LoginScreen() {
   useEffect(() => {
     if (verified === 'true') {
       showMessage(
-        i18n.locale === 'fr' ? 'Email verifie !' : 'Email Verified!',
+        i18n.locale === 'fr' ? 'Email vérifié !' : 'Email Verified!',
         i18n.locale === 'fr'
-          ? 'Votre compte est active. Connectez-vous pour continuer.'
+          ? 'Votre compte est activé. Connectez-vous pour continuer.'
           : 'Your account is now active. Please log in to continue.'
       );
     }

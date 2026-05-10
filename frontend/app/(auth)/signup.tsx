@@ -55,7 +55,7 @@ export default function SignupScreen() {
 
   const countryConfig = {
     ivory_coast: {
-      name_fr: "Cote d'Ivoire",
+      name_fr: "Côte d'Ivoire",
       name_en: "Ivory Coast",
       flag: "CI",
       phonePrefix: "+225",
@@ -64,7 +64,7 @@ export default function SignupScreen() {
       longitude: -4.00,
     },
     senegal: {
-      name_fr: "Senegal",
+      name_fr: "Sénégal",
       name_en: "Senegal",
       flag: "SN",
       phonePrefix: "+221",
@@ -88,8 +88,8 @@ export default function SignupScreen() {
   const onSubmit = async (data: SignupFormData) => {
     if (!phoneLocal.trim()) {
       showMessage(
-        i18n.locale === 'fr' ? 'Telephone requis' : 'Phone required',
-        i18n.locale === 'fr' ? 'Veuillez entrer votre numero de telephone' : 'Please enter your phone number'
+        i18n.locale === 'fr' ? 'Téléphone requis' : 'Phone required',
+        i18n.locale === 'fr' ? 'Veuillez entrer votre numéro de téléphone' : 'Please enter your phone number'
       );
       return;
     }
@@ -120,7 +120,7 @@ export default function SignupScreen() {
       console.error('Signup error:', error);
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de creer le compte' : 'Failed to create account')
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible de créer le compte' : 'Failed to create account')
       );
     } finally {
       setLoading(false);
@@ -162,7 +162,7 @@ export default function SignupScreen() {
               >
                 <Text style={styles.countryFlag}>CI</Text>
                 <Text style={[styles.countryButtonText, country === 'ivory_coast' && styles.countryButtonTextActive]}>
-                  {i18n.locale === 'fr' ? "Cote d'Ivoire" : "Ivory Coast"}
+                  {i18n.locale === 'fr' ? "Côte d'Ivoire" : "Ivory Coast"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
@@ -171,7 +171,7 @@ export default function SignupScreen() {
               >
                 <Text style={styles.countryFlag}>SN</Text>
                 <Text style={[styles.countryButtonText, country === 'senegal' && styles.countryButtonTextActive]}>
-                  {i18n.locale === 'fr' ? "Senegal" : "Senegal"}
+                  {i18n.locale === 'fr' ? "Sénégal" : "Senegal"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -183,7 +183,7 @@ export default function SignupScreen() {
             onLocationSelect={handleLocationSelect}
             country={country}
             label={i18n.locale === 'fr' ? 'Votre emplacement' : 'Your Location'}
-            placeholder={i18n.locale === 'fr' ? 'Appuyez pour selectionner votre emplacement' : 'Tap to select your location'}
+            placeholder={i18n.locale === 'fr' ? 'Appuyez pour sélectionner votre emplacement' : 'Tap to select your location'}
           />
 
           <View style={styles.form}>
@@ -224,7 +224,7 @@ export default function SignupScreen() {
             </View>
 
             <Controller control={control} name="password"
-              rules={{ required: i18n.locale === 'fr' ? 'Mot de passe requis' : 'Password is required', minLength: { value: 6, message: i18n.locale === 'fr' ? 'Minimum 6 caracteres' : 'Minimum 6 characters' } }}
+              rules={{ required: i18n.locale === 'fr' ? 'Mot de passe requis' : 'Password is required', minLength: { value: 6, message: i18n.locale === 'fr' ? 'Minimum 6 caractères' : 'Minimum 6 characters' } }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input label={i18n.t('auth.login.password')} placeholder={i18n.t('auth.login.passwordPlaceholder')} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.password?.message} leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />} rightIcon={<TouchableOpacity onPress={() => setShowPassword(!showPassword)}><Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.dark.textSecondary} /></TouchableOpacity>} />
               )}
@@ -262,12 +262,12 @@ export default function SignupScreen() {
             </View>
             
             <Text style={styles.modalTitle}>
-              {i18n.locale === 'fr' ? 'Compte cree avec succes !' : 'Account Created Successfully!'}
+              {i18n.locale === 'fr' ? 'Compte créé avec succès !' : 'Account Created Successfully!'}
             </Text>
             
             <Text style={styles.modalMessage}>
               {i18n.locale === 'fr' 
-                ? 'Un email de vérification a ete envoye a :'
+                ? 'Un email de vérification a été envoyé à :'
                 : 'A verification email has been sent to:'}
             </Text>
             
@@ -275,7 +275,7 @@ export default function SignupScreen() {
             
             <Text style={styles.modalInstructions}>
               {i18n.locale === 'fr'
-                ? 'Veuillez vérifier votre boite de reception et cliquer sur le lien de vérification pour activer votre compte.'
+                ? 'Veuillez vérifier votre boîte de réception et cliquer sur le lien de vérification pour activer votre compte.'
                 : 'Please check your inbox and click the verification link to activate your account.'}
             </Text>
             
@@ -290,7 +290,7 @@ export default function SignupScreen() {
             
             <TouchableOpacity style={styles.modalButton} onPress={handleGoToLogin}>
               <Text style={styles.modalButtonText}>
-                {i18n.locale === 'fr' ? 'Aller a la connexion' : 'Go to Login'}
+                {i18n.locale === 'fr' ? 'Aller à la connexion' : 'Go to Login'}
               </Text>
             </TouchableOpacity>
           </View>

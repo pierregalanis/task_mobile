@@ -258,7 +258,7 @@ export default function TaskerDashboardScreen() {
     try {
       setActionLoading(taskId);
       await taskAPI.acceptTask(taskId);
-      showMessage(i18n.locale === 'fr' ? 'Succes' : 'Success', i18n.locale === 'fr' ? 'Tache acceptee!' : 'Task accepted!');
+      showMessage(i18n.locale === 'fr' ? 'Succès' : 'Success', i18n.locale === 'fr' ? 'Tâche acceptée !' : 'Task accepted!');
       fetchData();
     } catch (error: any) {
       showMessage(i18n.locale === 'fr' ? 'Erreur' : 'Error', error.response?.data?.detail || 'Failed to accept task');
@@ -269,13 +269,13 @@ export default function TaskerDashboardScreen() {
 
   const handleRejectTask = async (taskId: string) => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Refuser la tache?' : 'Reject task?',
-      i18n.locale === 'fr' ? 'Etes-vous sur?' : 'Are you sure?',
+      i18n.locale === 'fr' ? 'Refuser la tâche ?' : 'Reject task?',
+      i18n.locale === 'fr' ? 'Êtes-vous sûr ?' : 'Are you sure?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.rejectTask(taskId);
-          showMessage(i18n.locale === 'fr' ? 'Tache refusee' : 'Task rejected', '');
+          showMessage(i18n.locale === 'fr' ? 'Tâche refusée' : 'Task rejected', '');
           fetchData();
         } catch (error: any) {
           showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -292,7 +292,7 @@ export default function TaskerDashboardScreen() {
       await taskAPI.startTimer(taskId);
       setActiveTaskTimer(taskId);
       setElapsedTime(0);
-      showMessage(i18n.locale === 'fr' ? 'Chronometre demarre' : 'Timer Started', '');
+      showMessage(i18n.locale === 'fr' ? 'Chronomètre démarré' : 'Timer Started', '');
       fetchData();
     } catch (error: any) {
       showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -310,7 +310,7 @@ export default function TaskerDashboardScreen() {
     } catch (error: any) {
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        (error.response?.data?.detail || (i18n.locale === 'fr' ? 'Echec de la mise a jour' : 'Failed to start en route'))
+        (error.response?.data?.detail || (i18n.locale === 'fr' ? 'Échec de la mise à jour' : 'Failed to start en route'))
       );
     } finally {
       setActionLoading(null);
@@ -319,15 +319,15 @@ export default function TaskerDashboardScreen() {
 
   const handleStopTimer = async (taskId: string) => {
     showConfirm(
-      i18n.locale === 'fr' ? 'Terminer?' : 'Finish work?',
-      i18n.locale === 'fr' ? 'Arreter le chronometre?' : 'Stop timer and complete?',
+      i18n.locale === 'fr' ? 'Terminer ?' : 'Finish work?',
+      i18n.locale === 'fr' ? 'Arrêter le chronomètre ?' : 'Stop timer and complete?',
       async () => {
         try {
           setActionLoading(taskId);
           await taskAPI.stopTimer(taskId);
           setActiveTaskTimer(null);
           setElapsedTime(0);
-          showMessage(i18n.locale === 'fr' ? 'Termine!' : 'Completed!', '');
+          showMessage(i18n.locale === 'fr' ? 'Terminé !' : 'Completed!', '');
           fetchData();
         } catch (error: any) {
           showMessage('Error', error.response?.data?.detail || 'Failed');
@@ -378,9 +378,9 @@ export default function TaskerDashboardScreen() {
     if (i18n.locale === 'fr') {
       switch (status) {
         case 'pending': return 'En attente';
-        case 'accepted': return 'Acceptee';
+        case 'accepted': return 'Acceptée';
         case 'in_progress': return 'En cours';
-        case 'completed': return 'Terminee';
+        case 'completed': return 'Terminée';
         default: return status;
       }
     }
@@ -438,7 +438,7 @@ export default function TaskerDashboardScreen() {
                 </Text>
               </View>
               <Text style={styles.motivationalText}>
-                {i18n.locale === 'fr' ? "Pret a ameliorer la journee de quelqu'un" : "Ready to make someone's day better"}
+                {i18n.locale === 'fr' ? "Prêt à améliorer la journée de quelqu'un" : "Ready to make someone's day better"}
               </Text>
             </View>
             <Animated.View style={{ transform: [{ scale: notificationScale }] }}>
@@ -471,11 +471,11 @@ export default function TaskerDashboardScreen() {
                 </View>
                 <View style={styles.verificationTextContainer}>
                   <Text style={styles.verificationTitle}>
-                    {i18n.locale === 'fr' ? 'vérification en Cours' : 'Verification In Progress'}
+                    {i18n.locale === 'fr' ? 'Vérification en cours' : 'Verification In Progress'}
                   </Text>
                   <Text style={styles.verificationSubtitle}>
                     {i18n.locale === 'fr'
-                      ? "L'examen prend 24-48h. Votre profil sera visible apres approbation."
+                      ? "L'examen prend 24-48h. Votre profil sera visible après approbation."
                       : 'Review takes 24-48 hours. Your profile will be visible once approved.'}
                   </Text>
                 </View>
@@ -494,11 +494,11 @@ export default function TaskerDashboardScreen() {
                 </View>
                 <View style={styles.verificationTextContainer}>
                   <Text style={styles.verificationTitle}>
-                    {i18n.locale === 'fr' ? 'Votre Profil est Masque' : 'Your Profile is Hidden'}
+                    {i18n.locale === 'fr' ? 'Votre Profil est Masqué' : 'Your Profile is Hidden'}
                   </Text>
                   <Text style={styles.verificationSubtitle}>
                     {i18n.locale === 'fr'
-                      ? 'Completez la vérification pour apparaitre dans les recherches.'
+                      ? 'Complétez la vérification pour apparaître dans les recherches.'
                       : 'Complete verification to appear in search and receive bookings.'}
                   </Text>
                   {verificationStatus.status === 'rejected' && verificationStatus.rejection_reason && (
@@ -543,8 +543,8 @@ export default function TaskerDashboardScreen() {
             iconColor="#3b82f6"
             bgColor="#3b82f615"
             value={stats.completedTasks}
-            label={i18n.locale === 'fr' ? 'Taches' : 'Tasks'}
-            subLabel={i18n.locale === 'fr' ? 'terminees' : 'complete'}
+            label={i18n.locale === 'fr' ? 'Tâches' : 'Tasks'}
+            subLabel={i18n.locale === 'fr' ? 'terminées' : 'complete'}
             index={1}
             onPress={() => {}}
           />
@@ -655,7 +655,7 @@ export default function TaskerDashboardScreen() {
         {/* Accepted Tasks */}
         {acceptedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Pret a commencer' : 'Ready to Start'}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Prêt à commencer' : 'Ready to Start'}</Text>
             {acceptedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
@@ -790,7 +790,7 @@ export default function TaskerDashboardScreen() {
                     activeOpacity={0.7}
                   >
                     <Text style={styles.completeBtnText}>
-                      {i18n.locale === 'fr' ? 'Marquer comme terminee' : 'Mark as Completed'}
+                      {i18n.locale === 'fr' ? 'Marquer comme terminée' : 'Mark as Completed'}
                     </Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -802,7 +802,7 @@ export default function TaskerDashboardScreen() {
         {/* Completed Tasks */}
         {completedTasks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Recemment terminees' : 'Recently Completed'}</Text>
+            <Text style={styles.sectionTitle}>{i18n.locale === 'fr' ? 'Récemment terminées' : 'Recently Completed'}</Text>
             {completedTasks.map((task, index) => (
               <AnimatedTaskCard key={task.id} index={index}>
                 <TouchableOpacity
@@ -854,9 +854,9 @@ export default function TaskerDashboardScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="briefcase-outline" size={48} color={Colors.dark.primary} />
             </View>
-            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tache' : 'No tasks yet'}</Text>
+            <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks yet'}</Text>
             <Text style={styles.emptySubtitle}>
-              {i18n.locale === 'fr' ? 'Les nouvelles demandes apparaitront ici' : 'New task requests will appear here'}
+              {i18n.locale === 'fr' ? 'Les nouvelles demandes apparaîtront ici' : 'New task requests will appear here'}
             </Text>
           </View>
         )}

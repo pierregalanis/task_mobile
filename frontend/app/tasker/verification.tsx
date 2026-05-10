@@ -21,7 +21,7 @@ import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
 
 const ID_TYPES = [
-  { value: 'national_id', en: 'National ID Card', fr: "Carte d'Identite Nationale" },
+  { value: 'national_id', en: 'National ID Card', fr: "Carte d'Identité Nationale" },
   { value: 'passport', en: 'Passport', fr: 'Passeport' },
   { value: 'drivers_license', en: "Driver's License", fr: 'Permis de Conduire' },
 ];
@@ -84,9 +84,9 @@ export default function VerificationScreen() {
       const result = await requestCameraPermission();
       if (!result.granted) {
         showMessage(
-          isFrench ? 'Permission refusee' : 'Camera Permission Required',
+          isFrench ? 'Permission refusée' : 'Camera Permission Required',
           isFrench
-            ? "Veuillez autoriser l'acces a la camera dans les parametres"
+            ? "Veuillez autoriser l'accès à la caméra dans les paramètres"
             : 'Please allow camera access in your device settings'
         );
         return;
@@ -115,7 +115,7 @@ export default function VerificationScreen() {
       console.error('Error capturing photo:', error);
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        isFrench ? 'Echec de la capture' : 'Failed to capture photo'
+        isFrench ? 'Échec de la capture' : 'Failed to capture photo'
       );
     } finally {
       setCapturing(false);
@@ -144,7 +144,7 @@ export default function VerificationScreen() {
       showMessage(
         isFrench ? 'Documents requis' : 'Documents Required',
         isFrench
-          ? "Veuillez fournir le document d'identite et le selfie en direct"
+          ? "Veuillez fournir le document d'identité et le selfie en direct"
           : 'Please provide both ID document and live selfie'
       );
       return;
@@ -163,17 +163,22 @@ export default function VerificationScreen() {
       showMessage(
         isFrench ? 'Soumis!' : 'Submitted!',
         isFrench
-          ? 'Verification soumise! Examen dans 24-48 heures.'
+          ? 'Vérification soumise ! Examen dans 24-48 heures.'
           : 'Verification submitted! Review in 24-48 hours.'
       );
 
       // Reload status
       await loadStatus();
     } catch (error: any) {
-      const detail = error.response?.data?.detail || '';
+      console.error('Verification submit failed:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      const detail = error.response?.data?.detail || error.message || '';
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        detail || (isFrench ? 'Echec de la soumission. Veuillez reessayer.' : 'Submission failed. Please try again.')
+        detail || (isFrench ? 'Échec de la soumission. Veuillez réessayer.' : 'Submission failed. Please try again.')
       );
     } finally {
       setSubmitting(false);
@@ -185,11 +190,11 @@ export default function VerificationScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="verification-back-btn">
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} testID="verification-back-btn">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isFrench ? "Verification d'Identite" : 'Identity Verification'}
+            {isFrench ? "Vérification d'Identité" : 'Identity Verification'}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -205,11 +210,11 @@ export default function VerificationScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="verification-back-btn">
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} testID="verification-back-btn">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isFrench ? "Verification d'Identite" : 'Identity Verification'}
+            {isFrench ? "Vérification d'Identité" : 'Identity Verification'}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -218,16 +223,16 @@ export default function VerificationScreen() {
             <Ionicons name="shield-checkmark" size={64} color={colors.success} />
           </View>
           <Text style={[styles.statusTitle, { color: colors.success }]}>
-            {isFrench ? 'Vous etes Verifié!' : "You're Verified!"}
+            {isFrench ? 'Vous êtes Vérifié !' : "You're Verified!"}
           </Text>
           <Text style={[styles.statusSubtitle, { color: colors.textSecondary }]}>
             {isFrench
-              ? 'Votre identite a ete verifiée. Vous avez le badge verifié et pouvez recevoir des reservations.'
+              ? 'Votre identité a été vérifiée. Vous avez le badge vérifié et pouvez recevoir des réservations.'
               : 'Your identity has been verified. You now have a verified badge and can receive bookings.'}
           </Text>
           {status?.reviewed_at && (
             <Text style={[styles.statusDate, { color: colors.textSecondary }]}>
-              {isFrench ? 'Approuve le' : 'Approved on'} {new Date(status.reviewed_at).toLocaleDateString()}
+              {isFrench ? 'Approuvé le' : 'Approved on'} {new Date(status.reviewed_at).toLocaleDateString()}
             </Text>
           )}
         </View>
@@ -240,11 +245,11 @@ export default function VerificationScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="verification-back-btn">
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} testID="verification-back-btn">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isFrench ? "Verification d'Identite" : 'Identity Verification'}
+            {isFrench ? "Vérification d'Identité" : 'Identity Verification'}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -253,11 +258,11 @@ export default function VerificationScreen() {
             <Ionicons name="hourglass" size={64} color="#3b82f6" />
           </View>
           <Text style={[styles.statusTitle, { color: '#3b82f6' }]}>
-            {isFrench ? 'Verification en Cours' : 'Verification In Progress'}
+            {isFrench ? 'Vérification en cours' : 'Verification In Progress'}
           </Text>
           <Text style={[styles.statusSubtitle, { color: colors.textSecondary }]}>
             {isFrench
-              ? "L'examen prend 24-48 heures. Votre profil sera visible une fois approuve."
+              ? "L'examen prend 24-48 heures. Votre profil sera visible une fois approuvé."
               : 'Review takes 24-48 hours. Your profile will be visible once approved.'}
           </Text>
           {status?.submitted_at && (
@@ -269,7 +274,7 @@ export default function VerificationScreen() {
             <View style={styles.checklistRow}>
               <Ionicons name={status.has_id_document ? 'checkmark-circle' : 'close-circle'} size={20} color={status.has_id_document ? colors.success : colors.error} />
               <Text style={[styles.checklistText, { color: colors.text }]}>
-                {isFrench ? "Document d'identite" : 'ID Document'}
+                {isFrench ? "Document d'identité" : 'ID Document'}
               </Text>
             </View>
             <View style={styles.checklistRow}>
@@ -291,7 +296,7 @@ export default function VerificationScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="verification-back-btn">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} testID="verification-back-btn">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -307,7 +312,7 @@ export default function VerificationScreen() {
             <Ionicons name="alert-circle" size={22} color={colors.error} />
             <View style={styles.rejectionTextContainer}>
               <Text style={[styles.rejectionTitle, { color: colors.error }]}>
-                {isFrench ? 'Verification Rejetee' : 'Verification Rejected'}
+                {isFrench ? 'Vérification Rejetée' : 'Verification Rejected'}
               </Text>
               {status?.rejection_reason && (
                 <Text style={[styles.rejectionReason, { color: colors.textSecondary }]}>
@@ -326,7 +331,7 @@ export default function VerificationScreen() {
           <Ionicons name="information-circle" size={22} color={colors.primary} />
           <Text style={[styles.infoText, { color: colors.primary }]}>
             {isFrench
-              ? 'La verification aide a etablir la confiance avec les clients et debloque plus de reservations.'
+              ? 'La vérification aide à établir la confiance avec les clients et débloque plus de réservations.'
               : 'Verification helps build trust with clients and unlocks more bookings.'}
           </Text>
         </View>
@@ -338,7 +343,7 @@ export default function VerificationScreen() {
         <TouchableOpacity
           style={[styles.selector, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => setShowIdTypePicker(true)}
-          data-testid="id-type-selector"
+          testID="id-type-selector"
         >
           <Ionicons name="document-text" size={20} color={colors.primary} />
           <Text style={[styles.selectorText, { color: colors.text }]}>
@@ -349,7 +354,7 @@ export default function VerificationScreen() {
 
         {/* ID Document Capture */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          {isFrench ? "Document d'Identite (Recto)" : 'ID Document (Front)'}
+          {isFrench ? "Document d'Identité (Recto)" : 'ID Document (Front)'}
         </Text>
         <TouchableOpacity
           style={[
@@ -403,7 +408,7 @@ export default function VerificationScreen() {
             },
           ]}
           onPress={handleOpenCamera}
-          data-testid="selfie-capture-btn"
+          testID="selfie-capture-btn"
         >
           {selfieUri ? (
             <>
@@ -441,13 +446,13 @@ export default function VerificationScreen() {
           <View style={styles.tipRow}>
             <Ionicons name="sunny" size={14} color="#f59e0b" />
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              {isFrench ? 'Assurez un bon eclairage' : 'Ensure good lighting'}
+              {isFrench ? 'Assurez un bon éclairage' : 'Ensure good lighting'}
             </Text>
           </View>
           <View style={styles.tipRow}>
             <Ionicons name="eye" size={14} color="#f59e0b" />
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              {isFrench ? "Le texte de l'ID doit etre lisible" : 'ID text must be readable'}
+              {isFrench ? "Le texte de l'ID doit être lisible" : 'ID text must be readable'}
             </Text>
           </View>
           <View style={styles.tipRow}>
@@ -459,7 +464,7 @@ export default function VerificationScreen() {
           <View style={styles.tipRow}>
             <Ionicons name="hand-left" size={14} color="#f59e0b" />
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              {isFrench ? "Tenez l'ID a cote de votre visage" : 'Hold ID next to your face'}
+              {isFrench ? "Tenez l'ID à côté de votre visage" : 'Hold ID next to your face'}
             </Text>
           </View>
         </View>
@@ -474,7 +479,7 @@ export default function VerificationScreen() {
           ]}
           onPress={handleSubmit}
           disabled={!idDocumentUri || !selfieUri || submitting}
-          data-testid="verification-submit-btn"
+          testID="verification-submit-btn"
         >
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -483,8 +488,8 @@ export default function VerificationScreen() {
               <Ionicons name="shield-checkmark" size={20} color="#fff" />
               <Text style={styles.submitButtonText}>
                 {isRejected
-                  ? (isFrench ? 'Resoumettre pour Verification' : 'Resubmit for Verification')
-                  : (isFrench ? 'Soumettre pour Verification' : 'Submit for Verification')}
+                  ? (isFrench ? 'Resoumettre pour Vérification' : 'Resubmit for Verification')
+                  : (isFrench ? 'Soumettre pour Vérification' : 'Submit for Verification')}
               </Text>
             </>
           )}
@@ -553,14 +558,14 @@ export default function VerificationScreen() {
                 <>
                   <View style={styles.idGuide} />
                   <Text style={styles.faceGuideText}>
-                    {isFrench ? "Centrez votre document dans le cadre" : 'Center your document in the frame'}
+                    {isFrench ? 'Centrez votre document dans le cadre' : 'Center your document in the frame'}
                   </Text>
                 </>
               ) : (
                 <>
                   <View style={styles.faceGuide} />
                   <Text style={styles.faceGuideText}>
-                    {isFrench ? "Tenez votre ID a cote de votre visage" : 'Hold your ID next to your face'}
+                    {isFrench ? "Tenez votre ID à côté de votre visage" : 'Hold your ID next to your face'}
                   </Text>
                 </>
               )}

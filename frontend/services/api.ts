@@ -619,7 +619,8 @@ export const favoriteAPI = {
     formData.append('tasker_id', taskerId);
     
     const response = await api.post('/api/favorites', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
     });
     return response.data;
   },
@@ -795,7 +796,8 @@ export const imageAPI = {
     } as any);
 
     const response = await api.post('/api/images/profile', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
     });
     return response.data;
   },
@@ -828,7 +830,8 @@ export const imageAPI = {
     if (options?.isAfter) formData.append('is_after', 'true');
 
     const response = await api.post('/api/images/work-portfolio', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
     });
     return response.data;
   },
@@ -850,7 +853,8 @@ export const imageAPI = {
     if (updates.isAfter !== undefined) formData.append('is_after', String(updates.isAfter));
 
     const response = await api.patch(`/api/images/work-portfolio/${imageId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
     });
     return response.data;
   },
@@ -915,7 +919,8 @@ export const disputeAPI = {
     formData.append('description', description);
     
     const response = await api.post('/api/disputes', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
     });
     return response.data;
   },
@@ -1154,7 +1159,8 @@ export const verificationAPI = {
     formData.append('id_type', idType);
 
     const response = await api.post('/api/verification/submit', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
       timeout: 60000,
     });
     return response.data;
@@ -1176,7 +1182,8 @@ export const verificationAPI = {
     formData.append('id_type', idType);
 
     const response = await api.post('/api/verification/resubmit', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
       timeout: 60000,
     });
     return response.data;
@@ -1316,7 +1323,8 @@ export const assessmentAPI = {
       `/api/tasks/${taskId}/assess/photos`,
       formData,
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': undefined },
+      transformRequest: (data) => data,
         timeout: 60000,
       }
     );
