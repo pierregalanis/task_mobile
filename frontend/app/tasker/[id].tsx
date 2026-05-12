@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { taskerAPI, reviewAPI, favoriteAPI, imageAPI, PortfolioImage } from '../../services/api';
+import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -33,6 +34,11 @@ export default function TaskerProfileScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [liveStats, setLiveStats] = useState<{
+    average_rating: number;
+    total_reviews: number;
+    total_completed_tasks: number;
+  } | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -64,6 +70,11 @@ export default function TaskerProfileScreen() {
       setCategories(categoriesData || []);
       setReviews(reviewsData || []);
       setIsFavorite(favoriteStatus.is_favorite);
+
+      // Fetch live stats from the dedicated rating endpoint
+      reviewAPI.getTaskerRating(id as string)
+        .then(setLiveStats)
+        .catch(console.warn);
       
       // Fetch portfolio images for each service
       if (taskerData?.tasker_profile?.services) {
@@ -231,34 +242,38 @@ export default function TaskerProfileScreen() {
               <Text style={styles.profileInitials}>{tasker.full_name?.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={styles.profileName}>{tasker.full_name}</Text>
-            {(tasker.is_identity_verified || tasker.verification?.status === 'approved') && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark" size={14} color="#fff" />
-                <Text style={styles.verifiedBadgeText}>
-                  {i18n.locale === 'fr' ? 'Verifié' : 'Verified'}
-                </Text>
-              </View>
-            )}
+            <VerifiedBadge user={tasker} size="sm" />
           </View>
           <Text style={styles.profileLocation}>
             <Ionicons name="location" size={14} /> {tasker.city || tasker.country}
           </Text>
 
-          {/* Stats Row */}
+          {/* Stats Row — prefer live endpoint data, fall back to cached fields */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Ionicons name="star" size={20} color="#f59e0b" />
-              <Text style={styles.statValue}>{tasker.rating || '5.0'}</Text>
+              <Text style={styles.statValue}>
+                {(liveStats?.average_rating ?? tasker.tasker_profile?.average_rating ?? tasker.rating ?? 0) > 0
+                  ? (liveStats?.average_rating ?? tasker.tasker_profile?.average_rating ?? tasker.rating).toFixed(1)
+                  : '—'}
+              </Text>
               <Text style={styles.statLabel}>
-                ({tasker.reviews_count || 0} {i18n.locale === 'fr' ? 'avis' : 'reviews'})
+                ({liveStats?.total_reviews ?? tasker.tasker_profile?.total_reviews ?? tasker.reviews_count ?? 0}{' '}
+                {i18n.locale === 'fr' ? 'avis' : 'reviews'})
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.dark.primary} />
-              <Text style={styles.statValue}>{tasker.completed_tasks || 0}</Text>
+              <Text style={styles.statValue}>
+                {liveStats?.total_completed_tasks
+                  ?? tasker.tasker_profile?.completed_tasks
+                  ?? tasker.tasker_profile?.total_completed_tasks
+                  ?? tasker.completed_tasks
+                  ?? 0}
+              </Text>
               <Text style={styles.statLabel}>{i18n.locale === 'fr' ? 'tâches' : 'tasks'}</Text>
             </View>
           </View>

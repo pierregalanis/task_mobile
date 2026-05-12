@@ -21,6 +21,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { Colors } from '../../constants/Colors';
 import { getCategoryName, Category } from '../../constants/Categories';
 import { notificationAPI, categoryAPI, reviewAPI } from '../../services/api';
+import { ClientVerifyCTA } from '../../components/ClientVerifyCTA';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 24 * 2 - 12) / 2;
@@ -681,6 +682,15 @@ export default function HomeScreen() {
             <View style={styles.decorCircle2} />
           </LinearGradient>
         </Animated.View>
+
+        {/* Client Verification CTA */}
+        {user?.role === 'client' && (
+          <ClientVerifyCTA
+            status={user.verification?.status ?? null}
+            isVerified={user.is_identity_verified === true}
+            rejectionReason={user.verification?.rejection_reason}
+          />
+        )}
 
         {/* Categories Section */}
         <View style={styles.section}>

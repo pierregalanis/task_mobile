@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { verificationAPI, VerificationStatus } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
@@ -27,7 +28,9 @@ const ID_TYPES = [
 
 export default function VerificationScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const isFrench = i18n.locale === 'fr';
+  const isClient = user?.role === 'client';
   const colors = Colors.dark;
 
   // Status
@@ -228,12 +231,18 @@ export default function VerificationScreen() {
             <Ionicons name="shield-checkmark" size={64} color={colors.success} />
           </View>
           <Text style={[styles.statusTitle, { color: colors.success }]}>
-            {isFrench ? 'Vous êtes Vérifié !' : "You're Verified!"}
+            {isFrench
+              ? (isClient ? 'Client Vérifié !' : 'Vous êtes Vérifié !')
+              : (isClient ? 'Verified Client!' : "You're Verified!")}
           </Text>
           <Text style={[styles.statusSubtitle, { color: colors.textSecondary }]}>
             {isFrench
-              ? 'Votre identité a été vérifiée. Vous avez le badge vérifié et pouvez recevoir des réservations.'
-              : 'Your identity has been verified. You now have a verified badge and can receive bookings.'}
+              ? (isClient
+                  ? 'Votre identité a été vérifiée. Vous apparaissez maintenant comme client de confiance.'
+                  : 'Votre identité a été vérifiée. Vous avez le badge vérifié et pouvez recevoir des réservations.')
+              : (isClient
+                  ? 'Your identity has been verified. You now appear as a trusted client to Pros.'
+                  : 'Your identity has been verified. You now have a verified badge and can receive bookings.')}
           </Text>
           {status?.reviewed_at && (
             <Text style={[styles.statusDate, { color: colors.textSecondary }]}>

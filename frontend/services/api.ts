@@ -75,6 +75,11 @@ export interface User {
   latitude?: number;
   longitude?: number;
   tasker_profile?: any;
+  is_identity_verified?: boolean;
+  verification?: {
+    status?: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+    rejection_reason?: string | null;
+  };
 }
 
 export interface PortfolioImage {
@@ -596,6 +601,18 @@ export const reviewAPI = {
   // Legacy alias for canReviewTask
   async canReview(taskId: string) {
     return this.canReviewTask(taskId);
+  },
+
+  // Live rating + task count for a tasker (never cached)
+  async getTaskerRating(taskerId: string): Promise<{
+    tasker_id: string;
+    average_rating: number;
+    total_reviews: number;
+    total_completed_tasks: number;
+    rating_distribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+  }> {
+    const response = await api.get(`/api/reviews/tasker/${taskerId}/rating`);
+    return response.data;
   },
 };
 

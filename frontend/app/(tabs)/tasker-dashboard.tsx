@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { taskAPI, notificationAPI, taskerAPI, verificationAPI, VerificationStatus } from '../../services/api';
+import { TaskerVerifyBanner } from '../../components/TaskerVerifyBanner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -457,74 +458,11 @@ export default function TaskerDashboardScreen() {
         </Animated.View>
 
         {/* Verification Status Banner */}
-        {verificationStatus && !verificationStatus.is_verified && verificationStatus.status !== 'approved' && (
-          verificationStatus.status === 'pending' ? (
-            <View style={styles.verificationBanner}>
-              <LinearGradient
-                colors={['#3b82f6', '#4f46e5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.verificationGradient}
-              >
-                <View style={styles.verificationIconCircle}>
-                  <Ionicons name="hourglass" size={22} color="#fff" />
-                </View>
-                <View style={styles.verificationTextContainer}>
-                  <Text style={styles.verificationTitle}>
-                    {i18n.locale === 'fr' ? 'Vérification en cours' : 'Verification In Progress'}
-                  </Text>
-                  <Text style={styles.verificationSubtitle}>
-                    {i18n.locale === 'fr'
-                      ? "L'examen prend 24-48h. Votre profil sera visible après approbation."
-                      : 'Review takes 24-48 hours. Your profile will be visible once approved.'}
-                  </Text>
-                </View>
-              </LinearGradient>
-            </View>
-          ) : (
-            <View style={styles.verificationBanner}>
-              <LinearGradient
-                colors={['#f97316', '#ea580c']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.verificationGradient}
-              >
-                <View style={styles.verificationIconCircle}>
-                  <Ionicons name="eye-off" size={22} color="#fff" />
-                </View>
-                <View style={styles.verificationTextContainer}>
-                  <Text style={styles.verificationTitle}>
-                    {i18n.locale === 'fr' ? 'Votre Profil est Masqué' : 'Your Profile is Hidden'}
-                  </Text>
-                  <Text style={styles.verificationSubtitle}>
-                    {i18n.locale === 'fr'
-                      ? 'Complétez la vérification pour apparaître dans les recherches.'
-                      : 'Complete verification to appear in search and receive bookings.'}
-                  </Text>
-                  {verificationStatus.status === 'rejected' && verificationStatus.rejection_reason && (
-                    <View style={styles.rejectionReasonBox}>
-                      <Text style={styles.rejectionReasonText}>
-                        {i18n.locale === 'fr' ? 'Raison' : 'Reason'}: {verificationStatus.rejection_reason}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </LinearGradient>
-              <TouchableOpacity
-                style={styles.verifyNowButton}
-                onPress={() => router.push('/tasker/verification')}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="shield-checkmark" size={18} color="#f97316" />
-                <Text style={styles.verifyNowText}>
-                  {verificationStatus.status === 'rejected'
-                    ? (i18n.locale === 'fr' ? 'Resoumettre la vérification' : 'Resubmit Verification')
-                    : (i18n.locale === 'fr' ? 'Vérifier Maintenant' : 'Verify Now')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )
-        )}
+        <TaskerVerifyBanner
+          status={verificationStatus?.status ?? null}
+          isVerified={verificationStatus?.is_verified === true}
+          rejectionReason={verificationStatus?.rejection_reason}
+        />
 
         {/* Animated Stats Row */}
         <View style={styles.statsRow}>
