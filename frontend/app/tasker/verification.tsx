@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -105,8 +104,7 @@ export default function VerificationScreen() {
     try {
       setCapturing(true);
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        skipProcessing: Platform.OS === 'android',
+        quality: 0.5,
       });
       if (photo?.uri) {
         setCapturedPhoto(photo.uri);
@@ -153,7 +151,14 @@ export default function VerificationScreen() {
     try {
       setSubmitting(true);
       const isResubmit = status?.status === 'rejected';
-      
+
+      console.log('[Verification] Submitting:', {
+        idType,
+        isResubmit,
+        idDocumentUri: idDocumentUri.slice(0, 80),
+        selfieUri: selfieUri.slice(0, 80),
+      });
+
       if (isResubmit) {
         await verificationAPI.resubmit(idDocumentUri, selfieUri, idType);
       } else {
