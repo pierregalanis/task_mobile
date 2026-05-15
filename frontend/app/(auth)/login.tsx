@@ -56,10 +56,22 @@ export default function LoginScreen() {
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error('Login error:', error);
-      showMessage(
-        i18n.locale === 'fr' ? 'Erreur de connexion' : 'Login Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Email ou mot de passe incorrect' : 'Invalid email or password')
-      );
+      const detail: string = error.response?.data?.detail ?? '';
+      const isUnverified = /not verified|email.*verif|verif.*email/i.test(detail);
+      if (isUnverified) {
+        showMessage(
+          i18n.locale === 'fr' ? 'Email non vérifié' : 'Email Not Verified',
+          i18n.locale === 'fr'
+            ? 'Vérifiez votre boîte de réception ou renvoyez le lien.'
+            : 'Check your inbox or resend the verification link.'
+        );
+        setTimeout(() => router.push(`/resend-verification?email=${encodeURIComponent(data.email)}`), 1500);
+      } else {
+        showMessage(
+          i18n.locale === 'fr' ? 'Erreur de connexion' : 'Login Error',
+          detail || (i18n.locale === 'fr' ? 'Email ou mot de passe incorrect' : 'Invalid email or password')
+        );
+      }
     } finally {
       setLoading(false);
     }

@@ -245,11 +245,17 @@ export const authAPI = {
 
   // Reset password with code (WhatsApp method - phone + code + new password)
   async resetPasswordWithCode(phone: string, code: string, newPassword: string) {
-    const response = await api.post('/api/auth/reset-password', { 
-      phone, 
-      code, 
-      new_password: newPassword 
+    const response = await api.post('/api/auth/reset-password', {
+      phone,
+      code,
+      new_password: newPassword
     });
+    return response.data;
+  },
+
+  // Resend email verification link
+  async resendVerification(email: string) {
+    const response = await api.post('/api/auth/resend-verification', { email });
     return response.data;
   },
 };
