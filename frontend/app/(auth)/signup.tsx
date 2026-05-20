@@ -49,9 +49,12 @@ export default function SignupScreen() {
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
+    mode: 'onChange',
   });
 
   const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  const passwordsMatch = confirmPassword.length > 0 && confirmPassword === password;
 
   const countryConfig = {
     ivory_coast: {
@@ -233,12 +236,19 @@ export default function SignupScreen() {
             <Controller control={control} name="confirmPassword"
               rules={{ required: i18n.locale === 'fr' ? 'Confirmation requise' : 'Please confirm password', validate: value => value === password || (i18n.locale === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match') }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input label={i18n.t('auth.signup.confirmPassword')} placeholder={i18n.locale === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.confirmPassword?.message} leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />} />
+                <View>
+                  <Input label={i18n.t('auth.signup.confirmPassword')} placeholder={i18n.locale === 'fr' ? 'Confirmer le mot de passe' : 'Confirm password'} value={value} onChangeText={onChange} onBlur={onBlur} secureTextEntry={!showPassword} error={errors.confirmPassword?.message} leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Colors.dark.textSecondary} />} />
+                  {passwordsMatch && (
+                    <Text style={styles.passwordMatchOk} testID="confirm-password-match">
+                      {i18n.locale === 'fr' ? '✓ Les mots de passe correspondent' : '✓ Passwords match'}
+                    </Text>
+                  )}
+                </View>
               )}
             />
           </View>
 
-          <Button title={i18n.t('auth.signup.button')} onPress={handleSubmit(onSubmit)} loading={loading} style={styles.signupButton} />
+          <Button title={i18n.t('auth.signup.button')} onPress={handleSubmit(onSubmit)} loading={loading} disabled={confirmPassword.length > 0 && !passwordsMatch} style={styles.signupButton} />
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>{i18n.t('auth.signup.haveAccount')}</Text>
@@ -354,6 +364,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.dark.text,
   },
+  passwordMatchOk: { fontSize: 12, color: '#10b981', marginTop: -10, marginBottom: 4, marginLeft: 2 },
   signupButton: { marginBottom: 24 },
   loginContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4 },
   loginText: { color: Colors.dark.textSecondary, fontSize: 14 },
