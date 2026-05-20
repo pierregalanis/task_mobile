@@ -582,6 +582,7 @@ const [title, setTitle] = useState(serviceName);
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
         style={styles.keyboardView}
       >
         <View style={styles.header}>
@@ -598,6 +599,7 @@ const [title, setTitle] = useState(serviceName);
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.serviceCard}>
@@ -667,8 +669,9 @@ const [title, setTitle] = useState(serviceName);
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                numberOfLines={4}
+                numberOfLines={5}
                 textAlignVertical="top"
+                blurOnSubmit={false}
               />
             </View>
 
@@ -1352,8 +1355,9 @@ lockedPillText: {
     color: Colors.dark.text,
   },
   textArea: {
-    height: 100,
-    paddingTop: 16,
+    height: 120,
+    paddingTop: 12,
+    textAlignVertical: 'top',
   },
   row: {
     flexDirection: 'row',
