@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,14 @@ import {
   Animated,
   Dimensions,
   Image,
+  Linking,
+  AppState,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { taskAPI, categoryAPI } from '../../services/api';
+import { taskAPI, categoryAPI, paymentAPI } from '../../services/api';
+import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -116,6 +120,7 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ClientTab | TaskerTab>('pending');
+  const [payingTaskId, setPayingTaskId] = useState<string | null>(null);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -128,6 +133,21 @@ export default function BookingsScreen() {
     Animated.timing(headerFade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     fetchData();
   }, []);
+
+  // Re-fetch whenever this tab gains focus (catches web-side changes)
+  useFocusEffect(
+    useCallback(() => {
+      fetchTasks();
+    }, [isClient])
+  );
+
+  // Re-fetch when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') fetchTasks();
+    });
+    return () => sub.remove();
+  }, [isClient]);
   
     // Switch to pending tab when navigated from notification
   useEffect(() => {
@@ -201,12 +221,38 @@ const handleAcceptTask = async (taskId: string) => {
     try { await taskAPI.markPaidCash(taskId); fetchTasks(); } catch (error) { console.error('Error:', error); }
   };
 
+  const handlePayOnline = async (taskId: string, amount: number, title: string) => {
+    try {
+      setPayingTaskId(taskId);
+      const result = await paymentAPI.initializePayment(taskId, amount, title);
+      const url = result.checkout_url || result.payment_url || result.redirect_url;
+      if (url) {
+        await Linking.openURL(url);
+        // Refresh on return so paid status updates
+        setTimeout(fetchTasks, 2000);
+      } else {
+        showMessage(
+          i18n.locale === 'fr' ? 'Erreur' : 'Error',
+          i18n.locale === 'fr' ? 'Aucun lien de paiement reçu' : 'No payment link received'
+        );
+      }
+    } catch (error: any) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur de paiement' : 'Payment Error',
+        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'initialiser le paiement' : 'Could not initialize payment')
+      );
+    } finally {
+      setPayingTaskId(null);
+    }
+  };
+
   const getStatusColor = (status: string, isPaid?: boolean) => {
     if (status === 'completed' && isPaid) return Colors.dark.success;
     switch (status) {
       case 'assigned': case 'pending': return '#f59e0b';
       case 'accepted': return '#3b82f6';
       case 'en_route': case 'in_progress': return '#8b5cf6';
+      case 'pending_assessment': case 'assessment_pending_approval': return '#6366f1';
       case 'completed': return '#f59e0b';
       case 'cancelled': return Colors.dark.error;
       default: return Colors.dark.textSecondary;
@@ -222,6 +268,8 @@ const handleAcceptTask = async (taskId: string) => {
         case 'accepted': return 'Acceptée';
         case 'en_route': return 'En route';
         case 'in_progress': return 'En cours';
+        case 'pending_assessment': return 'Évaluation en cours';
+        case 'assessment_pending_approval': return 'Évaluation soumise';
         case 'completed': return 'Terminée';
         case 'cancelled': return 'Annulée';
         default: return status;
@@ -237,7 +285,7 @@ const handleAcceptTask = async (taskId: string) => {
   };
 
   const pendingTasks = tasks.filter(t => t.status === 'assigned' || t.status === 'pending');
-  const activeTasks = tasks.filter(t => ['accepted', 'en_route', 'in_progress'].includes(t.status));
+  const activeTasks = tasks.filter(t => ['accepted', 'en_route', 'in_progress', 'pending_assessment', 'assessment_pending_approval'].includes(t.status));
   const completedTasks = tasks.filter(t => ['completed', 'cancelled'].includes(t.status));
 
   const getDisplayTasks = () => {
@@ -441,6 +489,7 @@ const handleAcceptTask = async (taskId: string) => {
             const showTrack = isClient && (status === 'en_route' || status === 'in_progress');
             const showComplete = isTasker && status === 'in_progress';
             const showPaymentButtons = isTasker && isCompleted && !isPaid;
+            const showClientPayment = isClient && isCompleted && !isPaid && totalCost > 0;
             const showLeaveReview = isClient && isCompleted && !task.review_submitted;
             
             return (
@@ -623,6 +672,44 @@ const handleAcceptTask = async (taskId: string) => {
                     </View>
                   )}
 
+                  {/* Client Payment Section */}
+                  {showClientPayment && (
+                    <View style={styles.paymentSection}>
+                      <View style={styles.awaitingPaymentBadge}>
+                        <Ionicons name="wallet-outline" size={16} color="#f59e0b" />
+                        <Text style={styles.awaitingPaymentText}>
+                          {i18n.locale === 'fr' ? 'Paiement en attente' : 'Payment Pending'}
+                        </Text>
+                      </View>
+                      <View style={styles.paymentButtonsRow}>
+                        <TouchableOpacity
+                          style={styles.chatPaymentButton}
+                          onPress={(e) => { e.stopPropagation(); router.push(`/chat/${task.id}`); }}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
+                          <Text style={styles.chatPaymentButtonText}>
+                            {i18n.locale === 'fr' ? 'Discuter' : 'Chat'}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.payOnlineButton, payingTaskId === task.id && styles.payOnlineButtonDisabled]}
+                          onPress={(e) => { e.stopPropagation(); handlePayOnline(task.id, totalCost, task.title); }}
+                          activeOpacity={0.8}
+                          disabled={payingTaskId === task.id}
+                          testID="pay-online-btn"
+                        >
+                          <Ionicons name="card" size={16} color="#fff" />
+                          <Text style={styles.payOnlineButtonText}>
+                            {payingTaskId === task.id
+                              ? (i18n.locale === 'fr' ? 'Chargement...' : 'Loading...')
+                              : (i18n.locale === 'fr' ? 'Payer en ligne' : 'Pay Online')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Paid Badge */}
                   {isCompleted && isPaid && (
                     <View style={styles.paidBadge}>
@@ -794,6 +881,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', gap: 6,
   },
   confirmCashButtonText: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  payOnlineButton: {
+    flex: 1, flexDirection: 'row', backgroundColor: Colors.dark.primary, padding: 10, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  payOnlineButtonDisabled: { opacity: 0.6 },
+  payOnlineButtonText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   paidBadge: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34, 197, 94, 0.1)',
     padding: 12, borderRadius: 12, marginTop: 12, gap: 8, justifyContent: 'center',

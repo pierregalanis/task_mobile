@@ -17,9 +17,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadLanguage = async () => {
       const savedLanguage = await storage.getLanguage();
-      if (savedLanguage && savedLanguage !== locale) {
-        i18n.locale = savedLanguage;
-        setLocaleState(savedLanguage);
+      if (savedLanguage) {
+        if (savedLanguage !== i18n.locale) {
+          i18n.locale = savedLanguage;
+          setLocaleState(savedLanguage);
+        }
+      } else {
+        // First launch — persist French as the default so it survives reloads
+        await storage.saveLanguage('fr');
       }
     };
     loadLanguage();

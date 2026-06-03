@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -88,6 +89,13 @@ export default function TaskersScreen() {
   useEffect(() => {
     fetchTaskers(activeFilters);
   }, [selectedCategory, fetchTaskers]);
+
+  // Re-fetch when tab gains focus (picks up new taskers registered on web)
+  useFocusEffect(
+    useCallback(() => {
+      fetchTaskers(activeFilters);
+    }, [fetchTaskers])
+  );
 
   const fetchCategories = async () => {
     try {
