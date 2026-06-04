@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { taskerAPI, categoryAPI, searchAPI, UnifiedSearchResults, SearchFilters as SearchFiltersType } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { calculateDistance } from '../../utils/distance';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
@@ -35,6 +36,13 @@ export default function TaskersScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<SearchFiltersType>({});
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  // Distance filter & sort (client-side, Haversine)
+  const [maxDistance, setMaxDistance] = useState<number>(100); // 100 = "Any"
+  type QuickSort = 'rating' | 'distance' | 'distance-far' | 'price-low' | 'price-high';
+  const [quickSort, setQuickSort] = useState<QuickSort>('rating');
+
+  const hasLocation = !!(user?.latitude && user?.longitude);
 
   // Unified search state
   const [unifiedResults, setUnifiedResults] = useState<UnifiedSearchResults | null>(null);
@@ -179,10 +187,48 @@ export default function TaskersScreen() {
     fetchTaskers({});
   };
 
-  // Client-side filter for instant search feedback
-  const filteredTaskers = taskers.filter((tasker) =>
-    tasker.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Decorate taskers with distance + reachability, then filter + sort
+  const filteredTaskers = (() => {
+    // 1. Decorate with distance
+    const decorated = taskers.map((t) => {
+      if (!hasLocation || !t.latitude || !t.longitude) {
+        return { ...t, distance: null as number | null, canReach: true };
+      }
+      const d = calculateDistance(user!.latitude!, user!.longitude!, t.latitude, t.longitude);
+      const maxTravel = t.tasker_profile?.max_travel_distance ?? 9999;
+      return { ...t, distance: d, canReach: d <= maxTravel };
+    });
+
+    // 2. Filter out taskers outside their own travel range
+    let out = decorated.filter((t) => t.canReach);
+
+    // 3. Apply max-distance chip filter
+    if (maxDistance < 100 && hasLocation) {
+      out = out.filter((t) => t.distance == null || t.distance <= maxDistance);
+    }
+
+    // 4. Filter by search query
+    if (searchQuery) {
+      out = out.filter((t) =>
+        t.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // 5. Sort
+    const bestRate = (t: any) =>
+      t.tasker_profile?.services?.[0]?.hourly_rate ??
+      t.tasker_profile?.services?.[0]?.fixed_price ?? 9999;
+    if (quickSort === 'distance') {
+      out = [...out].sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
+    } else if (quickSort === 'distance-far') {
+      out = [...out].sort((a, b) => (b.distance ?? -1) - (a.distance ?? -1));
+    } else if (quickSort === 'price-low') {
+      out = [...out].sort((a, b) => bestRate(a) - bestRate(b));
+    } else if (quickSort === 'price-high') {
+      out = [...out].sort((a, b) => bestRate(b) - bestRate(a));
+    }
+    return out;
+  })();
 
   // Get sort label for display
   const getSortLabel = () => {
@@ -227,6 +273,73 @@ export default function TaskersScreen() {
               : 'Définissez votre pays dans votre profil pour voir les Pros disponibles.'}
           </Text>
         </View>
+      ) : null}
+
+      {/* Distance chips + sort (only when user has saved location) */}
+      {hasLocation ? (
+        <View style={styles.distanceSection}>
+          {/* Distance chips */}
+          <View style={styles.distanceRow}>
+            <Ionicons name="location" size={14} color={Colors.dark.primary} />
+            <Text style={styles.distanceLabel}>{isEn ? 'Distance:' : 'Distance :'}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.distanceChips}>
+              {([
+                { val: 5,   label: '≤ 5 km' },
+                { val: 10,  label: '≤ 10 km' },
+                { val: 25,  label: '≤ 25 km' },
+                { val: 50,  label: '≤ 50 km' },
+                { val: 100, label: isEn ? 'Any' : 'Toutes' },
+              ] as const).map((opt) => (
+                <TouchableOpacity
+                  key={opt.val}
+                  testID={`quick-distance-${opt.val}`}
+                  onPress={() => setMaxDistance(opt.val)}
+                  style={[styles.distanceChip, maxDistance === opt.val && styles.distanceChipActive]}
+                >
+                  <Text style={[styles.distanceChipText, maxDistance === opt.val && styles.distanceChipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+          {/* Sort chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortChips}>
+            {([
+              { val: 'rating',        label: isEn ? 'Top Rated' : 'Mieux notés' },
+              { val: 'distance',      label: isEn ? 'Nearest' : 'Plus proches' },
+              { val: 'distance-far',  label: isEn ? 'Farthest' : 'Plus éloignés' },
+              { val: 'price-low',     label: isEn ? 'Cheapest' : 'Moins chers' },
+              { val: 'price-high',    label: isEn ? 'Priciest' : 'Plus chers' },
+            ] as const).map((opt) => (
+              <TouchableOpacity
+                key={opt.val}
+                onPress={() => setQuickSort(opt.val)}
+                style={[styles.sortChip, quickSort === opt.val && styles.sortChipActive]}
+              >
+                <Text style={[styles.sortChipText, quickSort === opt.val && styles.sortChipTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : user ? (
+        /* Soft prompt when user exists but has no saved location */
+        <TouchableOpacity style={styles.locationPromptBox} onPress={() => router.push('/settings')}>
+          <Ionicons name="location-outline" size={18} color="#ca8a04" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationPromptTitle}>
+              {isEn ? 'Set your location' : 'Définissez votre position'}
+            </Text>
+            <Text style={styles.locationPromptBody}>
+              {isEn
+                ? 'Update it in your profile to filter Pros by distance.'
+                : 'Modifiez-la dans votre profil pour filtrer par distance.'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#ca8a04" />
+        </TouchableOpacity>
       ) : null}
 
       {/* Search Bar with Filter Button */}
@@ -493,7 +606,11 @@ export default function TaskersScreen() {
                 {isEn ? 'No Pros found' : 'Aucun Pro trouvé'}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {activeFilterCount > 0 || selectedCategory
+                {maxDistance < 100 && hasLocation
+                  ? isEn
+                    ? `No Pros within ${maxDistance} km — try widening your range.`
+                    : `Aucun Pro à moins de ${maxDistance} km — élargissez votre rayon.`
+                  : activeFilterCount > 0 || selectedCategory
                   ? isEn
                     ? 'Try adjusting your filters'
                     : 'Essayez de modifier vos filtres'
@@ -569,6 +686,16 @@ export default function TaskersScreen() {
                     )}
                   </View>
 
+                  {/* Distance pill */}
+                  {tasker.distance != null && (
+                    <View style={styles.distancePill}>
+                      <Ionicons name="location" size={12} color="#1d4ed8" />
+                      <Text style={styles.distancePillText}>
+                        {tasker.distance.toFixed(1)} km {isEn ? 'away' : 'de distance'}
+                      </Text>
+                    </View>
+                  )}
+
                   {tasker.tasker_profile?.services && tasker.tasker_profile.services.length > 0 && (
                     <View style={styles.servicesContainer}>
                       <Text style={styles.servicesLabel} numberOfLines={1}>
@@ -593,6 +720,13 @@ export default function TaskersScreen() {
                         {tasker.tasker_profile.services[0].pricing_type === 'fixed'
                           ? `${tasker.tasker_profile.services[0].fixed_price || 0} XOF`
                           : `${tasker.tasker_profile.services[0].hourly_rate || 0} XOF/h`}
+                      </Text>
+                    </View>
+                  )}
+                  {tasker.tasker_profile?.max_travel_distance && (
+                    <View style={styles.travelRangeBadge}>
+                      <Text style={styles.travelRangeText}>
+                        🚗 {isEn ? 'Travels up to' : 'Se déplace jusqu\'à'} {tasker.tasker_profile.max_travel_distance} km
                       </Text>
                     </View>
                   )}
@@ -636,6 +770,129 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   
+  // Distance filter section
+  distanceSection: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+    paddingBottom: 10,
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 6,
+  },
+  distanceLabel: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  distanceChips: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  distanceChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: Colors.dark.card,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  distanceChipActive: {
+    backgroundColor: Colors.dark.primary,
+    borderColor: Colors.dark.primary,
+  },
+  distanceChipText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    fontWeight: '500',
+  },
+  distanceChipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  sortChips: {
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  sortChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: Colors.dark.card,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  sortChipActive: {
+    backgroundColor: '#1d4ed820',
+    borderColor: '#1d4ed8',
+  },
+  sortChipText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    fontWeight: '500',
+  },
+  sortChipTextActive: {
+    color: '#60a5fa',
+    fontWeight: '700',
+  },
+  locationPromptBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 12,
+    backgroundColor: '#422006',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fef08a30',
+  },
+  locationPromptTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fde68a',
+    marginBottom: 2,
+  },
+  locationPromptBody: {
+    fontSize: 12,
+    color: '#ca8a04',
+  },
+  // Distance pill & travel range on card
+  distancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  distancePillText: {
+    fontSize: 11,
+    color: '#1d4ed8',
+    fontWeight: '600',
+  },
+  travelRangeBadge: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  travelRangeText: {
+    fontSize: 11,
+    color: '#15803d',
+    fontWeight: '500',
+  },
+
   // Country hint bar
   countryHintBar: {
     flexDirection: 'row',
