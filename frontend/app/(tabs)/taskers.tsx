@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { taskerAPI, categoryAPI, searchAPI, UnifiedSearchResults, SearchFilters as SearchFiltersType } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
@@ -22,6 +23,7 @@ import SearchFilters from '../../components/SearchFilters';
 
 export default function TaskersScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [taskers, setTaskers] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,11 @@ export default function TaskersScreen() {
   const searchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isEn = i18n.locale === 'en';
+
+  const countryLabel =
+    user?.country === 'senegal'     ? (isEn ? 'Senegal' : 'Sénégal') :
+    user?.country === 'ivory_coast' ? (isEn ? 'Ivory Coast' : 'Côte d\'Ivoire') :
+    null;
 
   // Calculate active filter count (excluding searchQuery which is in the search bar)
   const calculateFilterCount = (filters: SearchFiltersType) => {
@@ -202,6 +209,25 @@ export default function TaskersScreen() {
           {filteredTaskers.length} {isEn ? 'available' : 'disponibles'}
         </Text>
       </View>
+
+      {/* Country hint — tells user which market they're browsing */}
+      {countryLabel ? (
+        <View style={styles.countryHintBar}>
+          <Ionicons name="location" size={14} color={Colors.dark.primary} />
+          <Text style={styles.countryHintText}>
+            {isEn ? `Pros available in ${countryLabel}` : `Pros disponibles en ${countryLabel}`}
+          </Text>
+        </View>
+      ) : user && !user.country ? (
+        <View style={styles.noCountryBar}>
+          <Ionicons name="warning-outline" size={14} color="#f59e0b" />
+          <Text style={styles.noCountryText}>
+            {isEn
+              ? 'Set your country in your profile to see available Pros.'
+              : 'Définissez votre pays dans votre profil pour voir les Pros disponibles.'}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Search Bar with Filter Button */}
       <View style={styles.searchRow}>
@@ -464,16 +490,20 @@ export default function TaskersScreen() {
             <View style={styles.emptyState}>
               <Ionicons name="search-outline" size={64} color={Colors.dark.textSecondary} />
               <Text style={styles.emptyTitle}>
-                {isEn ? 'No taskers found' : 'Aucun tasker trouvé'}
+                {isEn ? 'No Pros found' : 'Aucun Pro trouvé'}
               </Text>
               <Text style={styles.emptySubtitle}>
                 {activeFilterCount > 0 || selectedCategory
                   ? isEn
                     ? 'Try adjusting your filters'
                     : 'Essayez de modifier vos filtres'
+                  : countryLabel
+                  ? isEn
+                    ? `We don't have any Pros yet in ${countryLabel} for this service. Check back soon.`
+                    : `Nous n'avons pas encore de Pros en ${countryLabel} pour ce service. Revenez bientôt.`
                   : isEn
-                  ? 'Check back later for new taskers'
-                  : 'Revenez plus tard pour de nouveaux taskers'}
+                  ? 'Check back later for new Pros'
+                  : 'Revenez plus tard pour de nouveaux Pros'}
               </Text>
               {(activeFilterCount > 0 || selectedCategory) && (
                 <TouchableOpacity style={styles.clearFiltersButton} onPress={handleClearFilters}>
@@ -606,6 +636,38 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   
+  // Country hint bar
+  countryHintBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    backgroundColor: `${Colors.dark.primary}12`,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+  },
+  countryHintText: {
+    fontSize: 13,
+    color: Colors.dark.primary,
+    fontWeight: '500',
+  },
+  noCountryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    backgroundColor: '#78350f20',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f59e0b40',
+  },
+  noCountryText: {
+    fontSize: 13,
+    color: '#f59e0b',
+    flex: 1,
+  },
+
   // Search Row
   searchRow: {
     flexDirection: 'row',
