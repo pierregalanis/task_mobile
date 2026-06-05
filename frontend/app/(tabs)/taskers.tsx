@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { calculateDistance } from '../../utils/distance';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { Category, getCategoryName, getCategoryById } from '../../constants/Categories';
+import { Category, getCategoryName, getCategoryById, getSubcategoryName } from '../../constants/Categories';
 import SearchFilters from '../../components/SearchFilters';
 
 export default function TaskersScreen() {
@@ -31,7 +31,13 @@ export default function TaskersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+
+  // Derived: category object for showing subcategory chips
+  const selectedCategoryData = selectedCategory
+    ? getCategoryById(categories, selectedCategory)
+    : null;
+
   // Advanced filter state
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<SearchFiltersType>({});
@@ -72,22 +78,19 @@ export default function TaskersScreen() {
     fetchCategories();
   }, []);
 
-  // Fetch taskers with filters
+  // Fetch taskers with filters — always call the API, never filter client-side by subcategory
   const fetchTaskers = useCallback(async (filters: SearchFiltersType = {}) => {
     try {
       setLoading(true);
-      
-      // Build search params
+
       const searchFilters: SearchFiltersType = {
         ...filters,
         isAvailable: true,
         limit: 50,
       };
-      
-      // Add category filter if selected
-      if (selectedCategory) {
-        searchFilters.categoryId = selectedCategory;
-      }
+      if (selectedCategory) searchFilters.categoryId = selectedCategory;
+      // Send the subcategory label in the current UI language — backend resolves EN↔FR
+      if (selectedSubcategory) searchFilters.subcategory = selectedSubcategory;
 
       const data = await taskerAPI.searchTaskers(searchFilters);
       setTaskers(Array.isArray(data) ? data : []);
@@ -98,12 +101,12 @@ export default function TaskersScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, selectedSubcategory]);
 
-  // Refetch when category changes
+  // Refetch when category or subcategory changes
   useEffect(() => {
     fetchTaskers(activeFilters);
-  }, [selectedCategory, fetchTaskers]);
+  }, [selectedCategory, selectedSubcategory, fetchTaskers]);
 
   // Re-fetch when tab gains focus (picks up new taskers registered on web)
   useFocusEffect(
@@ -182,6 +185,7 @@ export default function TaskersScreen() {
     setActiveFilterCount(0);
     setSearchQuery('');
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
     setUnifiedResults(null);
     setShowSearchResults(false);
     fetchTaskers({});
@@ -560,7 +564,7 @@ export default function TaskersScreen() {
       >
         <TouchableOpacity
           style={[styles.filterChip, !selectedCategory && styles.filterChipActive]}
-          onPress={() => setSelectedCategory(null)}
+          onPress={() => { setSelectedCategory(null); setSelectedSubcategory(null); }}
           activeOpacity={0.7}
         >
           <Text style={[styles.filterChipText, !selectedCategory && styles.filterChipTextActive]}>
@@ -571,7 +575,7 @@ export default function TaskersScreen() {
           <TouchableOpacity
             key={category.id}
             style={[styles.filterChip, selectedCategory === category.id && styles.filterChipActive]}
-            onPress={() => setSelectedCategory(category.id)}
+            onPress={() => { setSelectedCategory(category.id); setSelectedSubcategory(null); }}
             activeOpacity={0.7}
           >
             <Text style={styles.filterChipIcon}>{category.icon}</Text>
@@ -586,6 +590,44 @@ export default function TaskersScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Subcategory chips — only when a category with subcategories is selected */}
+      {selectedCategoryData && selectedCategoryData.subcategories && selectedCategoryData.subcategories.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.subFiltersContainer}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {/* "All" chip to clear subcategory */}
+          <TouchableOpacity
+            style={[styles.subFilterChip, !selectedSubcategory && styles.subFilterChipActive]}
+            onPress={() => setSelectedSubcategory(null)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.subFilterChipText, !selectedSubcategory && styles.subFilterChipTextActive]}>
+              {isEn ? 'All' : 'Tous'}
+            </Text>
+          </TouchableOpacity>
+          {selectedCategoryData.subcategories.map((sub, idx) => {
+            const label = getSubcategoryName(sub, i18n.locale);
+            if (!label) return null;
+            const isActive = selectedSubcategory === label;
+            return (
+              <TouchableOpacity
+                key={sub.id ?? idx}
+                style={[styles.subFilterChip, isActive && styles.subFilterChipActive]}
+                onPress={() => setSelectedSubcategory(isActive ? null : label)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.subFilterChipText, isActive && styles.subFilterChipTextActive]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Taskers List */}
       {loading && !refreshing ? (
@@ -1034,6 +1076,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.dark.primary,
     fontWeight: '500',
+  },
+
+  // Subcategory chips
+  subFiltersContainer: {
+    maxHeight: 46,
+    marginBottom: 10,
+  },
+  subFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: Colors.dark.card,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  subFilterChipActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  subFilterChipText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    fontWeight: '500',
+  },
+  subFilterChipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
   },
 
   // Category Chips
