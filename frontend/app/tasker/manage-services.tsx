@@ -24,8 +24,9 @@ import { getCategoryName, getSubcategoryName } from '../../constants/Categories'
 import { showMessage } from '../../utils/alert';
 
 interface Service {
-  category: string;
-  subcategory: string;
+  category: string;     // readable English name — e.g. "Kitchen & Food"
+  category_id?: string; // UUID — kept for backend indexing
+  subcategory: string;  // English label — e.g. "Cooking / Baking"
   pricing_type: 'hourly' | 'fixed';
   hourly_rate: number;
   fixed_price: number;
@@ -174,8 +175,11 @@ export default function ManageServicesScreen() {
 
     try {
       setLoading(true);
+      // Always store the readable English name, never the raw UUID
+      const cat = categories.find((c: any) => c.id === selectedCategory);
       const newService: Service = {
-        category: selectedCategory,
+        category: cat?.name_en || cat?.name_fr || selectedCategory,
+        category_id: cat?.id || selectedCategory,
         subcategory: selectedSubcategory,
         pricing_type: pricingType,
         hourly_rate: pricingType === 'hourly' ? parseInt(newRate) : 0,
@@ -344,17 +348,20 @@ export default function ManageServicesScreen() {
                 <>
                   <Text style={styles.inputLabel}>{i18n.locale === 'fr' ? 'Sous-categorie' : 'Subcategory'}</Text>
                   <View style={styles.subcategoryGrid}>
-                    {getSelectedCategorySubcategories().map((sub: any) => (
-                      <TouchableOpacity
-                        key={sub.id || sub.en}
-                        style={[styles.subcategoryChip, selectedSubcategory === (sub.id || sub.en) && styles.subcategoryChipActive]}
-                        onPress={() => setSelectedSubcategory(sub.id || sub.en)}
-                      >
-                        <Text style={[styles.subcategoryChipText, selectedSubcategory === (sub.id || sub.en) && styles.subcategoryChipTextActive]}>
-                          {getSubcategoryName(sub, i18n.locale)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {getSelectedCategorySubcategories().map((sub: any) => {
+                      const enName = sub.name_en || sub.en || '';
+                      return (
+                        <TouchableOpacity
+                          key={sub.id || enName}
+                          style={[styles.subcategoryChip, selectedSubcategory === enName && styles.subcategoryChipActive]}
+                          onPress={() => setSelectedSubcategory(enName)}
+                        >
+                          <Text style={[styles.subcategoryChipText, selectedSubcategory === enName && styles.subcategoryChipTextActive]}>
+                            {getSubcategoryName(sub, i18n.locale)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </>
               )}
