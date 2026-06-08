@@ -27,7 +27,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function TaskerProfileScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, fromCategoryId, fromSubcategory } = useLocalSearchParams<{
+    id: string;
+    fromCategoryId?: string;
+    fromSubcategory?: string;
+  }>();
   const { user } = useAuth();
   const isClient = user?.role === 'client';
   const [tasker, setTasker] = useState<any>(null);
@@ -152,6 +156,48 @@ export default function TaskerProfileScreen() {
       setFavoriteLoading(false);
     }
   };
+
+  // Returns true if this service matches the category the client was browsing from
+  const isSelectedService = (service: any): boolean => {
+    if (!fromCategoryId && !fromSubcategory) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const fromCatLower = (fromCategoryId || '').toLowerCase();
+    const fromSubLower = (fromSubcategory || '').toLowerCase();
+
+    // Match category by UUID (category_id or legacy category field)
+    const cat = getCategoryById(categories, service.category);
+    const catMatchByUuid =
+      (fromCategoryId && uuidRegex.test(fromCategoryId)) &&
+      (service.category_id === fromCategoryId || service.category === fromCategoryId);
+
+    // Match category by EN/FR name
+    const enName = (cat?.name_en || '').toLowerCase();
+    const frName = (cat?.name_fr || '').toLowerCase();
+    const catMatchByName =
+      fromCatLower !== '' &&
+      (enName === fromCatLower || frName === fromCatLower ||
+       (service.category || '').toLowerCase() === fromCatLower);
+
+    const categoryMatches = catMatchByUuid || catMatchByName;
+    if (!categoryMatches) return false;
+
+    // If no subcategory was searched, category match is enough
+    if (!fromSubcategory) return true;
+
+    // Match subcategory (EN or FR, partial ok for cross-language)
+    const serviceSub = (service.subcategory || '').toLowerCase();
+    return serviceSub === fromSubLower ||
+      serviceSub.includes(fromSubLower) ||
+      fromSubLower.includes(serviceSub);
+  };
+
+  // Auto-select the searched service once data is loaded
+  useEffect(() => {
+    if (tasker?.tasker_profile?.services && categories.length > 0 && (fromCategoryId || fromSubcategory)) {
+      const matched = tasker.tasker_profile.services.find(isSelectedService);
+      if (matched) setSelectedService(matched);
+    }
+  }, [tasker, categories]);
 
   const handleServiceSelect = (service: any) => {
     setSelectedService(service);
@@ -298,7 +344,16 @@ export default function TaskerProfileScreen() {
                   : 'Tap a service to book it directly.'}
               </Text>
             )}
-            {tasker.tasker_profile.services.map((service: any, index: number) => {
+            {[...tasker.tasker_profile.services]
+              .sort((a: any, b: any) => {
+                const aMatch = isSelectedService(a);
+                const bMatch = isSelectedService(b);
+                if (aMatch && !bMatch) return -1;
+                if (!aMatch && bMatch) return 1;
+                return 0;
+              })
+              .map((service: any, index: number) => {
+              const isHighlighted = isSelectedService(service);
               const category = getCategoryById(categories, service.category);
               const subcategory = service.subcategory ? getSubcategoryById(category, service.subcategory) : null;
               const categoryName = category ? getCategoryName(category, i18n.locale) : service.category;
@@ -394,11 +449,23 @@ export default function TaskerProfileScreen() {
                 return (
                   <TouchableOpacity
                     key={index}
-                    style={[styles.serviceCard, styles.serviceCardClickable]}
+                    style={[
+                      styles.serviceCard,
+                      styles.serviceCardClickable,
+                      isHighlighted && styles.serviceCardHighlighted,
+                    ]}
                     onPress={() => handleServiceSelect(service)}
                     activeOpacity={0.7}
                     testID={`service-card-${index}`}
                   >
+                    {isHighlighted && (
+                      <View style={styles.selectedPill}>
+                        <Ionicons name="checkmark-circle" size={13} color="#fff" />
+                        <Text style={styles.selectedPillText}>
+                          {i18n.locale === 'fr' ? 'SÉLECTIONNÉ' : 'SELECTED'}
+                        </Text>
+                      </View>
+                    )}
                     {cardContent}
                   </TouchableOpacity>
                 );
@@ -493,7 +560,7 @@ export default function TaskerProfileScreen() {
         ) : isClient ? (
           <TouchableOpacity
             style={styles.bookButton}
-            onPress={() => setShowServiceModal(true)}
+            onPress={() => selectedService ? handleServiceSelect(selectedService) : setShowServiceModal(true)}
             activeOpacity={0.7}
           >
             <Text style={styles.bookButtonText}>
@@ -765,6 +832,28 @@ const styles = StyleSheet.create({
   },
   serviceCardClickable: {
     borderColor: Colors.dark.primary,
+  },
+  serviceCardHighlighted: {
+    borderColor: Colors.dark.primary,
+    borderWidth: 2,
+    backgroundColor: `${Colors.dark.primary}18`,
+  },
+  selectedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.dark.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  selectedPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   serviceCardLegacy: {
     opacity: 0.7,

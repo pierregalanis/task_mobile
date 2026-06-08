@@ -923,6 +923,33 @@ export default function TaskDetailsScreen() {
           <Text style={styles.statusBannerText}>{getStatusText(status, isPaid)}</Text>
         </View>
 
+        {/* Auto-cancellation reason card */}
+        {isCancelled && task.cancellation_reason && task.cancellation_reason.startsWith('auto_') && (
+          <View style={styles.autoCancelCard}>
+            <Ionicons name="timer-outline" size={20} color={Colors.dark.error} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.autoCancelTitle}>
+                {i18n.locale === 'fr'
+                  ? ({
+                      auto_no_response_48h: 'Le Pro n\'a pas répondu dans les 48h suivant la réservation',
+                      auto_no_response_24h_before_start: 'Le Pro n\'a pas accepté à moins de 24h du début',
+                      auto_no_response_past_due: 'Le Pro n\'a pas accepté avant l\'heure de début prévue',
+                    }[task.cancellation_reason as string] || 'Annulation automatique')
+                  : ({
+                      auto_no_response_48h: 'Pro did not respond within 48 hours of booking',
+                      auto_no_response_24h_before_start: 'Pro did not accept with less than 24 hours to go',
+                      auto_no_response_past_due: 'Pro did not accept before the scheduled start time',
+                    }[task.cancellation_reason as string] || 'Automatically cancelled')}
+              </Text>
+              <Text style={styles.autoCancelBody}>
+                {i18n.locale === 'fr'
+                  ? 'Vous pouvez réserver un autre Pro disponible.'
+                  : 'You can now book another available Pro.'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Waiting Message for Client */}
         {showWaitingMessage && (
           <View style={styles.waitingCard}>
@@ -2080,6 +2107,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.dark.background,
+  },
+  autoCancelCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: Colors.dark.error,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  autoCancelTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.error,
+    marginBottom: 4,
+  },
+  autoCancelBody: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
   },
   waitingCard: {
     flexDirection: 'row',

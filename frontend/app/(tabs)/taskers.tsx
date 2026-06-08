@@ -472,7 +472,13 @@ export default function TaskersScreen() {
                     onPress={() => {
                       setShowSearchResults(false);
                       setSearchQuery('');
-                      router.push(`/tasker/${tasker.id}`);
+                      router.push({
+                        pathname: `/tasker/${tasker.id}`,
+                        params: {
+                          fromCategoryId: selectedCategory || '',
+                          fromSubcategory: selectedSubcategory || '',
+                        },
+                      });
                     }}
                     activeOpacity={0.7}
                   >
@@ -677,7 +683,13 @@ export default function TaskersScreen() {
               <TouchableOpacity
                 key={tasker.id}
                 style={styles.taskerCard}
-                onPress={() => router.push(`/tasker/${tasker.id}`)}
+                onPress={() => router.push({
+                  pathname: `/tasker/${tasker.id}`,
+                  params: {
+                    fromCategoryId: selectedCategory || '',
+                    fromSubcategory: selectedSubcategory || '',
+                  },
+                })}
                 activeOpacity={0.7}
               >
                 <View style={styles.taskerImageContainer}>

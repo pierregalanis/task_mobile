@@ -403,6 +403,7 @@ export default function NotificationsScreen() {
       task_started: { fr: { title: 'Tâche commencée', message: `Le travail a commencé pour "${taskTitle}".` }, en: { title: 'Task Started', message: `Work has started for "${taskTitle}".` } },
       task_cancelled: { fr: { title: 'Tâche annulée', message: `La tâche "${taskTitle}" a été annulée.` }, en: { title: 'Task Cancelled', message: `Task "${taskTitle}" has been cancelled.` } },
       task_reminder: { fr: { title: 'Rappel', message: `Rappel pour votre tâche "${taskTitle}".` }, en: { title: 'Reminder', message: `Reminder for your task "${taskTitle}".` } },
+      booking_auto_cancelled: { fr: { title: 'Réservation annulée', message: `"${taskTitle}" a été automatiquement annulée — le Pro n'a pas répondu à temps.` }, en: { title: 'Booking Auto-Cancelled', message: `"${taskTitle}" was automatically cancelled — the Pro did not respond in time.` } },
     };
 
     const lang = i18n.locale === 'fr' ? 'fr' : 'en';
@@ -425,6 +426,7 @@ export default function NotificationsScreen() {
       task_started: { fr: 'Tâche commencée', en: 'Task Started' },
       task_cancelled: { fr: 'Tâche annulée', en: 'Task Cancelled' },
       task_reminder: { fr: 'Rappel', en: 'Reminder' },
+      booking_auto_cancelled: { fr: 'Annulation automatique', en: 'Auto-Cancelled' },
     };
     return titles[type]?.[i18n.locale === 'fr' ? 'fr' : 'en'] || 'Notification';
   };
@@ -445,6 +447,7 @@ export default function NotificationsScreen() {
       new_booking_request: { name: 'calendar', color: Colors.dark.primary },
       task_cancelled: { name: 'close-circle', color: Colors.dark.error },
       task_reminder: { name: 'alarm', color: '#f59e0b' },
+      booking_auto_cancelled: { name: 'timer-outline', color: Colors.dark.error },
     };
     return icons[type] || { name: 'notifications', color: Colors.dark.primary };
   };
