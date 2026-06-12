@@ -678,9 +678,14 @@ const handleAcceptTask = async (taskId: string) => {
                           testID="pay-online-btn"
                         >
                           <Ionicons name="phone-portrait" size={16} color="#fff" />
-                          <Text style={styles.payOnlineButtonText}>
-                            {i18n.locale === 'fr' ? 'Payer en ligne' : 'Pay Online'}
-                          </Text>
+                          <View style={{ alignItems: 'center' }}>
+                            <Text style={styles.payOnlineButtonText}>
+                              {i18n.locale === 'fr' ? 'Payer' : 'Pay'}
+                            </Text>
+                            <Text style={styles.payOnlineButtonSub}>
+                              Orange Money · Wave
+                            </Text>
+                          </View>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -869,11 +874,12 @@ const styles = StyleSheet.create({
   },
   confirmCashButtonText: { fontSize: 12, fontWeight: '600', color: '#fff' },
   payOnlineButton: {
-    flex: 1, flexDirection: 'row', backgroundColor: Colors.dark.primary, padding: 10, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center', gap: 6,
+    flex: 1, flexDirection: 'row', backgroundColor: Colors.dark.primary, paddingVertical: 10, paddingHorizontal: 8,
+    borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 6,
   },
   payOnlineButtonDisabled: { opacity: 0.6 },
-  payOnlineButtonText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  payOnlineButtonText: { fontSize: 12, fontWeight: '700', color: '#fff', lineHeight: 16 },
+  payOnlineButtonSub: { fontSize: 10, fontWeight: '500', color: 'rgba(255,255,255,0.8)', lineHeight: 14 },
   paidBadge: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34, 197, 94, 0.1)',
     padding: 12, borderRadius: 12, marginTop: 12, gap: 8, justifyContent: 'center',
