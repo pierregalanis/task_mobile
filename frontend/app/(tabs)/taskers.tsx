@@ -443,6 +443,7 @@ export default function TaskersScreen() {
                       setShowSearchResults(false);
                       setSearchQuery('');
                       setSelectedCategory(sub.category_id);
+                      setSelectedSubcategory(sub.name);
                     }}
                     activeOpacity={0.7}
                   >

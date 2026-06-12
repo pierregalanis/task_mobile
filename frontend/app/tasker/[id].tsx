@@ -186,9 +186,11 @@ export default function TaskerProfileScreen() {
 
     // Match subcategory (EN or FR, partial ok for cross-language)
     const serviceSub = (service.subcategory || '').toLowerCase();
+    // A service with no subcategory cannot match a subcategory search
+    if (!serviceSub) return false;
     return serviceSub === fromSubLower ||
       serviceSub.includes(fromSubLower) ||
-      fromSubLower.includes(serviceSub);
+      (fromSubLower.length > 0 && fromSubLower.includes(serviceSub));
   };
 
   // Auto-select the searched service once data is loaded
