@@ -943,8 +943,16 @@ export default function TaskDetailsScreen() {
               </Text>
               <Text style={styles.autoCancelBody}>
                 {i18n.locale === 'fr'
-                  ? 'Vous pouvez réserver un autre Pro disponible.'
-                  : 'You can now book another available Pro.'}
+                  ? ({
+                      auto_no_response_48h: 'Cette réservation a été faite 4 jours ou plus à l\'avance et est restée sans réponse pendant 48h. Elle a été automatiquement annulée pour vous laisser le temps de réserver à nouveau.',
+                      auto_no_response_24h_before_start: 'Cette réservation était prévue dans 1 à 3 jours et n\'a pas été acceptée à moins de 24h du début. Elle a été automatiquement annulée pour vous permettre de réserver à nouveau.',
+                      auto_no_response_past_due: 'L\'heure de début prévue est arrivée sans que le Pro ait accepté. La réservation a donc été automatiquement annulée.',
+                    }[task.cancellation_reason as string] || 'Vous pouvez réserver un autre Pro disponible.')
+                  : ({
+                      auto_no_response_48h: 'Because this booking was made 4+ days in advance and went unaccepted for 48h, it was automatically cancelled so you have time to re-book.',
+                      auto_no_response_24h_before_start: 'Because this booking was for 1–3 days away and went unaccepted with less than 24h to go, it was automatically cancelled so you can re-book.',
+                      auto_no_response_past_due: 'The scheduled start time arrived without the Pro accepting, so the booking was automatically cancelled.',
+                    }[task.cancellation_reason as string] || 'You can now book another available Pro.')}
               </Text>
             </View>
           </View>
