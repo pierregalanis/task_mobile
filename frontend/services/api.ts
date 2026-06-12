@@ -260,37 +260,43 @@ export const authAPI = {
   },
 };
 
-// ==================== PAYMENT API (PAYDUNYA) ====================
+// ==================== PAYMENT API (AFRIBAPAY) ====================
 
-export const paymentAPI = {
-  // Initialize a payment
-  async initializePayment(taskId: string, amount: number, description: string) {
-    const response = await api.post('/api/payments/initialize', {
+export const afribaPayAPI = {
+  // Initiate an inline payment (Orange Money or Wave)
+  async payin(
+    taskId: string,
+    rail: 'orange_money' | 'wave',
+    phoneNumber: string,
+    amount: number,
+    otpCode?: string,
+  ) {
+    const body: Record<string, any> = {
       task_id: taskId,
-      amount,
-      description,
-    });
-    return response.data;
+      rail,
+      phone_number: phoneNumber,
+      amount: Math.round(amount),
+    };
+    if (otpCode) body.otp_code = otpCode;
+    const response = await api.post('/api/payments/afribapay/payin', body);
+    return response.data as { order_id: string; status: string; message?: string };
   },
 
-  // Check payment status
-  async getPaymentStatus(paymentId: string) {
-    const response = await api.get(`/api/payments/${paymentId}/status`);
-    return response.data;
-  },
-
-  // Get payment history for tasker
-  async getPaymentHistory() {
-    const response = await api.get('/api/payments/history');
-    return response.data;
-  },
-
-  // Get revenue summary for tasker
-  async getRevenueSummary() {
-    const response = await api.get('/api/payments/revenue');
-    return response.data;
+  // Poll for payment status
+  async getStatus(orderId: string) {
+    const response = await api.get(`/api/payments/afribapay/status/${orderId}`);
+    return response.data as {
+      order_id: string;
+      status: 'pending' | 'success' | 'failed' | 'cancelled' | 'expired';
+      amount: number;
+      rail: string;
+      updated_at: string;
+    };
   },
 };
+
+// Export the raw axios instance so components can use it directly (e.g. polling in AfribaPayModal)
+export { api as apiInstance };
 
 // ==================== TASKER API ====================
 

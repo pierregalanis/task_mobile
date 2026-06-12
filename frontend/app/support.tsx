@@ -146,9 +146,9 @@ export default function SupportScreen() {
     },
     {
       question: isFrench ? 'Comment effectuer un paiement ?' : 'How do I make a payment?',
-      answer: isFrench 
-        ? 'Les paiements se font via Paydunya (Mobile Money ou carte bancaire) une fois le service terminé.'
-        : 'Payments are made via Paydunya (Mobile Money or card) once the service is completed.',
+      answer: isFrench
+        ? 'Les paiements se font via Orange Money ou Wave directement dans l\'application, sans quitter la plateforme.'
+        : 'Payments are made via Orange Money or Wave directly within the app — no browser redirect needed.',
     },
   ];
 

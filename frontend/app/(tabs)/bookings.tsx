@@ -9,13 +9,13 @@ import {
   Animated,
   Dimensions,
   Image,
-  Linking,
   AppState,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { taskAPI, categoryAPI, paymentAPI } from '../../services/api';
+import { taskAPI, categoryAPI } from '../../services/api';
+import { AfribaPayModal } from '../../components/AfribaPayModal';
 import { showMessage } from '../../utils/alert';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
@@ -120,7 +120,7 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ClientTab | TaskerTab>('pending');
-  const [payingTaskId, setPayingTaskId] = useState<string | null>(null);
+  const [afribaPayTask, setAfribaPayTask] = useState<any>(null);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -221,29 +221,8 @@ const handleAcceptTask = async (taskId: string) => {
     try { await taskAPI.markPaidCash(taskId); fetchTasks(); } catch (error) { console.error('Error:', error); }
   };
 
-  const handlePayOnline = async (taskId: string, amount: number, title: string) => {
-    try {
-      setPayingTaskId(taskId);
-      const result = await paymentAPI.initializePayment(taskId, amount, title);
-      const url = result.checkout_url || result.payment_url || result.redirect_url;
-      if (url) {
-        await Linking.openURL(url);
-        // Refresh on return so paid status updates
-        setTimeout(fetchTasks, 2000);
-      } else {
-        showMessage(
-          i18n.locale === 'fr' ? 'Erreur' : 'Error',
-          i18n.locale === 'fr' ? 'Aucun lien de paiement reçu' : 'No payment link received'
-        );
-      }
-    } catch (error: any) {
-      showMessage(
-        i18n.locale === 'fr' ? 'Erreur de paiement' : 'Payment Error',
-        error.response?.data?.detail || (i18n.locale === 'fr' ? 'Impossible d\'initialiser le paiement' : 'Could not initialize payment')
-      );
-    } finally {
-      setPayingTaskId(null);
-    }
+  const handlePayOnline = (task: any) => {
+    setAfribaPayTask(task);
   };
 
   const getStatusColor = (status: string, isPaid?: boolean) => {
@@ -693,17 +672,14 @@ const handleAcceptTask = async (taskId: string) => {
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.payOnlineButton, payingTaskId === task.id && styles.payOnlineButtonDisabled]}
-                          onPress={(e) => { e.stopPropagation(); handlePayOnline(task.id, totalCost, task.title); }}
+                          style={styles.payOnlineButton}
+                          onPress={(e) => { e.stopPropagation(); handlePayOnline(task); }}
                           activeOpacity={0.8}
-                          disabled={payingTaskId === task.id}
                           testID="pay-online-btn"
                         >
-                          <Ionicons name="card" size={16} color="#fff" />
+                          <Ionicons name="phone-portrait" size={16} color="#fff" />
                           <Text style={styles.payOnlineButtonText}>
-                            {payingTaskId === task.id
-                              ? (i18n.locale === 'fr' ? 'Chargement...' : 'Loading...')
-                              : (i18n.locale === 'fr' ? 'Payer en ligne' : 'Pay Online')}
+                            {i18n.locale === 'fr' ? 'Payer en ligne' : 'Pay Online'}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -735,6 +711,17 @@ const handleAcceptTask = async (taskId: string) => {
           })
         )}
       </ScrollView>
+
+      {/* AfribaPay inline payment modal */}
+      <AfribaPayModal
+        visible={!!afribaPayTask}
+        onClose={() => setAfribaPayTask(null)}
+        task={afribaPayTask}
+        onPaymentSuccess={() => {
+          setAfribaPayTask(null);
+          fetchTasks();
+        }}
+      />
     </SafeAreaView>
   );
 }
