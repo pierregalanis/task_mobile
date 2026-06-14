@@ -279,7 +279,13 @@ export const afribaPayAPI = {
     };
     if (otpCode) body.otp_code = otpCode;
     const response = await api.post('/api/payments/afribapay/payin', body);
-    return response.data as { order_id: string; status: string; message?: string };
+    return response.data as {
+      order_id: string;
+      status: string;
+      afribapay_status_code?: string;
+      message?: string;
+      provider_link?: string; // present for Wave (SN+CI) and Orange Money SN — must be opened
+    };
   },
 
   // Poll for payment status

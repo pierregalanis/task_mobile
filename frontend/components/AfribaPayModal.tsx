@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { afribaPayAPI } from '../services/api';
@@ -41,6 +42,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
   const [orderId, setOrderId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+  const [providerLink, setProviderLink] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +66,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
       setError('');
       setOtp('');
       setNeedsOtp(false);
+      setProviderLink(null);
     }
   }, [visible]);
 
@@ -133,6 +136,11 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
         setStatus('success');
         setTimeout(() => { onPaymentSuccess(); onClose(); }, 2000);
       } else {
+        // Wave (SN+CI) and Orange Money SN return a provider_link the user must open
+        if (data.provider_link) {
+          setProviderLink(data.provider_link);
+          Linking.openURL(data.provider_link).catch(() => {});
+        }
         setStatus('awaiting_user');
       }
     } catch (err: any) {
@@ -160,6 +168,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
     setError('');
     setOtp('');
     setNeedsOtp(false);
+    setProviderLink(null);
   };
 
   const formattedAmount = amount
@@ -225,10 +234,22 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
                   {isFr ? 'Vérifiez votre téléphone' : 'Check your phone'}
                 </Text>
                 <Text style={styles.stateBody}>
-                  {isFr
-                    ? 'Approuvez le paiement dans votre application mobile money. Nous confirmerons automatiquement.'
-                    : 'Approve the payment in your mobile-money app. We\'ll confirm automatically.'}
+                  {!!providerLink
+                    ? (isFr
+                        ? 'Votre navigateur vient de s\'ouvrir. Approuvez le paiement, puis revenez ici.'
+                        : 'Your browser just opened. Approve the payment there, then come back here.')
+                    : (isFr
+                        ? 'Un message USSD va apparaître sur votre téléphone. Confirmez le paiement.'
+                        : 'A USSD prompt will appear on your phone. Confirm the payment there.')}
                 </Text>
+                {!!providerLink && (
+                  <TouchableOpacity style={styles.reopenLinkButton} onPress={() => providerLink && Linking.openURL(providerLink).catch(() => {})}>
+                    <Ionicons name="open-outline" size={14} color={Colors.dark.primary} />
+                    <Text style={styles.reopenLinkText}>
+                      {isFr ? 'Rouvrir le lien' : 'Re-open link'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <Text style={styles.waitingHint}>
                   {isFr ? 'En attente de confirmation…' : 'Waiting for confirmation…'}
                 </Text>
@@ -532,6 +553,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.dark.textSecondary,
     marginTop: 8,
+  },
+  reopenLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  reopenLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.dark.primary,
   },
   retryButton: {
     flexDirection: 'row',

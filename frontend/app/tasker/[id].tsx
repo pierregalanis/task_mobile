@@ -363,11 +363,13 @@ export default function TaskerProfileScreen() {
               const portfolioKey = `${service.category}-${service.subcategory}`;
               const portfolioImages = servicePortfolios[portfolioKey] || [];
 
-              // Only clickable when:
-              //   - viewer is a client (taskers can't book)
-              //   - service.category is a real UUID (legacy services without UUID stay non-clickable)
+              // Clickable if the service has any resolvable category reference.
+              // Supports both old format (UUID in service.category) and new format (UUID in service.category_id).
               const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-              const isClickable = isClient && uuidRegex.test(String(service.category || ''));
+              const isClickable = isClient && (
+                uuidRegex.test(String(service.category || '')) ||
+                uuidRegex.test(String(service.category_id || ''))
+              );
 
               const cardContent = (
                 <>
