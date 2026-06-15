@@ -923,6 +923,25 @@ export default function TaskDetailsScreen() {
           <Text style={styles.statusBannerText}>{getStatusText(status, isPaid)}</Text>
         </View>
 
+        {/* Declined-by-tasker card (client only) */}
+        {isCancelled && task.cancellation_reason === 'declined_by_tasker' && isClient && (
+          <View style={styles.autoCancelCard}>
+            <Ionicons name="close-circle-outline" size={20} color={Colors.dark.error} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.autoCancelTitle}>
+                {i18n.locale === 'fr'
+                  ? 'Le prestataire a refusé cette tâche'
+                  : 'The tasker declined this job'}
+              </Text>
+              <Text style={styles.autoCancelBody}>
+                {i18n.locale === 'fr'
+                  ? 'Après avoir évalué le travail sur place, le prestataire n\'a pas pu l\'effectuer. Vous pouvez réserver un autre prestataire disponible.'
+                  : 'After assessing the work on-site, the tasker was unable to complete it. You can book another available pro.'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Auto-cancellation reason card */}
         {isCancelled && task.cancellation_reason && task.cancellation_reason.startsWith('auto_') && (
           <View style={styles.autoCancelCard}>
@@ -1647,8 +1666,8 @@ export default function TaskDetailsScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Rebook Service (Client only, completed) */}
-          {isClient && isCompleted && (
+          {/* Rebook Service (Client only, completed or declined-by-tasker) */}
+          {isClient && (isCompleted || (isCancelled && task.cancellation_reason === 'declined_by_tasker')) && (
             <TouchableOpacity style={styles.actionButton} onPress={handleRebook} activeOpacity={0.7}>
               <View style={[styles.actionIconContainer, { backgroundColor: Colors.dark.primary }]}>
                 <Ionicons name="repeat" size={20} color={Colors.dark.background} />

@@ -404,6 +404,12 @@ export default function NotificationsScreen() {
       task_cancelled: { fr: { title: 'Tâche annulée', message: `La tâche "${taskTitle}" a été annulée.` }, en: { title: 'Task Cancelled', message: `Task "${taskTitle}" has been cancelled.` } },
       task_reminder: { fr: { title: 'Rappel', message: `Rappel pour votre tâche "${taskTitle}".` }, en: { title: 'Reminder', message: `Reminder for your task "${taskTitle}".` } },
       booking_auto_cancelled: { fr: { title: 'Réservation annulée', message: `"${taskTitle}" a été automatiquement annulée — le Pro n'a pas répondu à temps.` }, en: { title: 'Booking Auto-Cancelled', message: `"${taskTitle}" was automatically cancelled — the Pro did not respond in time.` } },
+      work_certified: { fr: { title: 'Travail certifié', message: `Le prestataire a certifié le travail pour "${taskTitle}" et a démarré le minuteur.` }, en: { title: 'Work Certified', message: `The tasker certified the work for "${taskTitle}" and started the timer.` } },
+      adjustment_requested: { fr: { title: 'Ajustement de prix', message: `Votre prestataire demande un ajustement de prix pour "${taskTitle}". Répondez sous 24h.` }, en: { title: 'Price Adjustment', message: `Your tasker requests a price adjustment for "${taskTitle}". Respond within 24h.` } },
+      counter_offer_received: { fr: { title: 'Contre-offre reçue', message: `Le client a fait une contre-offre pour "${taskTitle}". Accepter ou refuser ?` }, en: { title: 'Counter-Offer Received', message: `The client made a counter-offer for "${taskTitle}". Accept or decline?` } },
+      adjustment_approved: { fr: { title: 'Ajustement approuvé', message: `Le client a approuvé votre ajustement de prix pour "${taskTitle}".` }, en: { title: 'Adjustment Approved', message: `The client approved your price adjustment for "${taskTitle}".` } },
+      adjustment_declined: { fr: { title: 'Ajustement refusé', message: `Le client a refusé votre ajustement de prix pour "${taskTitle}".` }, en: { title: 'Adjustment Declined', message: `The client declined your price adjustment for "${taskTitle}".` } },
+      task_declined_by_tasker: { fr: { title: 'Tâche refusée', message: `Le prestataire a refusé d'effectuer "${taskTitle}" après évaluation sur place.` }, en: { title: 'Job Declined', message: `The tasker declined to complete "${taskTitle}" after on-site assessment.` } },
     };
 
     const lang = i18n.locale === 'fr' ? 'fr' : 'en';
@@ -427,6 +433,12 @@ export default function NotificationsScreen() {
       task_cancelled: { fr: 'Tâche annulée', en: 'Task Cancelled' },
       task_reminder: { fr: 'Rappel', en: 'Reminder' },
       booking_auto_cancelled: { fr: 'Annulation automatique', en: 'Auto-Cancelled' },
+      work_certified: { fr: 'Travail certifié', en: 'Work Certified' },
+      adjustment_requested: { fr: 'Ajustement de prix', en: 'Price Adjustment' },
+      counter_offer_received: { fr: 'Contre-offre reçue', en: 'Counter-Offer' },
+      adjustment_approved: { fr: 'Ajustement approuvé', en: 'Adjustment Approved' },
+      adjustment_declined: { fr: 'Ajustement refusé', en: 'Adjustment Declined' },
+      task_declined_by_tasker: { fr: 'Tâche refusée', en: 'Job Declined' },
     };
     return titles[type]?.[i18n.locale === 'fr' ? 'fr' : 'en'] || 'Notification';
   };
@@ -448,6 +460,12 @@ export default function NotificationsScreen() {
       task_cancelled: { name: 'close-circle', color: Colors.dark.error },
       task_reminder: { name: 'alarm', color: '#f59e0b' },
       booking_auto_cancelled: { name: 'timer-outline', color: Colors.dark.error },
+      work_certified: { name: 'checkmark-done-circle', color: Colors.dark.success },
+      adjustment_requested: { name: 'cash-outline', color: '#f59e0b' },
+      counter_offer_received: { name: 'swap-horizontal', color: '#f59e0b' },
+      adjustment_approved: { name: 'checkmark-circle', color: Colors.dark.success },
+      adjustment_declined: { name: 'close-circle', color: Colors.dark.error },
+      task_declined_by_tasker: { name: 'ban', color: Colors.dark.error },
     };
     return icons[type] || { name: 'notifications', color: Colors.dark.primary };
   };

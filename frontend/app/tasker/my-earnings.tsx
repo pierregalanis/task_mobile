@@ -295,7 +295,7 @@ const AnimatedEarningCard = ({
   };
 
   const isPaid = task.is_paid === true || task.payment_status === 'paid';
-  const amount = task.final_price || task.total_cost || task.estimated_total || 0;
+  const amount = task.total_amount || task.final_price || task.total_cost || task.estimated_total || 0;
 
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }}>
@@ -454,7 +454,7 @@ export default function MyEarningsScreen() {
       }
       
       paidTasks.forEach((task: any) => {
-        const amount = task.final_price || task.total_cost || task.estimated_total || 0;
+        const amount = task.total_amount || task.final_price || task.total_cost || task.estimated_total || 0;
         const taskDate = new Date(task.completed_at || task.task_date || task.scheduled_date);
         total += amount;
         
