@@ -150,7 +150,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
         setError(isFr
           ? 'Un code OTP est requis. Générez-en un depuis votre menu mobile money.'
           : 'An OTP is required. Generate one via your mobile-money menu.');
-      } else if (detail.toLowerCase().includes('country') || err.response?.status === 400) {
+      } else if (detail.toLowerCase().includes('country')) {
         setError(isFr
           ? 'Veuillez définir votre pays dans les paramètres avant de payer.'
           : 'Please set your country in profile settings before paying.');
