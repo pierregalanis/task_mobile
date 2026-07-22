@@ -24,11 +24,11 @@ type Status = 'idle' | 'submitting' | 'awaiting_user' | 'success' | 'failed';
 interface Props {
   visible: boolean;
   onClose: () => void;
-  task: { id: string; total_cost?: number; estimated_cost?: number; title?: string } | null;
+  task: { id: string; total_amount?: number; total_cost?: number; estimated_total?: number; budget?: number; title?: string } | null;
   onPaymentSuccess: () => void;
 }
 
-const POLL_INTERVAL_MS = 4000;
+const POLL_INTERVAL_MS = 3000;
 const TIMEOUT_MS = 180_000; // 3 minutes
 
 export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Props) {
@@ -47,7 +47,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const amount = task?.total_cost ?? task?.estimated_cost ?? 0;
+  const amount = task?.total_amount || task?.total_cost || task?.estimated_total || task?.budget || 0;
 
   // Prefill phone from user profile on open
   useEffect(() => {
@@ -112,7 +112,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
     setError('');
     const phoneClean = phone.replace(/\D/g, '');
 
-    if (phoneClean.length < 8) {
+    if (phoneClean.length < 7) {
       setError(isFr ? 'Entrez un numéro valide' : 'Enter a valid phone number');
       return;
     }
@@ -129,6 +129,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
         rail,
         phoneClean,
         amount,
+        user?.country || 'senegal',
         needsOtp && otp ? otp : undefined,
       );
       setOrderId(data.order_id);
@@ -136,15 +137,15 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
         setStatus('success');
         setTimeout(() => { onPaymentSuccess(); onClose(); }, 2000);
       } else {
-        // Wave (SN+CI) and Orange Money SN return a provider_link the user must open
+        // Wave (SN+CI) and Orange Money SN return a provider_link — user must tap to open, never auto-open
         if (data.provider_link) {
           setProviderLink(data.provider_link);
-          Linking.openURL(data.provider_link).catch(() => {});
         }
         setStatus('awaiting_user');
       }
     } catch (err: any) {
-      const detail: string = err.response?.data?.detail || '';
+      const raw = err.response?.data?.detail;
+      const detail: string = typeof raw === 'string' ? raw : (raw?.message || raw?.error || err.message || '');
       if (detail.toLowerCase().includes('otp')) {
         setNeedsOtp(true);
         setError(isFr
@@ -294,6 +295,13 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
                     </TouchableOpacity>
                   ))}
                 </View>
+                {rail === 'wave' && (
+                  <Text style={styles.waveHint}>
+                    {isFr
+                      ? 'Si Wave affiche une erreur, fermez et essayez Orange Money.'
+                      : 'If Wave shows an error, close it and try Orange Money.'}
+                  </Text>
+                )}
 
                 {/* Phone input */}
                 <Text style={styles.sectionLabel}>
@@ -469,6 +477,13 @@ const styles = StyleSheet.create({
   },
   railChipTextActive: {
     color: Colors.dark.primary,
+  },
+  waveHint: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    marginTop: -12,
+    marginBottom: 20,
+    lineHeight: 18,
   },
   input: {
     backgroundColor: Colors.dark.background,

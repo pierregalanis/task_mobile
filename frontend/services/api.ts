@@ -269,6 +269,7 @@ export const afribaPayAPI = {
     rail: 'orange_money' | 'wave',
     phoneNumber: string,
     amount: number,
+    country: string,
     otpCode?: string,
   ) {
     const body: Record<string, any> = {
@@ -276,6 +277,7 @@ export const afribaPayAPI = {
       rail,
       phone_number: phoneNumber,
       amount: Math.round(amount),
+      country,
     };
     if (otpCode) body.otp_code = otpCode;
     const response = await api.post('/api/payments/afribapay/payin', body);
