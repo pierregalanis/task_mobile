@@ -216,38 +216,31 @@ export const authAPI = {
     return response.data;
   },
 
-  // Password Reset - Email method (sends reset link to email)
-  async requestPasswordResetEmail(email: string) {
-    const response = await api.post('/api/auth/forgot-password', { email });
-    return response.data;
+  // Password Reset — single identifier (email or phone), backend resolves the account
+  // and sends the code/link only to the registered contact on file.
+  async requestPasswordReset(method: 'whatsapp' | 'email', identifier: string) {
+    const response = await api.post('/api/auth/forgot-password', { method, identifier });
+    return response.data as {
+      success: boolean;
+      method: 'whatsapp' | 'email';
+      expires_in_minutes: number;
+      masked_phone?: string | null;
+      masked_email?: string | null;
+      whatsapp_sent?: boolean;
+      email_sent?: boolean;
+    };
   },
 
-  // Password Reset - WhatsApp method (sends code via WhatsApp)
-  async requestPasswordResetWhatsApp(phone: string) {
-    const response = await api.post('/api/auth/forgot-password', { phone, method: 'whatsapp' });
-    return response.data;
+  // Verify WhatsApp reset code — same identifier from the request step, NOT a phone
+  async verifyWhatsAppCode(identifier: string, code: string) {
+    const response = await api.post('/api/auth/verify-whatsapp-code', { identifier, code });
+    return response.data as { valid: boolean; token: string; email?: string };
   },
 
-  // Verify WhatsApp reset code (returns a token for password reset)
-  async verifyResetCode(phone: string, code: string) {
-    const response = await api.post('/api/auth/verify-reset-code', { phone, code });
-    return response.data;
-  },
-
-  // Reset password with token (from email link or WhatsApp verification)
+  // Reset password with token (from email link or WhatsApp code verification)
   async resetPasswordWithToken(token: string, newPassword: string) {
-    const response = await api.post('/api/auth/reset-password', { 
-      token, 
-      new_password: newPassword 
-    });
-    return response.data;
-  },
-
-  // Reset password with code (WhatsApp method - phone + code + new password)
-  async resetPasswordWithCode(phone: string, code: string, newPassword: string) {
     const response = await api.post('/api/auth/reset-password', {
-      phone,
-      code,
+      token,
       new_password: newPassword
     });
     return response.data;
