@@ -362,10 +362,12 @@ export default function NotificationsScreen() {
         
       case 'new_task':
       case 'new_booking_request':
-        if (user?.role === 'tasker') {
-          router.push('/(tabs)/tasker-dashboard');
-        } else if (taskId) {
+        if (taskId) {
           router.push(`/task/${taskId}`);
+        } else if (user?.role === 'tasker') {
+          router.push('/(tabs)/tasker-dashboard');
+        } else {
+          router.push('/(tabs)/bookings');
         }
         break;
         

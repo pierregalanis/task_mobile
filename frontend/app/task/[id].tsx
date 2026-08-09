@@ -419,26 +419,6 @@ export default function TaskDetailsScreen() {
     }
   };
 
-  const handleMarkPaidCash = async () => {
-    try {
-      setActionLoading(true);
-      await taskAPI.markPaidCash(task.id);
-      showMessage(
-        i18n.locale === 'fr' ? 'Paiement confirmé !' : 'Payment Confirmed!',
-        i18n.locale === 'fr' ? 'Le paiement en espèces a été enregistré' : 'Cash payment has been recorded'
-      );
-      fetchTaskDetails();
-    } catch (error) {
-      console.error('Error marking as paid:', error);
-      showMessage(
-        i18n.locale === 'fr' ? 'Erreur' : 'Error',
-        i18n.locale === 'fr' ? 'Impossible de confirmer le paiement' : 'Failed to confirm payment'
-      );
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleCancelTask = async () => {
     if (!cancelReason.trim()) {
       showMessage(
@@ -1440,13 +1420,15 @@ export default function TaskDetailsScreen() {
           </View>
         )}
 
-        {/* Payment Section for Tasker (completed but unpaid) */}
+        {/* Payment Section for Tasker (completed but unpaid) — client pays in-app, no cash action needed */}
         {showPaymentSection && (
           <View style={styles.paymentCard}>
             <View style={styles.paymentHeader}>
               <Ionicons name="wallet-outline" size={24} color="#f59e0b" />
               <Text style={styles.paymentTitle}>
-                {i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting Payment'}
+                {i18n.locale === 'fr'
+                  ? "Le client paie dans l'app — vous recevez votre part automatiquement"
+                  : 'The client pays in the app — you receive your share automatically'}
               </Text>
             </View>
             <Text style={styles.paymentAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
@@ -1459,22 +1441,6 @@ export default function TaskDetailsScreen() {
                 <Text style={styles.chatPaymentButtonText}>
                   {i18n.locale === 'fr' ? 'Discuter paiement' : 'Chat about Payment'}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmCashButton}
-                onPress={handleMarkPaidCash}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color={Colors.dark.background} />
-                ) : (
-                  <>
-                    <Ionicons name="cash" size={18} color={Colors.dark.background} />
-                    <Text style={styles.confirmCashButtonText}>
-                      {i18n.locale === 'fr' ? 'Confirmer espèces' : 'Confirm Cash'}
-                    </Text>
-                  </>
-                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -2484,21 +2450,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.dark.primary,
-  },
-  confirmCashButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: Colors.dark.success,
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  confirmCashButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.dark.background,
   },
   paidCard: {
     flexDirection: 'row',

@@ -571,13 +571,6 @@ export const taskAPI = {
     return response.data;
   },
 
-  // ==================== PAYMENT ====================
-
-  // Confirm cash payment received (tasker action)
-  async markPaidCash(taskId: string) {
-    const response = await api.post(`/api/tasks/${taskId}/mark-paid-cash`);
-    return response.data;
-  },
 };
 
 // ==================== REVIEW API ====================

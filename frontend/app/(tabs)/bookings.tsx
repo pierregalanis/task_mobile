@@ -217,10 +217,6 @@ const handleAcceptTask = async (taskId: string) => {
     try { await taskAPI.completeTask(taskId); fetchTasks(); } catch (error) { console.error('Error:', error); }
   };
 
-  const handleMarkPaidCash = async (taskId: string) => {
-    try { await taskAPI.markPaidCash(taskId); fetchTasks(); } catch (error) { console.error('Error:', error); }
-  };
-
   const handlePayOnline = (task: any) => {
     setAfribaPayTask(task);
   };
@@ -621,13 +617,15 @@ const handleAcceptTask = async (taskId: string) => {
                     </TouchableOpacity>
                   )}
 
-                  {/* Payment Section */}
+                  {/* Payment Section (tasker) — client pays in-app, no cash action needed */}
                   {showPaymentButtons && (
                     <View style={styles.paymentSection}>
                       <View style={styles.awaitingPaymentBadge}>
                         <Ionicons name="wallet-outline" size={16} color="#f59e0b" />
                         <Text style={styles.awaitingPaymentText}>
-                          {i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting Payment'}
+                          {i18n.locale === 'fr'
+                            ? 'Le client paie dans l\'app — vous recevez votre part automatiquement'
+                            : 'The client pays in the app — you receive your share automatically'}
                         </Text>
                       </View>
                       <View style={styles.paymentButtonsRow}>
@@ -638,14 +636,6 @@ const handleAcceptTask = async (taskId: string) => {
                         >
                           <Ionicons name="chatbubble" size={16} color={Colors.dark.primary} />
                           <Text style={styles.chatPaymentButtonText}>{i18n.locale === 'fr' ? 'Discuter' : 'Chat'}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.confirmCashButton}
-                          onPress={(e) => { e.stopPropagation(); handleMarkPaidCash(task.id); }}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="cash" size={16} color="#fff" />
-                          <Text style={styles.confirmCashButtonText}>{i18n.locale === 'fr' ? 'Confirmer' : 'Confirm Cash'}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -868,11 +858,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: Colors.dark.primary,
   },
   chatPaymentButtonText: { fontSize: 12, fontWeight: '600', color: Colors.dark.primary },
-  confirmCashButton: {
-    flex: 1, flexDirection: 'row', backgroundColor: Colors.dark.success, padding: 10, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  confirmCashButtonText: { fontSize: 12, fontWeight: '600', color: '#fff' },
   payOnlineButton: {
     flex: 1, flexDirection: 'row', backgroundColor: Colors.dark.primary, paddingVertical: 10, paddingHorizontal: 8,
     borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 6,
