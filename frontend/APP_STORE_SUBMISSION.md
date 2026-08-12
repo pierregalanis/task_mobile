@@ -83,7 +83,7 @@ Available in French and English.
 
 Download Soutrali today and discover the easiest way to get things done!
 
-Need help? Contact us at aboh@a4less.com
+Need help? Contact us at help@soutrali.net
 ```
 
 **French:**
@@ -143,7 +143,7 @@ Disponible en français et en anglais.
 
 Téléchargez Soutrali aujourd'hui et découvrez la façon la plus simple de faire avancer les choses !
 
-Besoin d'aide ? Contactez-nous à aboh@a4less.com
+Besoin d'aide ? Contactez-nous à help@soutrali.net
 ```
 
 ---
@@ -191,8 +191,9 @@ Required size: 2048 x 2732 pixels
 - **Password**: test123
 
 ### Contact Information
-- **Support Email**: aboh@a4less.com
-- **Support Phone**: +22177882922
+- **Support Email**: help@soutrali.net
+- **Support Phone / WhatsApp**: +1 (313) 699-0734
+- **Support URL**: https://soutrali.net/help
 - **Privacy Policy**: https://soutrali.net/privacy
 - **Terms of Service**: https://soutrali.net/terms
 
@@ -270,6 +271,6 @@ eas submit --platform android
 
 ## 📞 Support Contact
 
-- **Email**: aboh@a4less.com
-- **WhatsApp**: +22177882922
+- **Email**: help@soutrali.net
+- **WhatsApp**: +1 (313) 699-0734
 - **Website**: https://soutrali.net

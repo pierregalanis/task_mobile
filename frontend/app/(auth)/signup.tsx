@@ -44,6 +44,7 @@ export default function SignupScreen() {
   const [country, setCountry] = useState<'ivory_coast' | 'senegal'>('ivory_coast');
   const [phoneLocal, setPhoneLocal] = useState('');
   const [location, setLocation] = useState<LocationData | null>(null);
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -102,23 +103,37 @@ export default function SignupScreen() {
 
       const lat = location?.latitude || selectedCountry.latitude;
       const lng = location?.longitude || selectedCountry.longitude;
+      const fullPhone = selectedCountry.phonePrefix + phoneLocal.trim();
 
-      await register({
+      const response = await register({
         email: data.email,
         password: data.password,
         full_name: data.fullName,
-        phone: selectedCountry.phonePrefix + phoneLocal.trim(),
+        phone: fullPhone,
         country: country,
         city: location?.address?.split(',')[0] || selectedCountry.defaultCity,
         latitude: lat,
         longitude: lng,
         language: i18n.locale,
         role: role,
+        verification_method: verificationMethod,
       });
-      
+
+      if (response?.requires_verification && response?.verification_method === 'whatsapp') {
+        router.push({
+          pathname: '/(auth)/verify-phone',
+          params: {
+            identifier: fullPhone,
+            maskedPhone: response.masked_phone ?? '',
+            expiresInMinutes: String(response.expires_in_minutes ?? 15),
+          },
+        });
+        return;
+      }
+
       setRegisteredEmail(data.email);
       setShowSuccessModal(true);
-      
+
     } catch (error: any) {
       console.error('Signup error:', error);
       showMessage(
@@ -248,6 +263,34 @@ export default function SignupScreen() {
             />
           </View>
 
+          <View style={styles.verificationSection}>
+            <Text style={styles.countryLabel}>
+              {i18n.locale === 'fr' ? 'Vérifier mon compte par' : 'Verify my account via'}
+            </Text>
+            <View style={styles.countrySelector}>
+              <TouchableOpacity
+                style={[styles.countryButton, verificationMethod === 'whatsapp' && styles.countryButtonActive]}
+                onPress={() => setVerificationMethod('whatsapp')}
+                testID="verification-method-whatsapp"
+              >
+                <Text style={styles.countryFlag}>📱</Text>
+                <Text style={[styles.countryButtonText, verificationMethod === 'whatsapp' && styles.countryButtonTextActive]}>
+                  {i18n.locale === 'fr' ? 'WhatsApp (recommandé)' : 'WhatsApp (recommended)'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.countryButton, verificationMethod === 'email' && styles.countryButtonActive]}
+                onPress={() => setVerificationMethod('email')}
+                testID="verification-method-email"
+              >
+                <Text style={styles.countryFlag}>✉️</Text>
+                <Text style={[styles.countryButtonText, verificationMethod === 'email' && styles.countryButtonTextActive]}>
+                  Email
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <Button title={i18n.t('auth.signup.button')} onPress={handleSubmit(onSubmit)} loading={loading} disabled={confirmPassword.length > 0 && !passwordsMatch} style={styles.signupButton} />
 
           <View style={styles.loginContainer}>
@@ -324,6 +367,7 @@ const styles = StyleSheet.create({
   roleButtonText: { fontSize: 14, fontWeight: '600', color: Colors.dark.textSecondary },
   roleButtonTextActive: { color: Colors.dark.background },
   countrySection: { marginBottom: 24 },
+  verificationSection: { marginBottom: 24 },
   countryLabel: { fontSize: 14, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
   countrySelector: { flexDirection: 'row', gap: 12 },
   countryButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: Colors.dark.border, gap: 8 },

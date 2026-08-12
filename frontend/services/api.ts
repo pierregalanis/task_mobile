@@ -62,6 +62,7 @@ export interface RegisterData {
   city?: string;
   latitude?: number;
   longitude?: number;
+  verification_method?: 'whatsapp' | 'email';
 }
 
 export interface User {
@@ -250,6 +251,23 @@ export const authAPI = {
   async resendVerification(email: string) {
     const response = await api.post('/api/auth/resend-verification', { email });
     return response.data;
+  },
+
+  // Verify signup WhatsApp code — identifier is the phone (or email) tied to the account
+  async verifyPhoneCode(identifier: string, code: string) {
+    const response = await api.post('/api/auth/verify-phone', { identifier, code });
+    return response.data as { verified: boolean };
+  },
+
+  // Resend signup WhatsApp code — 429 = 60s cooldown
+  async resendPhoneCode(identifier: string) {
+    const response = await api.post('/api/auth/resend-phone-code', { identifier });
+    return response.data as {
+      success?: boolean;
+      masked_phone?: string | null;
+      expires_in_minutes?: number;
+      already_verified?: boolean;
+    };
   },
 };
 

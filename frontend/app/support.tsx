@@ -16,7 +16,7 @@ import i18n from '../utils/i18n';
 import { showMessage } from '../utils/alert';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
-const SUPPORT_WHATSAPP = '+12487879259';
+const SUPPORT_WHATSAPP = '+13136990734';
 const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
 const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
 
@@ -55,27 +55,26 @@ export default function SupportScreen() {
   };
 
   const handleWhatsAppSupport = async () => {
-    const message = isFrench 
-      ? 'Bonjour, j\'ai besoin d\'aide avec l\'application Soutrali.' 
-      : 'Hello, I need help with the Soutrali app.';
-    
-    const whatsappUrl = `whatsapp://send?phone=${SUPPORT_WHATSAPP.replace('+', '')}&text=${encodeURIComponent(message)}`;
-    const webWhatsappUrl = `https://wa.me/${SUPPORT_WHATSAPP.replace('+', '')}?text=${encodeURIComponent(message)}`;
-    
+    const message = isFrench
+      ? 'Bonjour Soutrali, j\'ai besoin d\'aide'
+      : 'Hello Soutrali, I need help';
+
+    const whatsappUrl = `https://wa.me/${SUPPORT_WHATSAPP.replace('+', '')}?text=${encodeURIComponent(message)}`;
+
     try {
       const canOpen = await Linking.canOpenURL(whatsappUrl);
       if (canOpen) {
         await Linking.openURL(whatsappUrl);
       } else {
-        // Fallback to web WhatsApp
-        await Linking.openURL(webWhatsappUrl);
+        // WhatsApp isn't installed — fall back to email
+        await Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
       }
     } catch (error) {
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        isFrench 
-          ? 'Impossible d\'ouvrir WhatsApp' 
-          : 'Unable to open WhatsApp'
+        isFrench
+          ? `Impossible d'ouvrir WhatsApp. Contactez-nous à: ${SUPPORT_EMAIL}`
+          : `Unable to open WhatsApp. Contact us at: ${SUPPORT_EMAIL}`
       );
     }
   };

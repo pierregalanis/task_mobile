@@ -27,20 +27,23 @@ interface LoginFormData {
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const { verified } = useLocalSearchParams<{ verified?: string }>();
+  const { verified, method } = useLocalSearchParams<{ verified?: string; method?: string }>();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (verified === 'true') {
+      const isWhatsapp = method === 'whatsapp';
       showMessage(
-        i18n.locale === 'fr' ? 'Email vérifié !' : 'Email Verified!',
+        isWhatsapp
+          ? (i18n.locale === 'fr' ? 'Numéro vérifié !' : 'Number Verified!')
+          : (i18n.locale === 'fr' ? 'Email vérifié !' : 'Email Verified!'),
         i18n.locale === 'fr'
           ? 'Votre compte est activé. Connectez-vous pour continuer.'
           : 'Your account is now active. Please log in to continue.'
       );
     }
-  }, [verified]);
+  }, [verified, method]);
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     defaultValues: {
@@ -57,8 +60,17 @@ export default function LoginScreen() {
     } catch (error: any) {
       console.error('Login error:', error);
       const detail: string = error.response?.data?.detail ?? '';
-      const isUnverified = /not verified|email.*verif|verif.*email/i.test(detail);
-      if (isUnverified) {
+      const isWhatsappUnverified = /whatsapp/i.test(detail);
+      const isEmailUnverified = /not verified|email.*verif|verif.*email/i.test(detail);
+      if (isWhatsappUnverified) {
+        showMessage(
+          i18n.locale === 'fr' ? 'Numéro non vérifié' : 'Number Not Verified',
+          i18n.locale === 'fr'
+            ? 'Un code va être envoyé sur votre WhatsApp.'
+            : "A code will be sent to your WhatsApp."
+        );
+        setTimeout(() => router.push(`/(auth)/verify-phone?identifier=${encodeURIComponent(data.email)}&autoSend=true`), 1500);
+      } else if (isEmailUnverified) {
         showMessage(
           i18n.locale === 'fr' ? 'Email non vérifié' : 'Email Not Verified',
           i18n.locale === 'fr'
