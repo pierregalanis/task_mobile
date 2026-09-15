@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
 import { showMessage } from '../utils/alert';
+import { useAuth } from '../contexts/AuthContext';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
 const SUPPORT_WHATSAPP = '+13136990734';
@@ -22,7 +23,89 @@ const TERMS_OF_SERVICE_URL = 'https://soutrali.net/terms';
 
 export default function SupportScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const isFrench = i18n.locale === 'fr';
+  const [howToTab, setHowToTab] = useState<'client' | 'pro'>(user?.role === 'tasker' ? 'pro' : 'client');
+
+  const clientSteps = [
+    {
+      title: isFrench ? 'Choisissez votre service' : 'Choose your service',
+      text: isFrench
+        ? 'Ouvrez l\'application, sélectionnez une catégorie (ménage, plomberie, électricité...) et un Pro disponible près de chez vous.'
+        : 'Open the app, pick a category (cleaning, plumbing, electrical...) and a Pro available near you.',
+    },
+    {
+      title: isFrench ? 'Réservez en quelques clics' : 'Book in a few taps',
+      text: isFrench
+        ? 'Indiquez la date, l\'heure et l\'adresse. Le Pro reçoit votre demande immédiatement.'
+        : 'Enter the date, time, and address. The Pro receives your request right away.',
+    },
+    {
+      title: isFrench ? 'Suivez son arrivée en direct' : 'Track their arrival live',
+      text: isFrench
+        ? 'Une fois votre demande acceptée, suivez le trajet du Pro sur la carte jusqu\'à son arrivée chez vous.'
+        : 'Once your request is accepted, follow the Pro\'s route on the map until they arrive.',
+    },
+    {
+      title: isFrench ? 'Le Pro vérifie le travail avant de commencer' : 'The Pro checks the job before starting',
+      text: isFrench
+        ? 'À son arrivée, le Pro confirme que tout correspond à votre demande. S\'il propose un nouveau prix, vous devez l\'accepter avant que le travail ne débute.'
+        : 'On arrival, the Pro confirms everything matches your request. If they propose a new price, you must approve it before work begins.',
+    },
+    {
+      title: isFrench ? 'Payez directement dans l\'app' : 'Pay directly in the app',
+      text: isFrench
+        ? 'Une fois le travail terminé, payez en toute sécurité par Orange Money ou Wave — plus besoin d\'espèces. Si vous oubliez, un rappel vous sera envoyé.'
+        : 'Once the job is done, pay securely via Orange Money or Wave — no cash needed. If you forget, you\'ll get a reminder.',
+    },
+    {
+      title: isFrench ? 'Donnez votre avis' : 'Leave a review',
+      text: isFrench
+        ? 'Vous avez 14 jours après la fin du service pour laisser une note et un commentaire sur le Pro.'
+        : 'You have 14 days after the job to rate and review the Pro.',
+    },
+  ];
+
+  const proSteps = [
+    {
+      title: isFrench ? 'Recevez une demande' : 'Get a request',
+      text: isFrench
+        ? 'Une notification vous prévient dès qu\'un client réserve l\'un de vos services.'
+        : 'A notification alerts you as soon as a client books one of your services.',
+    },
+    {
+      title: isFrench ? 'Acceptez ou refusez' : 'Accept or decline',
+      text: isFrench
+        ? 'Vous décidez librement si vous pouvez prendre la tâche.'
+        : 'You decide whether you can take the job.',
+    },
+    {
+      title: isFrench ? 'Signalez votre départ' : 'Signal you\'re on your way',
+      text: isFrench
+        ? 'Appuyez sur « En route » pour que le client puisse suivre votre trajet en temps réel.'
+        : 'Tap "En route" so the client can track your arrival in real time.',
+    },
+    {
+      title: isFrench ? 'Confirmez le travail sur place' : 'Confirm the job on site',
+      text: isFrench
+        ? 'À votre arrivée, vérifiez que la tâche correspond bien à la demande. Si ce n\'est pas le cas, proposez un nouveau prix au client avant de commencer.'
+        : 'On arrival, check that the job matches the request. If not, propose a new price to the client before starting.',
+    },
+    {
+      title: isFrench ? 'Terminez la tâche' : 'Complete the task',
+      text: isFrench
+        ? 'Une fois le travail fini, marquez la tâche comme terminée dans l\'application.'
+        : 'Once the work is done, mark the task as completed in the app.',
+    },
+    {
+      title: isFrench ? 'Recevez votre paiement automatiquement' : 'Get paid automatically',
+      text: isFrench
+        ? 'Le client paie dans l\'app. Votre part vous est reversée automatiquement par Orange Money ou Wave — vous n\'avez jamais à gérer d\'espèces.'
+        : 'The client pays in the app. Your share is sent automatically via Orange Money or Wave — you never handle cash.',
+    },
+  ];
+
+  const activeSteps = howToTab === 'client' ? clientSteps : proSteps;
 
   const handleEmailSupport = async () => {
     const subject = isFrench ? 'Support Soutrali Mobile' : 'Soutrali Mobile Support';
@@ -209,6 +292,60 @@ export default function SupportScreen() {
           <Ionicons name="chevron-forward" size={24} color={Colors.dark.textSecondary} />
         </TouchableOpacity>
 
+        {/* How It Works Section */}
+        <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
+          {isFrench ? 'Comment ça marche' : 'How It Works'}
+        </Text>
+
+        <View style={styles.howToTabs}>
+          <TouchableOpacity
+            style={[styles.howToTab, howToTab === 'client' && styles.howToTabActiveClient]}
+            onPress={() => setHowToTab('client')}
+            testID="howto-tab-client"
+          >
+            <Text style={[styles.howToTabText, howToTab === 'client' && styles.howToTabTextActive]}>
+              {isFrench ? 'Client' : 'Client'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.howToTab, howToTab === 'pro' && styles.howToTabActivePro]}
+            onPress={() => setHowToTab('pro')}
+            testID="howto-tab-pro"
+          >
+            <Text style={[styles.howToTabText, howToTab === 'pro' && styles.howToTabTextActive]}>
+              {isFrench ? 'Pro' : 'Pro'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeSteps.map((step, index) => (
+          <View key={index} style={styles.stepCard}>
+            <View style={[styles.stepNum, howToTab === 'pro' && styles.stepNumPro]}>
+              <Text style={styles.stepNumText}>{index + 1}</Text>
+            </View>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepTitle}>{step.title}</Text>
+              <Text style={styles.stepText}>{step.text}</Text>
+            </View>
+          </View>
+        ))}
+
+        <View style={styles.paymentCallout}>
+          <View style={[styles.contactIcon, { backgroundColor: Colors.dark.primary + '20', marginRight: 12 }]}>
+            <Ionicons name="card-outline" size={24} color={Colors.dark.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.calloutTitle}>
+              {isFrench ? 'Paiement 100% dans l\'application' : '100% In-App Payment'}
+            </Text>
+            <Text style={styles.calloutText}>
+              {isFrench
+                ? 'Orange Money et Wave uniquement — aucun paiement en espèces n\'est accepté.'
+                : 'Orange Money and Wave only — no cash payments accepted.'}
+            </Text>
+          </View>
+        </View>
+
         {/* FAQ Section */}
         <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
           {isFrench ? 'Questions fréquentes' : 'Frequently Asked Questions'}
@@ -332,6 +469,99 @@ const styles = StyleSheet.create({
   contactValue: {
     fontSize: 14,
     color: Colors.dark.textSecondary,
+  },
+  howToTabs: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  howToTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center',
+  },
+  howToTabActiveClient: {
+    borderColor: Colors.dark.primary,
+    backgroundColor: `${Colors.dark.primary}18`,
+  },
+  howToTabActivePro: {
+    borderColor: '#f59e0b',
+    backgroundColor: '#f59e0b18',
+  },
+  howToTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark.textSecondary,
+  },
+  howToTabTextActive: {
+    color: Colors.dark.text,
+  },
+  stepCard: {
+    flexDirection: 'row',
+    gap: 14,
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  stepNum: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: Colors.dark.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  stepNumPro: {
+    backgroundColor: '#f59e0b',
+  },
+  stepNumText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  stepBody: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    marginBottom: 4,
+  },
+  stepText: {
+    fontSize: 13.5,
+    color: Colors.dark.textSecondary,
+    lineHeight: 19,
+  },
+  paymentCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.card,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 4,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  calloutTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    marginBottom: 4,
+  },
+  calloutText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    lineHeight: 18,
   },
   faqCard: {
     backgroundColor: Colors.dark.card,
