@@ -288,7 +288,9 @@ export default function EmergencyContactsScreen() {
           {/* Empty State */}
           {contacts.length === 0 && (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color={Colors.dark.textSecondary} />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="people" size={40} color={Colors.dark.primary} />
+              </View>
               <Text style={styles.emptyTitle}>
                 {isFr ? 'Aucun contact d\'urgence' : 'No Emergency Contacts'}
               </Text>
@@ -480,6 +482,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
     gap: 12,
+  },
+  emptyIconContainer: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: `${Colors.dark.primary}15`,
+    alignItems: 'center', justifyContent: 'center',
   },
   emptyTitle: {
     fontSize: 18,

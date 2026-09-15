@@ -614,7 +614,10 @@ export default function NotificationsScreen() {
         {displayedNotifications.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="notifications-outline" size={48} color={Colors.dark.primary} />
+              <Ionicons name="notifications" size={48} color={Colors.dark.primary} />
+              <View style={styles.emptyIconBadge}>
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              </View>
             </View>
             <Text style={styles.emptyTitle}>
               {showUnreadOnly 
@@ -734,6 +737,11 @@ const styles = StyleSheet.create({
   emptyIconContainer: {
     width: 96, height: 96, borderRadius: 48, backgroundColor: `${Colors.dark.primary}15`,
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+  },
+  emptyIconBadge: {
+    position: 'absolute', bottom: 6, right: 6, width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.dark.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: Colors.dark.background,
   },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: Colors.dark.text },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },

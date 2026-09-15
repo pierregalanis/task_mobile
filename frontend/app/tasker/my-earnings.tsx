@@ -681,7 +681,7 @@ export default function MyEarningsScreen() {
           {filteredTasks.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconContainer}>
-                <Ionicons name="receipt-outline" size={40} color={Colors.dark.primary} />
+                <Ionicons name="receipt" size={40} color={Colors.dark.primary} />
               </View>
               <Text style={styles.emptyTitle}>
                 {i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks'}

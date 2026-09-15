@@ -307,7 +307,9 @@ export default function SelectTaskerScreen() {
         >
           {taskers.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={64} color={Colors.dark.textSecondary} />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="search" size={40} color={Colors.dark.primary} />
+              </View>
               <Text style={styles.emptyText}>
                 {isEn ? 'No taskers found' : 'Aucun pro trouvé'}
               </Text>
@@ -552,6 +554,10 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
+  },
+  emptyIconContainer: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: `${Colors.dark.primary}15`,
+    alignItems: 'center', justifyContent: 'center',
   },
   emptyText: {
     fontSize: 18,

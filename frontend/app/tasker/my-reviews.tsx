@@ -152,7 +152,9 @@ export default function MyReviewsScreen() {
 
           {reviews.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={48} color={Colors.dark.textSecondary} />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="star" size={36} color={Colors.dark.primary} />
+              </View>
               <Text style={styles.emptyText}>
                 {i18n.locale === 'fr' ? 'Aucun avis pour le moment' : 'No reviews yet'}
               </Text>
@@ -237,6 +239,10 @@ const styles = StyleSheet.create({
   reviewsSection: { padding: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text, marginBottom: 16 },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyIconContainer: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: `${Colors.dark.primary}15`,
+    alignItems: 'center', justifyContent: 'center',
+  },
   emptyText: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 12 },
   reviewCard: {
     backgroundColor: Colors.dark.card,

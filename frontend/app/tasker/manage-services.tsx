@@ -285,7 +285,9 @@ export default function ManageServicesScreen() {
 
         {services.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="construct-outline" size={64} color={Colors.dark.textSecondary} />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="construct" size={40} color={Colors.dark.primary} />
+            </View>
             <Text style={styles.emptyTitle}>
               {i18n.locale === 'fr' ? 'Aucun service' : 'No services yet'}
             </Text>
@@ -992,6 +994,10 @@ const styles = StyleSheet.create({
   availabilityTitle: { fontSize: 16, fontWeight: '600', color: Colors.dark.text },
   availabilityStatus: { fontSize: 13, color: Colors.dark.textSecondary, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
+  emptyIconContainer: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: `${Colors.dark.primary}15`,
+    alignItems: 'center', justifyContent: 'center',
+  },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.dark.text, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
   addFirstBtn: {

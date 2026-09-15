@@ -11,6 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { afribaPayAPI } from '../services/api';
@@ -47,6 +49,36 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Success celebration: checkmark pop + a small confetti-style particle burst
+  const checkScale = useRef(new Animated.Value(0)).current;
+  const burstProgress = useRef(new Animated.Value(0)).current;
+  const particles = useRef(
+    Array.from({ length: 10 }, (_, i) => {
+      const angle = (i / 10) * Math.PI * 2;
+      const distance = 42 + (i % 3) * 10;
+      const colors = [Colors.dark.success, '#6ee7b7', '#fbbf24'];
+      return { angle, distance, color: colors[i % colors.length] };
+    })
+  ).current;
+
+  useEffect(() => {
+    if (status !== 'success') return;
+    checkScale.setValue(0);
+    burstProgress.setValue(0);
+    Animated.spring(checkScale, {
+      toValue: 1,
+      friction: 4,
+      tension: 55,
+      useNativeDriver: true,
+    }).start();
+    Animated.timing(burstProgress, {
+      toValue: 1,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [status]);
 
   const amount = task?.total_amount || task?.total_cost || task?.estimated_total || task?.budget || 0;
 
@@ -223,7 +255,42 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
             {/* Success state */}
             {status === 'success' && (
               <View style={styles.stateCard}>
-                <Ionicons name="checkmark-circle" size={48} color={Colors.dark.success} />
+                <View style={styles.burstContainer}>
+                  {particles.map((p, i) => {
+                    const translateX = burstProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.cos(p.angle) * p.distance],
+                    });
+                    const translateY = burstProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.sin(p.angle) * p.distance],
+                    });
+                    const opacity = burstProgress.interpolate({
+                      inputRange: [0, 0.6, 1],
+                      outputRange: [1, 1, 0],
+                    });
+                    const scale = burstProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0.3],
+                    });
+                    return (
+                      <Animated.View
+                        key={i}
+                        style={[
+                          styles.particle,
+                          {
+                            backgroundColor: p.color,
+                            opacity,
+                            transform: [{ translateX }, { translateY }, { scale }],
+                          },
+                        ]}
+                      />
+                    );
+                  })}
+                  <Animated.View style={{ transform: [{ scale: checkScale }] }}>
+                    <Ionicons name="checkmark-circle" size={48} color={Colors.dark.success} />
+                  </Animated.View>
+                </View>
                 <Text style={styles.stateTitle}>
                   {isFr ? 'Paiement confirmé' : 'Payment confirmed'}
                 </Text>
@@ -556,6 +623,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
     gap: 12,
+  },
+  burstContainer: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  particle: {
+    position: 'absolute',
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   stateTitle: {
     fontSize: 20,

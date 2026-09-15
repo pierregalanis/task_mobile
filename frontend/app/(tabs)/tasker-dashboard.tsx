@@ -790,7 +790,7 @@ export default function TaskerDashboardScreen() {
         {tasks.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="briefcase-outline" size={48} color={Colors.dark.primary} />
+              <Ionicons name="briefcase" size={48} color={Colors.dark.primary} />
             </View>
             <Text style={styles.emptyTitle}>{i18n.locale === 'fr' ? 'Aucune tâche' : 'No tasks yet'}</Text>
             <Text style={styles.emptySubtitle}>

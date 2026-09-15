@@ -26,6 +26,7 @@ import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 import { formatPrice } from '../../utils/pricingUtils';
 import { SOSButton } from '../../components/SOSButton';
+import { AfribaPayModal } from '../../components/AfribaPayModal';
 import { hapticLight, hapticSuccess, hapticWarning } from '../../utils/haptics';
 
 // Dispute reasons
@@ -78,6 +79,9 @@ export default function TaskDetailsScreen() {
 
   // Assessment action loading (separate from main actionLoading)
   const [assessActionLoading, setAssessActionLoading] = useState(false);
+
+  // AfribaPay Modal State (Client)
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
@@ -860,6 +864,7 @@ export default function TaskDetailsScreen() {
   const showTrackTasker = isClient && (isEnRoute || isInProgress);
   const showChat = isActive || isCompleted;
   const showPaymentSection = isTasker && isCompleted && !isPaid;
+  const showClientPaymentSection = isClient && isCompleted && !isPaid;
   const showPaidBadge = isCompleted && isPaid;
   const showReview = isClient && isCompleted && !task.review_submitted;
   const showCancel = isPending || isAccepted;
@@ -1455,6 +1460,43 @@ export default function TaskDetailsScreen() {
           </View>
         )}
 
+        {/* Payment Section for Client (completed but unpaid) */}
+        {showClientPaymentSection && (
+          <View style={styles.paymentCard}>
+            <View style={styles.paymentHeader}>
+              <Ionicons name="wallet-outline" size={24} color="#f59e0b" />
+              <Text style={styles.paymentTitle}>
+                {i18n.locale === 'fr' ? 'Paiement en attente' : 'Payment Pending'}
+              </Text>
+            </View>
+            <Text style={styles.paymentAmount}>{formatPrice(totalCost, i18n.locale)}</Text>
+            <View style={styles.paymentButtons}>
+              <TouchableOpacity
+                style={styles.chatPaymentButton}
+                onPress={handleChat}
+              >
+                <Ionicons name="chatbubble" size={18} color={Colors.dark.primary} />
+                <Text style={styles.chatPaymentButtonText}>
+                  {i18n.locale === 'fr' ? 'Discuter' : 'Chat'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.payOnlineButton}
+                onPress={() => setShowPaymentModal(true)}
+                testID="task-pay-online-btn"
+              >
+                <Ionicons name="phone-portrait" size={18} color="#fff" />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={styles.payOnlineButtonText}>
+                    {i18n.locale === 'fr' ? 'Payer' : 'Pay'}
+                  </Text>
+                  <Text style={styles.payOnlineButtonSub}>Orange Money · Wave</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Paid Badge */}
         {showPaidBadge && (
           <View style={styles.paidCard}>
@@ -2029,6 +2071,16 @@ export default function TaskDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      <AfribaPayModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        task={task}
+        onPaymentSuccess={() => {
+          setShowPaymentModal(false);
+          fetchTaskDetails();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -2459,6 +2511,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.dark.primary,
+  },
+  payOnlineButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: Colors.dark.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  payOnlineButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+    lineHeight: 16,
+  },
+  payOnlineButtonSub: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 14,
   },
   paidCard: {
     flexDirection: 'row',

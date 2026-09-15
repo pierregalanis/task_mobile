@@ -171,7 +171,7 @@ export default function FavoritesScreen() {
         {favorites.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="heart-outline" size={48} color={Colors.dark.primary} />
+              <Ionicons name="heart" size={48} color={Colors.dark.primary} />
             </View>
             <Text style={styles.emptyTitle}>
               {isEn ? 'No favorites yet' : 'Aucun favori'}

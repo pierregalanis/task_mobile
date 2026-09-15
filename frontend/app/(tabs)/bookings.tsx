@@ -403,7 +403,10 @@ const handleAcceptTask = async (taskId: string) => {
         {displayTasks.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="calendar-outline" size={48} color={Colors.dark.primary} />
+              <Ionicons name="home" size={40} color={Colors.dark.primary} />
+              <View style={styles.emptyIconBadge}>
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              </View>
             </View>
             <Text style={styles.emptyTitle}>
               {i18n.locale === 'fr' ? 'Aucune réservation' : 'No bookings'}
@@ -756,6 +759,11 @@ const styles = StyleSheet.create({
   emptyIconContainer: {
     width: 80, height: 80, borderRadius: 40, backgroundColor: `${Colors.dark.primary}15`,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  emptyIconBadge: {
+    position: 'absolute', bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.dark.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: Colors.dark.background,
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.dark.text, marginTop: 8 },
   emptySubtitle: { fontSize: 14, color: Colors.dark.textSecondary, marginTop: 8, textAlign: 'center' },
