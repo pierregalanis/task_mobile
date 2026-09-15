@@ -23,6 +23,7 @@ import i18n from '../../../utils/i18n';
 import { showMessage } from '../../../utils/alert';
 import { formatPrice } from '../../../utils/pricingUtils';
 import { Button } from '../../../components/Button';
+import { hapticLight, hapticWarning } from '../../../utils/haptics';
 
 type AssessMode = 'certify' | 'adjust' | 'decline' | null;
 
@@ -169,6 +170,7 @@ export default function AssessWorkScreen() {
           action: 'certify',
           assessment_notes: notes.trim() || undefined,
         });
+        hapticLight();
         showMessage(
           isFr ? 'Travail certifié' : 'Work certified',
           isFr
@@ -195,6 +197,7 @@ export default function AssessWorkScreen() {
           action: 'decline',
           decline_reason: reason.trim(),
         });
+        hapticWarning();
         showMessage(
           isFr ? 'Tâche refusée' : 'Job declined',
           isFr ? 'Le client a été notifié.' : 'The client has been notified.',
@@ -203,6 +206,7 @@ export default function AssessWorkScreen() {
       }
     } catch (error: any) {
       console.error('Assessment submit failed:', error);
+      hapticWarning();
       showMessage(
         isFr ? 'Erreur' : 'Error',
         error?.response?.data?.detail ||

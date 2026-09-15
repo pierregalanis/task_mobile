@@ -16,6 +16,7 @@ import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/Button';
 import i18n from '../../utils/i18n';
 import { authAPI } from '../../services/api';
+import { hapticSuccess, hapticWarning } from '../../utils/haptics';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -90,11 +91,14 @@ export default function VerifyPhoneScreen() {
       setVerifying(true);
       const response = await authAPI.verifyPhoneCode(identifier, code);
       if (response.verified) {
+        hapticSuccess();
         router.replace('/(auth)/login?verified=true&method=whatsapp');
       } else {
+        hapticWarning();
         setCodeError(isFr ? 'Code invalide ou expiré' : 'Invalid or expired code');
       }
     } catch (error: any) {
+      hapticWarning();
       if (error.response?.status === 429) {
         setCodeError(isFr
           ? 'Trop de tentatives. Renvoyez un nouveau code.'

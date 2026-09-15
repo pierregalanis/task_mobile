@@ -26,6 +26,7 @@ import { Button } from '../../components/Button';
 import { showMessage } from '../../utils/alert';
 import { formatPrice } from '../../utils/pricingUtils';
 import { SOSButton } from '../../components/SOSButton';
+import { hapticLight, hapticSuccess, hapticWarning } from '../../utils/haptics';
 
 // Dispute reasons
 const DISPUTE_REASONS = [
@@ -226,6 +227,7 @@ export default function TaskDetailsScreen() {
     try {
       setActionLoading(true);
       await taskAPI.acceptTask(task.id);
+      hapticLight();
       showMessage(
         i18n.locale === 'fr' ? 'Succès' : 'Success',
         i18n.locale === 'fr' ? 'Tâche acceptée !' : 'Task accepted!'
@@ -233,6 +235,7 @@ export default function TaskDetailsScreen() {
       fetchTaskDetails();
     } catch (error) {
       console.error('Error accepting task:', error);
+      hapticWarning();
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? "Impossible d'accepter" : 'Failed to accept'
@@ -246,6 +249,7 @@ export default function TaskDetailsScreen() {
     try {
       setActionLoading(true);
       await taskAPI.rejectTask(task.id);
+      hapticLight();
       showMessage(
         i18n.locale === 'fr' ? 'Tâche refusée' : 'Task Declined',
         i18n.locale === 'fr' ? 'Vous avez refusé cette tâche' : 'You have declined this task',
@@ -253,6 +257,7 @@ export default function TaskDetailsScreen() {
       );
     } catch (error) {
       console.error('Error rejecting task:', error);
+      hapticWarning();
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Impossible de refuser' : 'Failed to decline'
@@ -403,6 +408,7 @@ export default function TaskDetailsScreen() {
         setTimerRunning(false);
       }
       await taskAPI.completeTask(task.id);
+      hapticSuccess();
       showMessage(
         i18n.locale === 'fr' ? 'Tâche terminée !' : 'Task Completed!',
         i18n.locale === 'fr' ? 'En attente de paiement' : 'Awaiting payment'
@@ -410,6 +416,7 @@ export default function TaskDetailsScreen() {
       fetchTaskDetails();
     } catch (error) {
       console.error('Error completing task:', error);
+      hapticWarning();
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         i18n.locale === 'fr' ? 'Impossible de terminer' : 'Failed to complete'
@@ -559,9 +566,11 @@ export default function TaskDetailsScreen() {
     try {
       setActionLoading(true);
       await taskAPI.markArrival(task.id);
+      hapticLight();
       router.push(`/task/assess/${task.id}`);
     } catch (error: any) {
       console.error('Error marking arrival:', error);
+      hapticWarning();
       showMessage(
         i18n.locale === 'fr' ? 'Erreur' : 'Error',
         error.response?.data?.detail ||

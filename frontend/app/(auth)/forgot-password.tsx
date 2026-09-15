@@ -18,6 +18,7 @@ import { Input } from '../../components/Input';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
 import { authAPI } from '../../services/api';
+import { hapticLight, hapticSuccess, hapticWarning } from '../../utils/haptics';
 
 type ResetMethod = 'whatsapp' | 'email';
 type Step = 'input' | 'code' | 'newPassword' | 'success';
@@ -86,13 +87,16 @@ export default function ForgotPasswordScreen() {
       setLoading(true);
       const response = await authAPI.verifyWhatsAppCode(identifier.trim(), code);
       if (response.valid && response.token) {
+        hapticLight();
         setResetToken(response.token);
         setStep('newPassword');
       } else {
+        hapticWarning();
         setCodeError(isFrench ? 'Code invalide ou expiré' : 'Invalid or expired code');
       }
     } catch (error: any) {
       console.error('Code verification error:', error);
+      hapticWarning();
       const detail = error.response?.data?.detail || error.response?.data?.message;
       setCodeError(detail || (isFrench ? 'Code invalide ou expiré' : 'Invalid or expired code'));
     } finally {
@@ -122,6 +126,7 @@ export default function ForgotPasswordScreen() {
 
       await authAPI.resetPasswordWithToken(resetToken, newPassword);
 
+      hapticSuccess();
       setSuccessType('password_reset');
       setStep('success');
     } catch (error: any) {

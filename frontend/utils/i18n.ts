@@ -65,7 +65,7 @@ const i18n = new I18n({
       signupError: 'Failed to create account',
     },
     home: {
-      title: 'Find Taskers',
+      title: 'Find Pros',
       search: 'Search services...',
       categories: 'Categories',
       featured: 'Featured Taskers',
@@ -138,7 +138,7 @@ const i18n = new I18n({
       signupError: 'Échec de création du compte',
     },
     home: {
-      title: 'Trouver des pros',
+      title: 'Trouver pros',
       search: 'Rechercher des services...',
       categories: 'Catégories',
       featured: 'pros en vedette',

@@ -17,6 +17,7 @@ import { afribaPayAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/Colors';
 import i18n from '../utils/i18n';
+import { hapticSuccess, hapticWarning } from '../utils/haptics';
 
 type Rail = 'orange_money' | 'wave';
 type Status = 'idle' | 'submitting' | 'awaiting_user' | 'success' | 'failed';
@@ -84,10 +85,12 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
         const data = await afribaPayAPI.getStatus(orderId);
         if (data.status === 'success') {
           stopPolling();
+          hapticSuccess();
           setStatus('success');
           setTimeout(() => { onPaymentSuccess(); onClose(); }, 2000);
         } else if (['failed', 'cancelled', 'expired'].includes(data.status)) {
           stopPolling();
+          hapticWarning();
           setStatus('failed');
           setError(isFr
             ? 'Le paiement n\'a pas été complété. Veuillez réessayer.'
@@ -101,6 +104,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
     // 3-minute hard timeout
     timeoutRef.current = setTimeout(() => {
       stopPolling();
+      hapticWarning();
       setStatus('failed');
       setError(isFr ? 'Délai d\'attente dépassé. Réessayez.' : 'Timed out waiting for confirmation.');
     }, TIMEOUT_MS);
@@ -134,6 +138,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
       );
       setOrderId(data.order_id);
       if (data.status === 'success') {
+        hapticSuccess();
         setStatus('success');
         setTimeout(() => { onPaymentSuccess(); onClose(); }, 2000);
       } else {
@@ -156,6 +161,7 @@ export function AfribaPayModal({ visible, onClose, task, onPaymentSuccess }: Pro
           ? 'Veuillez définir votre pays dans les paramètres avant de payer.'
           : 'Please set your country in profile settings before paying.');
       } else {
+        hapticWarning();
         setError(detail || (isFr ? 'Échec du paiement. Réessayez.' : 'Payment failed. Try again.'));
       }
       setStatus('idle');

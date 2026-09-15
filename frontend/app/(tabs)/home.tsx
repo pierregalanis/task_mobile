@@ -736,25 +736,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Featured Section - Coming Soon */}
-        {user?.role === 'client' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('home.featured')}</Text>
-            <View style={styles.comingSoonCard}>
-              <View style={styles.comingSoonIconContainer}>
-                <Ionicons name="star-outline" size={32} color={Colors.dark.primary} />
-              </View>
-              <Text style={styles.comingSoon}>
-                {locale === 'fr' ? 'Bientôt disponible' : 'Coming Soon'}
-              </Text>
-              <Text style={styles.comingSoonSubtitle}>
-                {locale === 'fr'
-                  ? 'Parcourir les pros sera disponible dans la Phase 2'
-                  : 'Browse taskers will be available in Phase 2'}
-              </Text>
-            </View>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1154,34 +1135,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Coming Soon
-  comingSoonCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 16,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    borderStyle: 'dashed',
-  },
-  comingSoonIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: `${Colors.dark.primary}15`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  comingSoon: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.dark.text,
-    marginBottom: 8,
-  },
-  comingSoonSubtitle: {
-    fontSize: 14,
-    color: Colors.dark.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
 });
