@@ -147,7 +147,7 @@ const i18n = new I18n({
       title: 'pros',
     },
     bookings: {
-      title: 'Mes Réservations',
+      title: 'Réservations',
       active: 'Actives',
       completed: 'Terminées',
       noBookings: 'Aucune réservation',
