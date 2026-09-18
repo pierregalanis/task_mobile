@@ -304,18 +304,19 @@ export default function SignupScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.ageConsentRow}
+            style={[styles.ageConsentBox, ageConsent && styles.ageConsentBoxChecked]}
             onPress={() => setAgeConsent(!ageConsent)}
             activeOpacity={0.7}
             testID="age-consent-checkbox"
           >
             <View style={[styles.checkbox, ageConsent && styles.checkboxChecked]}>
-              {ageConsent && <Ionicons name="checkmark" size={14} color={Colors.dark.background} />}
+              {ageConsent && <Ionicons name="checkmark" size={16} color={Colors.dark.background} />}
             </View>
             <Text style={styles.ageConsentText}>
               {i18n.locale === 'fr'
-                ? 'Oui, je certifie que j\'ai 16 ans ou plus. *'
-                : 'Yes, I certify that I am 16 years old or older. *'}
+                ? 'Oui, je certifie que j\'ai 16 ans ou plus.'
+                : 'Yes, I certify that I am 16 years old or older.'}
+              <Text style={styles.ageConsentRequired}> *</Text>
             </Text>
           </TouchableOpacity>
 
@@ -396,18 +397,27 @@ const styles = StyleSheet.create({
   roleButtonTextActive: { color: Colors.dark.background },
   countrySection: { marginBottom: 24 },
   verificationSection: { marginBottom: 24 },
-  ageConsentRow: {
+  ageConsentBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 12,
     marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#f59e0b50',
+    backgroundColor: '#f59e0b12',
+  },
+  ageConsentBoxChecked: {
+    borderColor: Colors.dark.primary,
+    backgroundColor: `${Colors.dark.primary}12`,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: Colors.dark.border,
+    borderWidth: 2,
+    borderColor: '#f59e0b',
     backgroundColor: Colors.dark.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -419,9 +429,14 @@ const styles = StyleSheet.create({
   },
   ageConsentText: {
     flex: 1,
-    fontSize: 13,
-    color: Colors.dark.textSecondary,
-    lineHeight: 18,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    lineHeight: 20,
+  },
+  ageConsentRequired: {
+    color: Colors.dark.error,
+    fontWeight: '800',
   },
   countryLabel: { fontSize: 14, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
   countrySelector: { flexDirection: 'row', gap: 12 },
