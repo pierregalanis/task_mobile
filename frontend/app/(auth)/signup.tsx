@@ -45,6 +45,7 @@ export default function SignupScreen() {
   const [phoneLocal, setPhoneLocal] = useState('');
   const [location, setLocation] = useState<LocationData | null>(null);
   const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [ageConsent, setAgeConsent] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -98,6 +99,16 @@ export default function SignupScreen() {
       return;
     }
 
+    if (!ageConsent) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr'
+          ? 'Vous devez certifier avoir 16 ans ou plus pour vous inscrire.'
+          : 'You must certify that you are 16 years old or older to register.'
+      );
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -117,6 +128,7 @@ export default function SignupScreen() {
         language: i18n.locale,
         role: role,
         verification_method: verificationMethod,
+        age_consent: ageConsent,
       });
 
       if (response?.requires_verification && response?.verification_method === 'whatsapp') {
@@ -275,7 +287,7 @@ export default function SignupScreen() {
               >
                 <Text style={styles.countryFlag}>📱</Text>
                 <Text style={[styles.countryButtonText, verificationMethod === 'whatsapp' && styles.countryButtonTextActive]}>
-                  {i18n.locale === 'fr' ? 'WhatsApp (recommandé)' : 'WhatsApp (recommended)'}
+                  WhatsApp
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -290,6 +302,22 @@ export default function SignupScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.ageConsentRow}
+            onPress={() => setAgeConsent(!ageConsent)}
+            activeOpacity={0.7}
+            testID="age-consent-checkbox"
+          >
+            <View style={[styles.checkbox, ageConsent && styles.checkboxChecked]}>
+              {ageConsent && <Ionicons name="checkmark" size={14} color={Colors.dark.background} />}
+            </View>
+            <Text style={styles.ageConsentText}>
+              {i18n.locale === 'fr'
+                ? 'Oui, je certifie que j\'ai 16 ans ou plus. *'
+                : 'Yes, I certify that I am 16 years old or older. *'}
+            </Text>
+          </TouchableOpacity>
 
           <Button title={i18n.t('auth.signup.button')} onPress={handleSubmit(onSubmit)} loading={loading} disabled={confirmPassword.length > 0 && !passwordsMatch} style={styles.signupButton} />
 
@@ -368,6 +396,33 @@ const styles = StyleSheet.create({
   roleButtonTextActive: { color: Colors.dark.background },
   countrySection: { marginBottom: 24 },
   verificationSection: { marginBottom: 24 },
+  ageConsentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.dark.primary,
+    borderColor: Colors.dark.primary,
+  },
+  ageConsentText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    lineHeight: 18,
+  },
   countryLabel: { fontSize: 14, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },
   countrySelector: { flexDirection: 'row', gap: 12 },
   countryButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: Colors.dark.border, gap: 8 },

@@ -289,6 +289,12 @@ export function handleNotificationNavigation(data: any) {
         }
         break;
 
+      // ==================== MILESTONE BONUS NOTIFICATIONS ====================
+      case 'bonus_earned':
+      case 'bonus_paid':
+        router.push('/tasker/my-earnings');
+        break;
+
       // ==================== REVIEW NOTIFICATIONS ====================
       case 'new_review':
       case 'review_received':

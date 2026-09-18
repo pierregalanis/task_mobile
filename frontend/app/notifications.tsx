@@ -370,7 +370,12 @@ export default function NotificationsScreen() {
           router.push('/(tabs)/bookings');
         }
         break;
-        
+
+      case 'bonus_earned':
+      case 'bonus_paid':
+        router.push('/tasker/my-earnings');
+        break;
+
       default:
         // Default: navigate to task detail if task_id exists
         if (taskId) {
@@ -384,7 +389,8 @@ export default function NotificationsScreen() {
   const getNotificationText = (notification: Notification): { title: string; message: string } => {
     const { type, title, message, data } = notification;
     const taskTitle = data?.task_title || (i18n.locale === 'fr' ? 'votre tâche' : 'your task');
-    
+    const bonusAmount = data?.bonus_amount;
+
     // Use message from notification if available
     if (message) {
       return { title: title || getNotificationTitle(type), message };
@@ -412,6 +418,14 @@ export default function NotificationsScreen() {
       adjustment_approved: { fr: { title: 'Ajustement approuvé', message: `Le client a approuvé votre ajustement de prix pour "${taskTitle}".` }, en: { title: 'Adjustment Approved', message: `The client approved your price adjustment for "${taskTitle}".` } },
       adjustment_declined: { fr: { title: 'Ajustement refusé', message: `Le client a refusé votre ajustement de prix pour "${taskTitle}".` }, en: { title: 'Adjustment Declined', message: `The client declined your price adjustment for "${taskTitle}".` } },
       task_declined_by_tasker: { fr: { title: 'Tâche refusée', message: `Le prestataire a refusé d'effectuer "${taskTitle}" après évaluation sur place.` }, en: { title: 'Job Declined', message: `The tasker declined to complete "${taskTitle}" after on-site assessment.` } },
+      bonus_earned: {
+        fr: { title: 'Bonus débloqué', message: bonusAmount ? `Vous avez débloqué un bonus de ${bonusAmount.toLocaleString()} CFA !` : 'Vous avez débloqué votre bonus de fidélité !' },
+        en: { title: 'Bonus Earned', message: bonusAmount ? `You've unlocked a ${bonusAmount.toLocaleString()} CFA bonus!` : "You've unlocked your loyalty bonus!" },
+      },
+      bonus_paid: {
+        fr: { title: 'Bonus payé', message: bonusAmount ? `Votre bonus de ${bonusAmount.toLocaleString()} CFA a été envoyé sur votre mobile money.` : 'Votre bonus a été envoyé sur votre mobile money.' },
+        en: { title: 'Bonus Paid', message: bonusAmount ? `Your ${bonusAmount.toLocaleString()} CFA bonus has been sent to your mobile money.` : 'Your bonus has been sent to your mobile money.' },
+      },
     };
 
     const lang = i18n.locale === 'fr' ? 'fr' : 'en';
@@ -441,6 +455,8 @@ export default function NotificationsScreen() {
       adjustment_approved: { fr: 'Ajustement approuvé', en: 'Adjustment Approved' },
       adjustment_declined: { fr: 'Ajustement refusé', en: 'Adjustment Declined' },
       task_declined_by_tasker: { fr: 'Tâche refusée', en: 'Job Declined' },
+      bonus_earned: { fr: 'Bonus débloqué', en: 'Bonus Earned' },
+      bonus_paid: { fr: 'Bonus payé', en: 'Bonus Paid' },
     };
     return titles[type]?.[i18n.locale === 'fr' ? 'fr' : 'en'] || 'Notification';
   };
@@ -468,6 +484,8 @@ export default function NotificationsScreen() {
       adjustment_approved: { name: 'checkmark-circle', color: Colors.dark.success },
       adjustment_declined: { name: 'close-circle', color: Colors.dark.error },
       task_declined_by_tasker: { name: 'ban', color: Colors.dark.error },
+      bonus_earned: { name: 'trophy', color: '#f59e0b' },
+      bonus_paid: { name: 'gift', color: '#f59e0b' },
     };
     return icons[type] || { name: 'notifications', color: Colors.dark.primary };
   };

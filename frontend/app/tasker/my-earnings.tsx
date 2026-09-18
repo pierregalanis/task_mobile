@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
-import { taskAPI } from '../../services/api';
+import { taskAPI, bonusAPI, BonusProgress } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -362,6 +362,84 @@ const DEFAULT_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '
 const DAY_NAMES_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_NAMES_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
+// Milestone Bonus Progress Card — display-only, all logic runs on the backend
+const BonusProgressCard = ({ progress }: { progress: BonusProgress }) => {
+  const isFr = i18n.locale === 'fr';
+  const {
+    threshold, bonus_amount, min_task_value, min_distinct_clients,
+    qualifying_tasks, distinct_clients, bonus_status,
+  } = progress;
+
+  if (bonus_status === 'paid') {
+    return (
+      <LinearGradient colors={['#f59e0b', '#d97706']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonusCard}>
+        <Text style={styles.bonusEmoji}>🎉</Text>
+        <Text style={styles.bonusTitle}>
+          {isFr ? `Bonus de ${bonus_amount.toLocaleString()} CFA reçu !` : `${bonus_amount.toLocaleString()} CFA bonus received!`}
+        </Text>
+        <Text style={styles.bonusSubtitle}>
+          {isFr
+            ? `Félicitations pour vos ${threshold} premières missions payées.`
+            : `Congratulations on your first ${threshold} paid missions.`}
+        </Text>
+      </LinearGradient>
+    );
+  }
+
+  if (bonus_status === 'pending_approval' || bonus_status === 'approved') {
+    return (
+      <LinearGradient colors={['#f59e0b', '#d97706']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonusCard}>
+        <Text style={styles.bonusEmoji}>🏆</Text>
+        <Text style={styles.bonusTitle}>
+          {isFr ? `Objectif atteint — bonus de ${bonus_amount.toLocaleString()} CFA !` : `Goal reached — ${bonus_amount.toLocaleString()} CFA bonus!`}
+        </Text>
+        <Text style={styles.bonusSubtitle}>
+          {isFr
+            ? 'Votre bonus est en cours de traitement et arrivera bientôt sur votre mobile money.'
+            : 'Your bonus is being processed and will arrive on your mobile money soon.'}
+        </Text>
+      </LinearGradient>
+    );
+  }
+
+  if (bonus_status === 'rejected') {
+    return (
+      <LinearGradient colors={['#6b7280', '#4b5563']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonusCard}>
+        <Text style={styles.bonusEmoji}>🏆</Text>
+        <Text style={styles.bonusTitle}>
+          {isFr ? "Votre bonus n'a pas été approuvé." : 'Your bonus was not approved.'}
+        </Text>
+      </LinearGradient>
+    );
+  }
+
+  // bonus_status === null → in progress
+  const progressPct = Math.min(100, (qualifying_tasks / threshold) * 100);
+  return (
+    <LinearGradient colors={['#f59e0b', '#d97706']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonusCard}>
+      <View style={styles.bonusHeaderRow}>
+        <Text style={styles.bonusEmoji}>🏆</Text>
+        <Text style={styles.bonusTitle}>
+          {isFr
+            ? `Bonus ${threshold} missions : ${bonus_amount.toLocaleString()} CFA`
+            : `${threshold}-mission bonus: ${bonus_amount.toLocaleString()} CFA`}
+        </Text>
+      </View>
+      <View style={styles.bonusProgressRow}>
+        <View style={styles.bonusProgressTrack}>
+          <View style={[styles.bonusProgressFill, { width: `${progressPct}%` }]} />
+        </View>
+        <Text style={styles.bonusProgressCount}>{qualifying_tasks}/{threshold}</Text>
+      </View>
+      <Text style={styles.bonusSubtitle}>
+        {isFr
+          ? `Complétez ${threshold} missions payées (min. ${min_task_value.toLocaleString()} CFA chacune, d'au moins ${min_distinct_clients} clients différents) et recevez un bonus de ${bonus_amount.toLocaleString()} CFA ! Clients : ${distinct_clients}/${min_distinct_clients}`
+          : `Complete ${threshold} paid missions (min. ${min_task_value.toLocaleString()} CFA each, from at least ${min_distinct_clients} different clients) and receive a ${bonus_amount.toLocaleString()} CFA bonus! Clients: ${distinct_clients}/${min_distinct_clients}`}
+      </Text>
+    </LinearGradient>
+  );
+};
+
 export default function MyEarningsScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -380,6 +458,7 @@ export default function MyEarningsScreen() {
   });
   const [revenueByService, setRevenueByService] = useState<{ category: string; amount: number; percentage: number; color: string }[]>([]);
   const [dailyEarnings, setDailyEarnings] = useState<{ day: string; amount: number; date: Date }[]>([]);
+  const [bonusProgress, setBonusProgress] = useState<BonusProgress | null>(null);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -396,6 +475,7 @@ export default function MyEarningsScreen() {
       ]),
     ]).start();
     fetchEarnings();
+    fetchBonusProgress();
   }, []);
 
   // Animate filter indicator
@@ -511,9 +591,19 @@ export default function MyEarningsScreen() {
     }
   };
 
+  const fetchBonusProgress = async () => {
+    try {
+      const progress = await bonusAPI.getProgress();
+      setBonusProgress(progress);
+    } catch (error) {
+      console.error('Error fetching bonus progress:', error);
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchEarnings();
+    fetchBonusProgress();
   };
 
   const formatCurrency = (amount: number) => amount.toLocaleString() + ' XOF';
@@ -583,6 +673,9 @@ export default function MyEarningsScreen() {
           />
         }
       >
+        {/* Milestone Bonus Progress */}
+        {bonusProgress && <BonusProgressCard progress={bonusProgress} />}
+
         {/* Total Earnings Card with Gradient */}
         <Animated.View style={{ opacity: cardFade, transform: [{ scale: cardScale }] }}>
           <LinearGradient
@@ -730,6 +823,22 @@ const styles = StyleSheet.create({
   
   scrollView: { flex: 1, padding: 24 },
   
+  // Milestone Bonus Card
+  bonusCard: {
+    borderRadius: 20, padding: 20, marginBottom: 20,
+    shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
+  },
+  bonusHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  bonusEmoji: { fontSize: 22 },
+  bonusTitle: { fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 },
+  bonusSubtitle: { fontSize: 12.5, color: 'rgba(255,255,255,0.9)', lineHeight: 18, marginTop: 10 },
+  bonusProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bonusProgressTrack: {
+    flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden',
+  },
+  bonusProgressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 4 },
+  bonusProgressCount: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
   // Total Card
   totalCard: {
     borderRadius: 24, padding: 24, marginBottom: 20, overflow: 'hidden',

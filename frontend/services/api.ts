@@ -63,6 +63,7 @@ export interface RegisterData {
   latitude?: number;
   longitude?: number;
   verification_method?: 'whatsapp' | 'email';
+  age_consent?: boolean;
 }
 
 export interface User {
@@ -1425,6 +1426,27 @@ export const assessmentAPI = {
   // Poll to know if an assessment step is required / pending
   async getAssessmentStatus(taskId: string): Promise<AssessmentStatusResponse> {
     const response = await api.get(`/api/tasks/${taskId}/assessment`);
+    return response.data;
+  },
+};
+
+// ==================== PRO MILESTONE BONUS API ====================
+
+export interface BonusProgress {
+  threshold: number;
+  bonus_amount: number;
+  min_task_value: number;
+  min_distinct_clients: number;
+  qualifying_tasks: number;
+  distinct_clients: number;
+  bonus_status: 'pending_approval' | 'approved' | 'paid' | 'rejected' | null;
+  bonus: any | null;
+}
+
+export const bonusAPI = {
+  // Display-only — all eligibility/anti-fraud/payout logic runs on the backend
+  async getProgress(): Promise<BonusProgress> {
+    const response = await api.get('/api/bonuses/progress');
     return response.data;
   },
 };
