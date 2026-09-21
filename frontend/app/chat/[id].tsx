@@ -15,12 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { chatAPI, taskAPI } from '../../services/api';
+import { chatAPI, taskAPI, blockAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
-import { storage } from '../../utils/storage';
 import { reportContent } from '../../utils/report';
 
 // Quick Reply Templates
@@ -227,7 +226,9 @@ export default function ChatScreen() {
   useEffect(() => {
     const otherId = getOtherPersonId();
     if (!otherId) return;
-    storage.isUserBlocked(otherId).then(setIsBlocked);
+    blockAPI.getBlocked()
+      .then(({ blocked_user_ids }) => setIsBlocked((blocked_user_ids || []).includes(otherId)))
+      .catch((error) => console.error('Error fetching blocked users:', error));
   }, [task]);
 
   const fetchTaskInfo = async () => {
@@ -305,9 +306,15 @@ export default function ChatScreen() {
     } catch (error: any) {
       console.error('Error sending message:', error);
       console.error('Error response:', error.response?.data);
+      if (error.response?.status === 403) {
+        // Either side blocked the other — sync local state to reflect it
+        setIsBlocked(true);
+      }
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        error.response?.data?.detail || (isFrench ? 'Échec de l\'envoi' : 'Failed to send')
+        error.response?.status === 403
+          ? (isFrench ? 'Impossible d\'envoyer un message à cet utilisateur.' : 'Unable to send a message to this user.')
+          : (error.response?.data?.detail || (isFrench ? 'Échec de l\'envoi' : 'Failed to send'))
       );
     } finally {
       setSending(false);
@@ -349,43 +356,35 @@ export default function ChatScreen() {
     : (task?.client_name || 'Client');
 
   const handleReportConversation = () => {
-    Alert.prompt
-      ? Alert.prompt(
-          isFrench ? 'Signaler cette conversation' : 'Report this conversation',
-          isFrench
-            ? 'Décrivez brièvement le problème (optionnel) :'
-            : 'Briefly describe the issue (optional):',
-          async (reasonInput?: string) => {
-            const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
-            await reportContent({
-              contentType: 'chat_conversation',
-              reason: reasonInput?.trim() || (isFrench ? 'Non spécifié' : 'Not specified'),
-              reportedUserName: otherPersonName,
-              reportedUserId: getOtherPersonId(),
-              contextId: taskId as string,
-              excerpt: lastMessages,
-              reporterEmail: user?.email,
-              isFrench,
-            });
-            showMessage(
-              isFrench ? 'Signalement envoyé' : 'Report sent',
-              isFrench ? 'Notre équipe va examiner cette conversation.' : 'Our team will review this conversation.'
-            );
-          }
-        )
-      : (async () => {
-          const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
-          await reportContent({
-            contentType: 'chat_conversation',
-            reason: isFrench ? 'Non spécifié' : 'Not specified',
-            reportedUserName: otherPersonName,
-            reportedUserId: getOtherPersonId(),
-            contextId: taskId as string,
-            excerpt: lastMessages,
-            reporterEmail: user?.email,
-            isFrench,
-          });
-        })();
+    const submitReport = async (reason: string) => {
+      const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
+      const success = await reportContent({
+        contentType: 'chat_conversation',
+        reason,
+        reportedUserName: otherPersonName,
+        reportedUserId: getOtherPersonId(),
+        contextId: taskId as string,
+        excerpt: lastMessages,
+      });
+      showMessage(
+        success ? (isFrench ? 'Signalement envoyé' : 'Report sent') : (isFrench ? 'Erreur' : 'Error'),
+        success
+          ? (isFrench ? 'Notre équipe va examiner cette conversation.' : 'Our team will review this conversation.')
+          : (isFrench ? 'Impossible d\'envoyer le signalement. Réessayez.' : 'Unable to send the report. Please try again.')
+      );
+    };
+
+    if (Alert.prompt) {
+      Alert.prompt(
+        isFrench ? 'Signaler cette conversation' : 'Report this conversation',
+        isFrench
+          ? 'Décrivez brièvement le problème (optionnel) :'
+          : 'Briefly describe the issue (optional):',
+        (reasonInput?: string) => submitReport(reasonInput?.trim() || (isFrench ? 'Non spécifié' : 'Not specified'))
+      );
+    } else {
+      submitReport(isFrench ? 'Non spécifié' : 'Not specified');
+    }
   };
 
   const handleToggleBlock = () => {
@@ -400,7 +399,15 @@ export default function ChatScreen() {
           { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
           {
             text: isFrench ? 'Débloquer' : 'Unblock',
-            onPress: async () => { await storage.unblockUser(otherId); setIsBlocked(false); },
+            onPress: async () => {
+              try {
+                await blockAPI.unblock(otherId);
+                setIsBlocked(false);
+              } catch (error) {
+                console.error('Error unblocking user:', error);
+                showMessage(isFrench ? 'Erreur' : 'Error', isFrench ? 'Impossible de débloquer. Réessayez.' : 'Unable to unblock. Please try again.');
+              }
+            },
           },
         ]
       );
@@ -415,7 +422,15 @@ export default function ChatScreen() {
           {
             text: isFrench ? 'Bloquer' : 'Block',
             style: 'destructive',
-            onPress: async () => { await storage.blockUser(otherId); setIsBlocked(true); },
+            onPress: async () => {
+              try {
+                await blockAPI.block(otherId);
+                setIsBlocked(true);
+              } catch (error) {
+                console.error('Error blocking user:', error);
+                showMessage(isFrench ? 'Erreur' : 'Error', isFrench ? 'Impossible de bloquer. Réessayez.' : 'Unable to block. Please try again.');
+              }
+            },
           },
         ]
       );

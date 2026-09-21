@@ -1451,4 +1451,37 @@ export const bonusAPI = {
   },
 };
 
+// ==================== CONTENT REPORTING & BLOCKING API ====================
+
+export interface ReportPayload {
+  content_type: 'chat_conversation' | 'review';
+  reported_user_id?: string;
+  reported_user_name?: string;
+  reference_id?: string; // task ID or review ID
+  reason: string;
+  excerpt?: string;
+}
+
+export const reportAPI = {
+  async create(payload: ReportPayload) {
+    const response = await api.post('/api/reports', payload);
+    return response.data;
+  },
+};
+
+export const blockAPI = {
+  async block(userId: string) {
+    const response = await api.post(`/api/users/${userId}/block`);
+    return response.data;
+  },
+  async unblock(userId: string) {
+    const response = await api.delete(`/api/users/${userId}/block`);
+    return response.data;
+  },
+  async getBlocked(): Promise<{ blocked_user_ids: string[] }> {
+    const response = await api.get('/api/users/blocked');
+    return response.data;
+  },
+};
+
 export default api;

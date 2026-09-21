@@ -169,18 +169,18 @@ export default function TaskerProfileScreen() {
           text: isFr ? 'Signaler' : 'Report',
           style: 'destructive',
           onPress: async () => {
-            await reportContent({
+            const success = await reportContent({
               contentType: 'review',
               reason: isFr ? 'Avis signalé par un utilisateur' : 'Review flagged by a user',
               reportedUserName: review.client_name || 'Client',
               contextId: review.id || review._id,
               excerpt: review.comment,
-              reporterEmail: user?.email,
-              isFrench: isFr,
             });
             Alert.alert(
-              isFr ? 'Signalement envoyé' : 'Report sent',
-              isFr ? 'Notre équipe va examiner cet avis.' : 'Our team will review this.'
+              success ? (isFr ? 'Signalement envoyé' : 'Report sent') : (isFr ? 'Erreur' : 'Error'),
+              success
+                ? (isFr ? 'Notre équipe va examiner cet avis.' : 'Our team will review this.')
+                : (isFr ? 'Impossible d\'envoyer le signalement. Réessayez.' : 'Unable to send the report. Please try again.')
             );
           },
         },

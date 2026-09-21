@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_data';
 const LANGUAGE_KEY = 'app_language';
-const BLOCKED_USERS_KEY = 'blocked_users';
 
 export const storage = {
   // Token management
@@ -74,43 +73,6 @@ export const storage = {
     } catch (error) {
       console.error('Error getting language:', error);
       return null;
-    }
-  },
-
-  // Blocked users — client-side enforcement of the in-app "block" mechanism.
-  // Prevents further contact with a specific user within chat on this device.
-  async getBlockedUsers(): Promise<string[]> {
-    try {
-      const data = await AsyncStorage.getItem(BLOCKED_USERS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('Error getting blocked users:', error);
-      return [];
-    }
-  },
-
-  async isUserBlocked(userId: string): Promise<boolean> {
-    const blocked = await this.getBlockedUsers();
-    return blocked.includes(userId);
-  },
-
-  async blockUser(userId: string): Promise<void> {
-    try {
-      const blocked = await this.getBlockedUsers();
-      if (!blocked.includes(userId)) {
-        await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify([...blocked, userId]));
-      }
-    } catch (error) {
-      console.error('Error blocking user:', error);
-    }
-  },
-
-  async unblockUser(userId: string): Promise<void> {
-    try {
-      const blocked = await this.getBlockedUsers();
-      await AsyncStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blocked.filter(id => id !== userId)));
-    } catch (error) {
-      console.error('Error unblocking user:', error);
     }
   },
 
