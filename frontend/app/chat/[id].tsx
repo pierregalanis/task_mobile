@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
 import { showMessage } from '../../utils/alert';
+import { storage } from '../../utils/storage';
+import { reportContent } from '../../utils/report';
 
 // Quick Reply Templates
 const TASKER_QUICK_REPLIES = {
@@ -192,10 +195,19 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
   const isFrench = i18n.locale === 'fr';
+
+  // Resolve the other participant's user ID, regardless of role
+  const getOtherPersonId = (): string | undefined => {
+    if (!task) return undefined;
+    return isClient
+      ? (task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to)
+      : (task.client_id || task.user_id || task.client?.id || task.created_by);
+  };
 
   // Get appropriate quick replies based on role and language
   const quickReplies = isTasker 
@@ -210,6 +222,13 @@ export default function ChatScreen() {
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [taskId]);
+
+  // Check block status once we know who the other participant is
+  useEffect(() => {
+    const otherId = getOtherPersonId();
+    if (!otherId) return;
+    storage.isUserBlocked(otherId).then(setIsBlocked);
+  }, [task]);
 
   const fetchTaskInfo = async () => {
     try {
@@ -257,16 +276,13 @@ export default function ChatScreen() {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || newMessage.trim();
-    if (!textToSend || !task) return;
+    if (!textToSend || !task || isBlocked) return;
 
     // Get the receiver ID based on user role
-    let receiverId: string | undefined;
-    
+    let receiverId: string | undefined = getOtherPersonId();
     if (isClient) {
-      receiverId = task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to;
       console.log('Client sending message - Resolved tasker ID:', receiverId);
     } else {
-      receiverId = task.client_id || task.user_id || task.client?.id || task.created_by;
       console.log('Tasker sending message - Resolved client ID:', receiverId);
     }
 
@@ -328,9 +344,99 @@ export default function ChatScreen() {
     return message.sender_id === user?.id || message.from_id === user?.id;
   };
 
-  const otherPersonName = isClient 
-    ? (task?.tasker_name || 'Tasker') 
+  const otherPersonName = isClient
+    ? (task?.tasker_name || 'Tasker')
     : (task?.client_name || 'Client');
+
+  const handleReportConversation = () => {
+    Alert.prompt
+      ? Alert.prompt(
+          isFrench ? 'Signaler cette conversation' : 'Report this conversation',
+          isFrench
+            ? 'Décrivez brièvement le problème (optionnel) :'
+            : 'Briefly describe the issue (optional):',
+          async (reasonInput?: string) => {
+            const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
+            await reportContent({
+              contentType: 'chat_conversation',
+              reason: reasonInput?.trim() || (isFrench ? 'Non spécifié' : 'Not specified'),
+              reportedUserName: otherPersonName,
+              reportedUserId: getOtherPersonId(),
+              contextId: taskId as string,
+              excerpt: lastMessages,
+              reporterEmail: user?.email,
+              isFrench,
+            });
+            showMessage(
+              isFrench ? 'Signalement envoyé' : 'Report sent',
+              isFrench ? 'Notre équipe va examiner cette conversation.' : 'Our team will review this conversation.'
+            );
+          }
+        )
+      : (async () => {
+          const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
+          await reportContent({
+            contentType: 'chat_conversation',
+            reason: isFrench ? 'Non spécifié' : 'Not specified',
+            reportedUserName: otherPersonName,
+            reportedUserId: getOtherPersonId(),
+            contextId: taskId as string,
+            excerpt: lastMessages,
+            reporterEmail: user?.email,
+            isFrench,
+          });
+        })();
+  };
+
+  const handleToggleBlock = () => {
+    const otherId = getOtherPersonId();
+    if (!otherId) return;
+
+    if (isBlocked) {
+      Alert.alert(
+        isFrench ? 'Débloquer' : 'Unblock',
+        isFrench ? `Débloquer ${otherPersonName} ?` : `Unblock ${otherPersonName}?`,
+        [
+          { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
+          {
+            text: isFrench ? 'Débloquer' : 'Unblock',
+            onPress: async () => { await storage.unblockUser(otherId); setIsBlocked(false); },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        isFrench ? 'Bloquer cet utilisateur' : 'Block this user',
+        isFrench
+          ? `${otherPersonName} ne pourra plus vous envoyer de messages. Voulez-vous continuer ?`
+          : `${otherPersonName} will no longer be able to message you. Continue?`,
+        [
+          { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
+          {
+            text: isFrench ? 'Bloquer' : 'Block',
+            style: 'destructive',
+            onPress: async () => { await storage.blockUser(otherId); setIsBlocked(true); },
+          },
+        ]
+      );
+    }
+  };
+
+  const handleShowChatOptions = () => {
+    Alert.alert(
+      isFrench ? 'Options' : 'Options',
+      undefined,
+      [
+        { text: isFrench ? 'Signaler cette conversation' : 'Report this conversation', onPress: handleReportConversation },
+        {
+          text: isBlocked ? (isFrench ? 'Débloquer' : 'Unblock') : (isFrench ? 'Bloquer cet utilisateur' : 'Block this user'),
+          style: 'destructive',
+          onPress: handleToggleBlock,
+        },
+        { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -375,15 +481,36 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle}>{otherPersonName}</Text>
           {task?.title && <Text style={styles.headerSubtitle}>{task.title}</Text>}
         </View>
+        {/* Chat Options: Report / Block */}
+        <TouchableOpacity
+          onPress={handleShowChatOptions}
+          style={styles.infoButton}
+          activeOpacity={0.7}
+          testID="chat-options-btn"
+        >
+          <Ionicons name="ellipsis-vertical" size={22} color={Colors.dark.text} />
+        </TouchableOpacity>
         {/* Task Info Button */}
-        <TouchableOpacity 
-          onPress={() => router.push(`/task/${taskId}`)} 
+        <TouchableOpacity
+          onPress={() => router.push(`/task/${taskId}`)}
           style={styles.infoButton}
           activeOpacity={0.7}
         >
           <Ionicons name="information-circle-outline" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
       </View>
+
+      {/* Blocked Banner */}
+      {isBlocked && (
+        <View style={styles.blockedBanner}>
+          <Ionicons name="ban" size={16} color="#fff" />
+          <Text style={styles.blockedBannerText}>
+            {isFrench
+              ? `Vous avez bloqué ${otherPersonName}. Vous ne pouvez plus échanger de messages.`
+              : `You've blocked ${otherPersonName}. You can no longer exchange messages.`}
+          </Text>
+        </View>
+      )}
 
       {/* Task Status Banner (if not in_progress) */}
       {task && !['in_progress', 'en_route'].includes(task.status) && (
@@ -468,40 +595,44 @@ export default function ChatScreen() {
           )}
         </ScrollView>
 
-        {/* Quick Replies Section */}
-        <QuickRepliesSection
-          replies={quickReplies}
-          onSelectReply={handleQuickReplySelect}
-          isExpanded={showQuickReplies}
-          onToggleExpand={() => setShowQuickReplies(!showQuickReplies)}
-          isFrench={isFrench}
-        />
+        {!isBlocked && (
+          <>
+            {/* Quick Replies Section */}
+            <QuickRepliesSection
+              replies={quickReplies}
+              onSelectReply={handleQuickReplySelect}
+              isExpanded={showQuickReplies}
+              onToggleExpand={() => setShowQuickReplies(!showQuickReplies)}
+              isFrench={isFrench}
+            />
 
-        {/* Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder={isFrench ? 'Tapez un message...' : 'Type a message...'}
-            placeholderTextColor={Colors.dark.textSecondary}
-            value={newMessage}
-            onChangeText={setNewMessage}
-            multiline
-            maxLength={500}
-            returnKeyType="default"
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-            onPress={() => handleSendMessage()}
-            disabled={!newMessage.trim() || sending}
-            activeOpacity={0.7}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={Colors.dark.background} />
-            ) : (
-              <Ionicons name="send" size={20} color={Colors.dark.background} />
-            )}
-          </TouchableOpacity>
-        </View>
+            {/* Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={isFrench ? 'Tapez un message...' : 'Type a message...'}
+                placeholderTextColor={Colors.dark.textSecondary}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                multiline
+                maxLength={500}
+                returnKeyType="default"
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
+                onPress={() => handleSendMessage()}
+                disabled={!newMessage.trim() || sending}
+                activeOpacity={0.7}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color={Colors.dark.background} />
+                ) : (
+                  <Ionicons name="send" size={20} color={Colors.dark.background} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -585,6 +716,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     gap: 8,
+  },
+  blockedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.error,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  blockedBannerText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#fff',
+    fontWeight: '600',
   },
   statusBannerText: {
     fontSize: 13,

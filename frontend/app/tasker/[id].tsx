@@ -22,6 +22,7 @@ import i18n from '../../utils/i18n';
 import { getCategoryById, getCategoryName, getSubcategoryById, getSubcategoryName, Category } from '../../constants/Categories';
 import { categoryAPI } from '../../services/api';
 import { formatHourlyRate, formatPrice } from '../../utils/pricingUtils';
+import { reportContent } from '../../utils/report';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -155,6 +156,36 @@ export default function TaskerProfileScreen() {
     } finally {
       setFavoriteLoading(false);
     }
+  };
+
+  const handleReportReview = (review: any) => {
+    const isFr = i18n.locale === 'fr';
+    Alert.alert(
+      isFr ? 'Signaler cet avis' : 'Report this review',
+      isFr ? 'Voulez-vous signaler cet avis comme inapproprié ?' : 'Do you want to report this review as inappropriate?',
+      [
+        { text: isFr ? 'Annuler' : 'Cancel', style: 'cancel' },
+        {
+          text: isFr ? 'Signaler' : 'Report',
+          style: 'destructive',
+          onPress: async () => {
+            await reportContent({
+              contentType: 'review',
+              reason: isFr ? 'Avis signalé par un utilisateur' : 'Review flagged by a user',
+              reportedUserName: review.client_name || 'Client',
+              contextId: review.id || review._id,
+              excerpt: review.comment,
+              reporterEmail: user?.email,
+              isFrench: isFr,
+            });
+            Alert.alert(
+              isFr ? 'Signalement envoyé' : 'Report sent',
+              isFr ? 'Notre équipe va examiner cet avis.' : 'Our team will review this.'
+            );
+          },
+        },
+      ]
+    );
   };
 
   // Returns true if this service matches the category the client was browsing from
@@ -531,9 +562,18 @@ export default function TaskerProfileScreen() {
                       ))}
                     </View>
                   </View>
-                  <Text style={styles.reviewDate}>
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </Text>
+                  <View style={styles.reviewHeaderRight}>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleReportReview(review)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      testID={`report-review-${index}`}
+                    >
+                      <Ionicons name="flag-outline" size={15} color={Colors.dark.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
                 {review.service_name && (
@@ -978,6 +1018,11 @@ const styles = StyleSheet.create({
   reviewDate: {
     fontSize: 12,
     color: Colors.dark.textSecondary,
+  },
+  reviewHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   reviewComment: {
     fontSize: 13,
