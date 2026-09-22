@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { chatAPI, taskAPI, blockAPI } from '../../services/api';
+import { chatAPI, taskAPI, blockAPI, ChatStatus } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import i18n from '../../utils/i18n';
@@ -195,6 +195,7 @@ export default function ChatScreen() {
   const [error, setError] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [chatStatus, setChatStatus] = useState<ChatStatus | null>(null);
 
   const isClient = user?.role === 'client';
   const isTasker = user?.role === 'tasker';
@@ -216,11 +217,21 @@ export default function ChatScreen() {
   useEffect(() => {
     fetchTaskInfo();
     fetchMessages();
-    
+    fetchChatStatus();
+
     // Poll for new messages every 3 seconds
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [taskId]);
+
+  const fetchChatStatus = async () => {
+    try {
+      const status = await chatAPI.getChatStatus(taskId as string);
+      setChatStatus(status);
+    } catch (error) {
+      console.error('Error fetching chat status:', error);
+    }
+  };
 
   // Check block status once we know who the other participant is
   useEffect(() => {
@@ -277,7 +288,7 @@ export default function ChatScreen() {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || newMessage.trim();
-    if (!textToSend || !task || isBlocked) return;
+    if (!textToSend || !task || isBlocked || chatStatus?.locked) return;
 
     // Get the receiver ID based on user role
     let receiverId: string | undefined = getOtherPersonId();
@@ -307,14 +318,19 @@ export default function ChatScreen() {
       console.error('Error sending message:', error);
       console.error('Error response:', error.response?.data);
       if (error.response?.status === 403) {
-        // Either side blocked the other — sync local state to reflect it
-        setIsBlocked(true);
+        // Could be a block (either direction) or the chat just locked (72h) —
+        // refresh both so the UI flips to whichever state actually applies
+        fetchChatStatus();
+        const otherId = getOtherPersonId();
+        if (otherId) {
+          blockAPI.getBlocked()
+            .then(({ blocked_user_ids }) => setIsBlocked((blocked_user_ids || []).includes(otherId)))
+            .catch(() => {});
+        }
       }
       showMessage(
         isFrench ? 'Erreur' : 'Error',
-        error.response?.status === 403
-          ? (isFrench ? 'Impossible d\'envoyer un message à cet utilisateur.' : 'Unable to send a message to this user.')
-          : (error.response?.data?.detail || (isFrench ? 'Échec de l\'envoi' : 'Failed to send'))
+        error.response?.data?.detail || (isFrench ? 'Échec de l\'envoi' : 'Failed to send')
       );
     } finally {
       setSending(false);
@@ -451,6 +467,28 @@ export default function ChatScreen() {
         { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const handleRebook = () => {
+    if (!chatStatus?.assigned_tasker_id) return;
+    router.push({
+      pathname: '/booking/create',
+      params: {
+        taskerId: chatStatus.assigned_tasker_id,
+        ...(task?.category_id || task?.category ? { categoryId: task.category_id || task.category } : {}),
+        ...(task?.subcategory ? { subcategoryId: task.subcategory } : {}),
+      },
+    });
+  };
+
+  const formatLocksAt = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(isFrench ? 'fr-FR' : 'en-US', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+    } catch {
+      return iso;
+    }
   };
 
   if (loading) {
@@ -610,8 +648,36 @@ export default function ChatScreen() {
           )}
         </ScrollView>
 
-        {!isBlocked && (
+        {!isBlocked && chatStatus?.locked && (
+          <View style={styles.closedChatFooter}>
+            <Ionicons name="lock-closed" size={18} color={Colors.dark.textSecondary} />
+            <Text style={styles.closedChatText}>
+              {isFrench
+                ? 'Cette tâche est terminée et payée — la discussion est maintenant fermée.'
+                : 'This job is complete and paid — the chat is now closed.'}
+            </Text>
+            {isClient && chatStatus.assigned_tasker_id && (
+              <TouchableOpacity style={styles.rebookButton} onPress={handleRebook} activeOpacity={0.8} testID="rebook-pro-btn">
+                <Text style={styles.rebookButtonText}>
+                  {isFrench ? 'Réserver à nouveau ce prestataire' : 'Rebook this pro'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {!isBlocked && !chatStatus?.locked && (
           <>
+            {chatStatus?.reason === 'grace_period' && chatStatus.locks_at && (
+              <View style={styles.graceNotice}>
+                <Text style={styles.graceNoticeText}>
+                  {isFrench
+                    ? `Cette discussion sera fermée le ${formatLocksAt(chatStatus.locks_at)}.`
+                    : `This chat closes on ${formatLocksAt(chatStatus.locks_at)}.`}
+                </Text>
+              </View>
+            )}
+
             {/* Quick Replies Section */}
             <QuickRepliesSection
               replies={quickReplies}
@@ -883,6 +949,43 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.dark.border,
     backgroundColor: Colors.dark.background,
+  },
+  closedChatFooter: {
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
+    backgroundColor: Colors.dark.card,
+  },
+  closedChatText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  rebookButton: {
+    backgroundColor: Colors.dark.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 4,
+  },
+  rebookButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  graceNotice: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: `${Colors.dark.primary}12`,
+  },
+  graceNoticeText: {
+    fontSize: 12,
+    color: Colors.dark.textSecondary,
+    textAlign: 'center',
   },
   input: {
     flex: 1,

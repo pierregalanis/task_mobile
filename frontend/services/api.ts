@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
 import { Platform } from 'react-native';
+import i18n from '../utils/i18n';
+import { translateApiError } from '../utils/apiErrors';
 
 // Production Backend - soutrali.net
 // Native apps connect directly to production API
@@ -39,6 +41,15 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       await storage.clearAll();
+    }
+    // Translate the backend's English `detail` to French in place when the
+    // app is in French — every existing `error.response?.data?.detail` read
+    // throughout the app picks this up automatically, no other change needed.
+    if (error.response?.data?.detail) {
+      const translated = translateApiError(error.response.data.detail, i18n.locale);
+      if (translated) {
+        error.response.data.detail = translated;
+      }
     }
     return Promise.reject(error);
   }
@@ -723,7 +734,21 @@ export const chatAPI = {
     const response = await api.get('/api/messages/unread');
     return response.data;
   },
+
+  // Chat lock status — backend is the source of truth, never compute the 72h window client-side
+  async getChatStatus(taskId: string): Promise<ChatStatus> {
+    const response = await api.get(`/api/messages/task/${taskId}/chat-status`);
+    return response.data;
+  },
 };
+
+export interface ChatStatus {
+  task_id: string;
+  locked: boolean;
+  reason: 'grace_period' | 'dispute_open' | 'completed_and_paid' | null;
+  locks_at: string | null;
+  assigned_tasker_id: string | null;
+}
 
 // ==================== NOTIFICATION API ====================
 
