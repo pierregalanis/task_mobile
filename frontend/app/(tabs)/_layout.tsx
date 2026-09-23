@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -8,6 +9,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 export default function TabsLayout() {
   const { user } = useAuth();
   const { locale, t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const isTasker = user?.role === 'tasker';
 
   return (
@@ -20,8 +22,8 @@ export default function TabsLayout() {
           backgroundColor: Colors.dark.card,
           borderTopColor: Colors.dark.border,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
           paddingHorizontal: 8,
         },

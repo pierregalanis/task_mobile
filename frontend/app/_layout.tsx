@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { PushNotificationProvider } from '../contexts/PushNotificationContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
@@ -44,15 +45,17 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <AuthProvider>
-          <PushNotificationProvider>
-            <RootLayoutContent />
-          </PushNotificationProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <PushNotificationProvider>
+              <RootLayoutContent />
+            </PushNotificationProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
