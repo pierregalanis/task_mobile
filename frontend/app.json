@@ -11,13 +11,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soutrali.app",
-      "buildNumber": "74",
+      "buildNumber": "75",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Soutrali needs your location to find nearby taskers and track service delivery.",
+        "NSPhotoLibraryUsageDescription": "Soutrali accesses your photo library so you can upload a profile photo, add photos of your completed work to your professional portfolio, and attach a picture of your ID document during identity verification.",
+        "NSCameraUsageDescription": "Soutrali uses your camera to take a profile photo, photograph your completed work for your portfolio, and capture your ID document and selfie during identity verification.",
         "UIBackgroundModes": [
-          "location",
           "fetch",
           "remote-notification"
         ]
@@ -67,7 +67,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Soutrali to use your location for GPS tracking and finding nearby taskers."
+          "locationWhenInUsePermission": "Allow Soutrali to use your location for GPS tracking and finding nearby taskers."
         }
       ],
       [
@@ -88,6 +88,9 @@
         "projectId": "9cc81117-c5db-4176-99e0-7e1b0c23ecb4"
       },
       "router": {}
+    },
+    "locales": {
+      "fr": "./languages/fr.json"
     },
     "owner": "soutra",
     "platforms": [

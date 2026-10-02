@@ -1,0 +1,5 @@
+{
+  "NSPhotoLibraryUsageDescription": "Soutrali accède à votre photothèque pour vous permettre d'ajouter une photo de profil, des photos de vos réalisations à votre portfolio professionnel, et une photo de votre pièce d'identité lors de la vérification d'identité.",
+  "NSCameraUsageDescription": "Soutrali utilise votre appareil photo pour prendre une photo de profil, photographier vos réalisations pour votre portfolio, et capturer votre pièce d'identité et un selfie lors de la vérification d'identité.",
+  "NSLocationWhenInUseUsageDescription": "Soutrali a besoin de votre position pour trouver des prestataires à proximité et suivre la livraison du service."
+}

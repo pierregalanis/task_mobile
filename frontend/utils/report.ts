@@ -1,11 +1,11 @@
 import { reportAPI } from '../services/api';
 
 interface ReportDetails {
-  contentType: 'chat_conversation' | 'review';
+  contentType: 'conversation' | 'review' | 'user';
   reason: string;
-  reportedUserName?: string;
+  reportedUserName?: string; // display-only, not sent to the API
   reportedUserId?: string;
-  contextId?: string; // task ID or review ID
+  contextId?: string; // task ID for a conversation, review ID for a review
   excerpt?: string;
 }
 
@@ -14,16 +14,15 @@ interface ReportDetails {
  * The reporter is inferred server-side from the auth token.
  */
 export const reportContent = async (details: ReportDetails): Promise<boolean> => {
-  const { contentType, reason, reportedUserName, reportedUserId, contextId, excerpt } = details;
+  const { contentType, reason, reportedUserId, contextId, excerpt } = details;
 
   try {
     await reportAPI.create({
       content_type: contentType,
       reported_user_id: reportedUserId,
-      reported_user_name: reportedUserName,
       reference_id: contextId,
       reason,
-      excerpt,
+      excerpt: excerpt?.slice(0, 500),
     });
     return true;
   } catch (error) {

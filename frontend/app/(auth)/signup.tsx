@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/Button';
@@ -46,6 +47,7 @@ export default function SignupScreen() {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const [ageConsent, setAgeConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -90,6 +92,9 @@ export default function SignupScreen() {
     router.replace('/(auth)/login');
   };
 
+  const openTerms = () => WebBrowser.openBrowserAsync('https://soutrali.net/terms');
+  const openPrivacy = () => WebBrowser.openBrowserAsync('https://soutrali.net/privacy');
+
   const onSubmit = async (data: SignupFormData) => {
     if (!phoneLocal.trim()) {
       showMessage(
@@ -105,6 +110,16 @@ export default function SignupScreen() {
         i18n.locale === 'fr'
           ? 'Vous devez certifier avoir 16 ans ou plus pour vous inscrire.'
           : 'You must certify that you are 16 years old or older to register.'
+      );
+      return;
+    }
+
+    if (!termsAccepted) {
+      showMessage(
+        i18n.locale === 'fr' ? 'Erreur' : 'Error',
+        i18n.locale === 'fr'
+          ? "Vous devez accepter les Conditions d'utilisation pour vous inscrire."
+          : 'You must accept the Terms of Service to register.'
       );
       return;
     }
@@ -129,6 +144,7 @@ export default function SignupScreen() {
         role: role,
         verification_method: verificationMethod,
         age_consent: ageConsent,
+        terms_accepted: termsAccepted,
       });
 
       if (response?.requires_verification && response?.verification_method === 'whatsapp') {
@@ -320,6 +336,37 @@ export default function SignupScreen() {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.ageConsentBox, termsAccepted && styles.ageConsentBoxChecked]}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            activeOpacity={0.7}
+            testID="terms-consent-checkbox"
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Ionicons name="checkmark" size={16} color={Colors.dark.background} />}
+            </View>
+            <Text style={styles.ageConsentText}>
+              {i18n.locale === 'fr' ? (
+                <>
+                  {"J'accepte les "}
+                  <Text style={styles.termsLink} onPress={openTerms}>Conditions d'utilisation</Text>
+                  {' et la '}
+                  <Text style={styles.termsLink} onPress={openPrivacy}>Politique de confidentialité</Text>
+                  {", y compris la politique de tolérance zéro envers les contenus répréhensibles et les comportements abusifs."}
+                </>
+              ) : (
+                <>
+                  {'I agree to the '}
+                  <Text style={styles.termsLink} onPress={openTerms}>Terms of Service</Text>
+                  {' and '}
+                  <Text style={styles.termsLink} onPress={openPrivacy}>Privacy Policy</Text>
+                  {', including the zero-tolerance policy for objectionable content and abusive behavior.'}
+                </>
+              )}
+              <Text style={styles.ageConsentRequired}> *</Text>
+            </Text>
+          </TouchableOpacity>
+
           <Button title={i18n.t('auth.signup.button')} onPress={handleSubmit(onSubmit)} loading={loading} disabled={confirmPassword.length > 0 && !passwordsMatch} style={styles.signupButton} />
 
           <View style={styles.loginContainer}>
@@ -436,6 +483,11 @@ const styles = StyleSheet.create({
   },
   ageConsentRequired: {
     color: Colors.dark.error,
+    fontWeight: '800',
+  },
+  termsLink: {
+    color: Colors.dark.primary,
+    textDecorationLine: 'underline',
     fontWeight: '800',
   },
   countryLabel: { fontSize: 14, fontWeight: '600', color: Colors.dark.text, marginBottom: 8 },

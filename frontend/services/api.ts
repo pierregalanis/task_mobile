@@ -75,6 +75,7 @@ export interface RegisterData {
   longitude?: number;
   verification_method?: 'whatsapp' | 'email';
   age_consent?: boolean;
+  terms_accepted?: boolean;
 }
 
 export interface User {
@@ -1498,18 +1499,17 @@ export const bonusAPI = {
 // ==================== CONTENT REPORTING & BLOCKING API ====================
 
 export interface ReportPayload {
-  content_type: 'chat_conversation' | 'review';
+  content_type: 'conversation' | 'review' | 'user';
   reported_user_id?: string;
-  reported_user_name?: string;
-  reference_id?: string; // task ID or review ID
+  reference_id?: string; // task ID for conversation, review ID for review
   reason: string;
-  excerpt?: string;
+  excerpt?: string; // up to 500 chars of the offending content
 }
 
 export const reportAPI = {
   async create(payload: ReportPayload) {
     const response = await api.post('/api/reports', payload);
-    return response.data;
+    return response.data as { success: boolean; report_id: string; message: string };
   },
 };
 
@@ -1522,7 +1522,7 @@ export const blockAPI = {
     const response = await api.delete(`/api/users/${userId}/block`);
     return response.data;
   },
-  async getBlocked(): Promise<{ blocked_user_ids: string[] }> {
+  async getBlocked(): Promise<{ blocked_ids: string[] }> {
     const response = await api.get('/api/users/blocked');
     return response.data;
   },

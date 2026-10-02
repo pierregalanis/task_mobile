@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { taskerAPI, reviewAPI, favoriteAPI, imageAPI, PortfolioImage } from '../../services/api';
+import { taskerAPI, reviewAPI, favoriteAPI, imageAPI, blockAPI, PortfolioImage } from '../../services/api';
 import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '../../constants/Colors';
@@ -51,6 +51,8 @@ export default function TaskerProfileScreen() {
   } | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
   
@@ -66,6 +68,23 @@ export default function TaskerProfileScreen() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (!user) return;
+    blockAPI.getBlocked()
+      .then(({ blocked_ids }) => {
+        setBlockedIds(blocked_ids || []);
+        setIsBlocked((blocked_ids || []).includes(id as string));
+      })
+      .catch((error) => console.error('Error fetching blocked users:', error));
+  }, [user, id]);
+
+  // Reviews endpoint is unauthenticated, so filtering out reviewers the
+  // current viewer has blocked happens client-side.
+  const visibleReviews = reviews.filter((review: any) => {
+    const reviewerId = review.client_id || review.user_id;
+    return !reviewerId || !blockedIds.includes(reviewerId);
+  });
 
   const fetchData = async () => {
     try {
@@ -178,17 +197,114 @@ export default function TaskerProfileScreen() {
               contentType: 'review',
               reason: isFr ? 'Avis signalé par un utilisateur' : 'Review flagged by a user',
               reportedUserName: review.client_name || 'Client',
+              reportedUserId: review.client_id || review.user_id,
               contextId: review.id || review._id,
               excerpt: review.comment,
             });
             Alert.alert(
               success ? (isFr ? 'Signalement envoyé' : 'Report sent') : (isFr ? 'Erreur' : 'Error'),
               success
-                ? (isFr ? 'Notre équipe va examiner cet avis.' : 'Our team will review this.')
+                ? (isFr ? "Signalement envoyé. Notre équipe l'examinera sous 24 heures." : 'Report submitted. Our team will review it within 24 hours.')
                 : (isFr ? 'Impossible d\'envoyer le signalement. Réessayez.' : 'Unable to send the report. Please try again.')
             );
           },
         },
+      ]
+    );
+  };
+
+  const handleToggleBlock = () => {
+    const isFr = i18n.locale === 'fr';
+    if (isBlocked) {
+      Alert.alert(
+        isFr ? 'Débloquer' : 'Unblock',
+        isFr ? `Débloquer ${tasker?.full_name} ?` : `Unblock ${tasker?.full_name}?`,
+        [
+          { text: isFr ? 'Annuler' : 'Cancel', style: 'cancel' },
+          {
+            text: isFr ? 'Débloquer' : 'Unblock',
+            onPress: async () => {
+              try {
+                await blockAPI.unblock(id as string);
+                setIsBlocked(false);
+                setBlockedIds((prev) => prev.filter((bid) => bid !== id));
+              } catch (error) {
+                console.error('Error unblocking user:', error);
+                Alert.alert(isFr ? 'Erreur' : 'Error', isFr ? 'Impossible de débloquer. Réessayez.' : 'Unable to unblock. Please try again.');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        isFr ? 'Bloquer cet utilisateur ?' : 'Block this user?',
+        isFr
+          ? 'Vous ne verrez plus ses messages ni son contenu.'
+          : 'You will no longer see their messages or content.',
+        [
+          { text: isFr ? 'Annuler' : 'Cancel', style: 'cancel' },
+          {
+            text: isFr ? 'Bloquer' : 'Block',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await blockAPI.block(id as string);
+                setIsBlocked(true);
+                setBlockedIds((prev) => [...prev, id as string]);
+              } catch (error) {
+                console.error('Error blocking user:', error);
+                Alert.alert(isFr ? 'Erreur' : 'Error', isFr ? 'Impossible de bloquer. Réessayez.' : 'Unable to block. Please try again.');
+              }
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const handleReportProfile = () => {
+    const isFr = i18n.locale === 'fr';
+    Alert.alert(
+      isFr ? 'Signaler ce profil' : 'Report this profile',
+      isFr ? 'Voulez-vous signaler ce profil comme inapproprié ?' : 'Do you want to report this profile as inappropriate?',
+      [
+        { text: isFr ? 'Annuler' : 'Cancel', style: 'cancel' },
+        {
+          text: isFr ? 'Signaler' : 'Report',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await reportContent({
+              contentType: 'user',
+              reason: isFr ? 'Profil signalé par un utilisateur' : 'Profile flagged by a user',
+              reportedUserName: tasker?.full_name,
+              reportedUserId: id as string,
+            });
+            Alert.alert(
+              success ? (isFr ? 'Signalement envoyé' : 'Report sent') : (isFr ? 'Erreur' : 'Error'),
+              success
+                ? (isFr ? "Signalement envoyé. Notre équipe l'examinera sous 24 heures." : 'Report submitted. Our team will review it within 24 hours.')
+                : (isFr ? 'Impossible d\'envoyer le signalement. Réessayez.' : 'Unable to send the report. Please try again.')
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleShowProfileOptions = () => {
+    const isFr = i18n.locale === 'fr';
+    Alert.alert(
+      isFr ? 'Options' : 'Options',
+      undefined,
+      [
+        { text: isFr ? 'Signaler ce profil' : 'Report this profile', onPress: handleReportProfile },
+        {
+          text: isBlocked ? (isFr ? 'Débloquer' : 'Unblock') : (isFr ? 'Bloquer cet utilisateur' : 'Block this user'),
+          style: 'destructive',
+          onPress: handleToggleBlock,
+        },
+        { text: isFr ? 'Annuler' : 'Cancel', style: 'cancel' },
       ]
     );
   };
@@ -293,27 +409,40 @@ export default function TaskerProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color={Colors.dark.text} />
         </TouchableOpacity>
-        
-        {/* Favorite This Tasker Button */}
-        <TouchableOpacity 
-          onPress={handleFavorite} 
-          style={[
-            styles.favoriteButton,
-            isFavorite && styles.favoriteButtonActive
-          ]} 
-          activeOpacity={0.7}
-          disabled={favoriteLoading}
-        >
-          {favoriteLoading ? (
-            <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#10b981'} />
-          ) : (
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? '#fff' : '#10b981'}
-            />
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {!isOwnProfile && (
+            <TouchableOpacity
+              onPress={handleShowProfileOptions}
+              style={styles.favoriteButton}
+              activeOpacity={0.7}
+              testID="profile-options-button"
+            >
+              <Ionicons name="ellipsis-horizontal" size={22} color="#10b981" />
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+
+          {/* Favorite This Tasker Button */}
+          <TouchableOpacity
+            onPress={handleFavorite}
+            style={[
+              styles.favoriteButton,
+              isFavorite && styles.favoriteButtonActive
+            ]}
+            activeOpacity={0.7}
+            disabled={favoriteLoading}
+          >
+            {favoriteLoading ? (
+              <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#10b981'} />
+            ) : (
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={24}
+                color={isFavorite ? '#fff' : '#10b981'}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -546,12 +675,12 @@ export default function TaskerProfileScreen() {
           )}
 
         {/* Reviews Section */}
-        {reviews.length > 0 && (
+        {visibleReviews.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {i18n.locale === 'fr' ? 'Avis' : 'Reviews'} ({reviews.length})
+              {i18n.locale === 'fr' ? 'Avis' : 'Reviews'} ({visibleReviews.length})
             </Text>
-            {reviews.slice(0, 5).map((review: any, index: number) => (
+            {visibleReviews.slice(0, 5).map((review: any, index: number) => (
               <View key={index} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
                   <View style={styles.reviewerInfo}>

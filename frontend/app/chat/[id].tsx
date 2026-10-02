@@ -245,7 +245,7 @@ export default function ChatScreen() {
     const otherId = getOtherPersonId();
     if (!otherId) return;
     blockAPI.getBlocked()
-      .then(({ blocked_user_ids }) => setIsBlocked((blocked_user_ids || []).includes(otherId)))
+      .then(({ blocked_ids }) => setIsBlocked((blocked_ids || []).includes(otherId)))
       .catch((error) => console.error('Error fetching blocked users:', error));
   }, [task]);
 
@@ -339,7 +339,7 @@ export default function ChatScreen() {
         const otherId = getOtherPersonId();
         if (otherId) {
           blockAPI.getBlocked()
-            .then(({ blocked_user_ids }) => setIsBlocked((blocked_user_ids || []).includes(otherId)))
+            .then(({ blocked_ids }) => setIsBlocked((blocked_ids || []).includes(otherId)))
             .catch(() => {});
         }
       }
@@ -390,7 +390,7 @@ export default function ChatScreen() {
     const submitReport = async (reason: string) => {
       const lastMessages = messages.slice(-5).map((m: any) => m.content || m.text || m.message).filter(Boolean).join(' | ');
       const success = await reportContent({
-        contentType: 'chat_conversation',
+        contentType: 'conversation',
         reason,
         reportedUserName: otherPersonName,
         reportedUserId: getOtherPersonId(),
@@ -400,7 +400,7 @@ export default function ChatScreen() {
       showMessage(
         success ? (isFrench ? 'Signalement envoyé' : 'Report sent') : (isFrench ? 'Erreur' : 'Error'),
         success
-          ? (isFrench ? 'Notre équipe va examiner cette conversation.' : 'Our team will review this conversation.')
+          ? (isFrench ? "Signalement envoyé. Notre équipe l'examinera sous 24 heures." : 'Report submitted. Our team will review it within 24 hours.')
           : (isFrench ? 'Impossible d\'envoyer le signalement. Réessayez.' : 'Unable to send the report. Please try again.')
       );
     };
@@ -434,6 +434,7 @@ export default function ChatScreen() {
               try {
                 await blockAPI.unblock(otherId);
                 setIsBlocked(false);
+                await fetchMessages();
               } catch (error) {
                 console.error('Error unblocking user:', error);
                 showMessage(isFrench ? 'Erreur' : 'Error', isFrench ? 'Impossible de débloquer. Réessayez.' : 'Unable to unblock. Please try again.');
@@ -444,10 +445,10 @@ export default function ChatScreen() {
       );
     } else {
       Alert.alert(
-        isFrench ? 'Bloquer cet utilisateur' : 'Block this user',
+        isFrench ? 'Bloquer cet utilisateur ?' : 'Block this user?',
         isFrench
-          ? `${otherPersonName} ne pourra plus vous envoyer de messages. Voulez-vous continuer ?`
-          : `${otherPersonName} will no longer be able to message you. Continue?`,
+          ? 'Vous ne verrez plus ses messages ni son contenu.'
+          : 'You will no longer see their messages or content.',
         [
           { text: isFrench ? 'Annuler' : 'Cancel', style: 'cancel' },
           {
@@ -457,6 +458,9 @@ export default function ChatScreen() {
               try {
                 await blockAPI.block(otherId);
                 setIsBlocked(true);
+                // Apple requires blocked content to disappear instantly —
+                // refetch now that the backend excludes this user's messages.
+                await fetchMessages();
               } catch (error) {
                 console.error('Error blocking user:', error);
                 showMessage(isFrench ? 'Erreur' : 'Error', isFrench ? 'Impossible de bloquer. Réessayez.' : 'Unable to block. Please try again.');
