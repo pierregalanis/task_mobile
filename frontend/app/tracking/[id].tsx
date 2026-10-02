@@ -53,17 +53,30 @@ export default function TrackingScreen() {
   const [eta, setEta] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
 
-  const isTasker = user?.role === 'tasker';
-  const isClient = user?.role === 'client';
+  // Participant-based (matches the backend's own authorization model) once
+  // the task has loaded; falls back to real role for the brief instant before
+  // it has. This correctly handles a tasker tracking a pro THEY booked.
+  const isTasker = task
+    ? (task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to) === user?.id
+    : user?.role === 'tasker';
+  const isClient = task
+    ? (task.client_id || task.user_id || task.client?.id || task.created_by) === user?.id
+    : user?.role === 'client';
   const isFrench = i18n.locale === 'fr';
 
   // Fetch task on mount
   useEffect(() => {
     fetchTask();
+  }, [id]);
+
+  // Get the client's own location once we know (from the loaded task) that
+  // this viewer is in fact the client — may resolve after mount, unlike the
+  // old role-based check this replaces.
+  useEffect(() => {
     if (isClient) {
       getCurrentLocation();
     }
-  }, [id]);
+  }, [isClient]);
 
   // Set up polling for client to get tasker location
   useEffect(() => {

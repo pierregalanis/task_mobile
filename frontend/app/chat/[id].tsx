@@ -197,8 +197,15 @@ export default function ChatScreen() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [chatStatus, setChatStatus] = useState<ChatStatus | null>(null);
 
-  const isClient = user?.role === 'client';
-  const isTasker = user?.role === 'tasker';
+  // Participant-based (matches the backend's own authorization model) once
+  // the task has loaded; falls back to real role before it has. Correctly
+  // handles a tasker chatting on a booking they made as the client.
+  const isClient = task
+    ? (task.client_id || task.user_id || task.client?.id || task.created_by) === user?.id
+    : user?.role === 'client';
+  const isTasker = task
+    ? (task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to) === user?.id
+    : user?.role === 'tasker';
   const isFrench = i18n.locale === 'fr';
 
   // Resolve the other participant's user ID, regardless of role
@@ -256,11 +263,19 @@ export default function ChatScreen() {
         console.log('Direct task fetch failed, falling back to task list:', directError);
       }
       
-      // Fallback to task list
-      const tasks = isClient 
-        ? await taskAPI.getClientTasks()
-        : await taskAPI.getTaskerTasks();
-      const currentTask = tasks?.find((t: any) => t.id === taskId);
+      // Fallback to task list. `task` isn't loaded yet here, so we can't use
+      // the participant-based isClient — search by real role first, and for
+      // a tasker account also check their client bookings (this chat could
+      // be for a booking they made as the client, not an assigned job).
+      const isTaskerAccount = user?.role === 'tasker';
+      const tasks = isTaskerAccount
+        ? await taskAPI.getTaskerTasks()
+        : await taskAPI.getClientTasks();
+      let currentTask = tasks?.find((t: any) => t.id === taskId);
+      if (!currentTask && isTaskerAccount && user?.id) {
+        const clientTasks = await taskAPI.getBookingsAsClient(user.id);
+        currentTask = clientTasks?.find((t: any) => t.id === taskId);
+      }
       console.log('Task from list:', JSON.stringify(currentTask, null, 2));
       setTask(currentTask);
     } catch (error) {

@@ -414,7 +414,10 @@ const AnimatedCategoryCard = ({
 };
 
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const { user, activeMode } = useAuth();
+  // Home always reflects the CURRENT mode, not the account's real role — a
+  // tasker browsing in client mode gets the full client experience here.
+  const isClientMode = activeMode === 'client';
   const { locale, t } = useLanguage();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -498,9 +501,9 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Fetch pending review tasks for clients
+  // Fetch pending review tasks for clients (or a tasker currently in client mode)
   const fetchPendingReviews = useCallback(async () => {
-    if (user?.role !== 'client' || hasCheckedReviews.current) return;
+    if (!isClientMode || hasCheckedReviews.current) return;
     
     try {
       const response = await reviewAPI.getPendingReviews();
@@ -514,7 +517,7 @@ export default function HomeScreen() {
       console.log('Error fetching pending reviews:', error);
       // Silently fail - this is a non-critical feature
     }
-  }, [user?.role]);
+  }, [isClientMode]);
 
   useEffect(() => {
     fetchCategories();
@@ -522,10 +525,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Check for pending reviews when component mounts (for clients only)
-    if (user?.role === 'client') {
+    if (isClientMode) {
       fetchPendingReviews();
     }
-  }, [fetchPendingReviews, user?.role]);
+  }, [fetchPendingReviews, isClientMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -659,7 +662,7 @@ export default function HomeScreen() {
             </View>
             <View style={styles.welcomeContent}>
               <Text style={styles.welcomeTitle}>
-                {user?.role === 'client'
+                {isClientMode
                   ? locale === 'fr'
                     ? 'Trouvez le pro parfait'
                     : 'Find the Perfect Tasker'
@@ -668,7 +671,7 @@ export default function HomeScreen() {
                   : 'Start Accepting Tasks'}
               </Text>
               <Text style={styles.welcomeSubtitle}>
-                {user?.role === 'client'
+                {isClientMode
                   ? locale === 'fr'
                     ? 'Des milliers de professionnels qualifiés sont prêts à vous aider'
                     : 'Thousands of skilled professionals ready to help'
@@ -684,7 +687,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Client Verification CTA */}
-        {user?.role === 'client' && (
+        {isClientMode && (
           <ClientVerifyCTA
             status={user.verification?.status ?? null}
             isVerified={user.is_identity_verified === true}
@@ -715,12 +718,12 @@ export default function HomeScreen() {
                   category={category}
                   index={index}
                     onPress={() => {
-                    if (user?.role === 'tasker') {
+                    if (!isClientMode) {
                       Alert.alert(
                         locale === 'fr' ? 'Action non disponible' : 'Not Available',
-                        locale === 'fr' 
-                          ? 'Les pros ne peuvent pas réserver de services. Connectez-vous en tant que client pour réserver.' 
-                          : 'Taskers cannot book services. Log in as a client to book.'
+                        locale === 'fr'
+                          ? 'Passez en mode client pour réserver un service.'
+                          : 'Switch to client mode to book a service.'
                       );
                       return;
                     }

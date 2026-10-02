@@ -283,6 +283,17 @@ export const authAPI = {
   },
 };
 
+// ==================== USER API ====================
+
+export const userAPI = {
+  // Client → tasker upgrade. Keeps email/phone/password/history; backend
+  // creates an empty tasker profile. Role change — caller must refreshUser().
+  async becomePro() {
+    const response = await api.post('/api/users/become-pro');
+    return response.data as { success: boolean; role: 'tasker' };
+  },
+};
+
 // ==================== PAYMENT API (AFRIBAPAY) ====================
 
 export const afribaPayAPI = {
@@ -472,6 +483,14 @@ export const taskAPI = {
   // Get client's own tasks
   async getClientTasks() {
     const response = await api.get('/api/tasks/my-tasks');
+    return response.data;
+  },
+
+  // Bookings made BY a given user AS a client — works for tasker accounts
+  // booking in "client mode" too, unlike /my-tasks which is role-based and
+  // would return a tasker's assigned jobs instead.
+  async getBookingsAsClient(userId: string) {
+    const response = await api.get('/api/tasks', { params: { client_id: userId } });
     return response.data;
   },
 

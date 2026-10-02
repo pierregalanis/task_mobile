@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_data';
 const LANGUAGE_KEY = 'app_language';
+const ACTIVE_MODE_KEY = 'active_mode';
 
 export const storage = {
   // Token management
@@ -76,11 +77,40 @@ export const storage = {
     }
   },
 
+  // Pro ↔ Client mode (tasker accounts only) — persists which "mode" the
+  // app last opened in, across restarts.
+  async saveActiveMode(mode: 'client' | 'tasker'): Promise<void> {
+    try {
+      await AsyncStorage.setItem(ACTIVE_MODE_KEY, mode);
+    } catch (error) {
+      console.error('Error saving active mode:', error);
+    }
+  },
+
+  async getActiveMode(): Promise<'client' | 'tasker' | null> {
+    try {
+      const mode = await AsyncStorage.getItem(ACTIVE_MODE_KEY);
+      return mode === 'client' || mode === 'tasker' ? mode : null;
+    } catch (error) {
+      console.error('Error getting active mode:', error);
+      return null;
+    }
+  },
+
+  async removeActiveMode(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(ACTIVE_MODE_KEY);
+    } catch (error) {
+      console.error('Error removing active mode:', error);
+    }
+  },
+
   // Clear all data
   async clearAll(): Promise<void> {
     try {
       await this.removeToken();
       await this.removeUser();
+      await this.removeActiveMode();
     } catch (error) {
       console.error('Error clearing storage:', error);
     }

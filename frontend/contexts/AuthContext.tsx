@@ -1,12 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, LoginCredentials, RegisterData, User } from '../services/api';
 import { storage } from '../utils/storage';
-import { registerForPushNotificationsAsync, savePushToken, removePushToken } from '../services/notifications';
+import { removePushToken } from '../services/notifications';
+
+type ActiveMode = 'client' | 'tasker';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  activeMode: ActiveMode;
+  switchMode: (mode: ActiveMode) => Promise<void>;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<any>;
   logout: () => Promise<void>;
@@ -18,6 +22,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Default 'client' is only ever visible for an instant before resolveActiveMode
+  // runs — client accounts never get a switch, so it's always correct for them.
+  const [activeMode, setActiveMode] = useState<ActiveMode>('client');
+
+  // Client accounts are always in client mode. Tasker accounts default to
+  // 'tasker' (pro) unless they'd previously switched to client mode.
+  const resolveActiveMode = async (userData: User) => {
+    if (userData.role !== 'tasker') {
+      setActiveMode('client');
+      return;
+    }
+    const savedMode = await storage.getActiveMode();
+    setActiveMode(savedMode ?? 'tasker');
+  };
+
+  const switchMode = async (mode: ActiveMode) => {
+    if (user?.role !== 'tasker') return; // only tasker accounts can switch
+    setActiveMode(mode);
+    await storage.saveActiveMode(mode);
+  };
 
   useEffect(() => {
     console.log('AuthContext: Initializing...');
@@ -34,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await authAPI.getCurrentUser();
         console.log('AuthContext: User loaded:', userData.email);
         setUser(userData);
+        await resolveActiveMode(userData);
       } else {
         console.log('AuthContext: No token found');
       }
@@ -65,19 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await storage.saveUser(userData);
       console.log('User data saved');
       setUser(userData);
+      await resolveActiveMode(userData);
       console.log('User state updated');
-      
-      // Register for push notifications after successful login
-      try {
-        const pushToken = await registerForPushNotificationsAsync();
-        if (pushToken) {
-          await savePushToken(pushToken);
-          console.log('Push notifications registered successfully');
-        }
-      } catch (error) {
-        console.error('Failed to register push notifications:', error);
-      }
-      
+
+      // Push token registration happens in usePushNotifications' own effect,
+      // which re-runs whenever `user` changes (including this login) — no
+      // need to duplicate it here.
+
       console.log('Login successful!');
     } catch (error: any) {
       console.error('Login error:', error);
@@ -108,17 +127,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         await storage.saveUser(userData);
         setUser(userData);
-        
-        // Register for push notifications after successful registration
-        try {
-          const pushToken = await registerForPushNotificationsAsync();
-          if (pushToken) {
-            await savePushToken(pushToken);
-            console.log('Push notifications registered successfully');
-          }
-        } catch (error) {
-          console.error('Failed to register push notifications:', error);
-        }
+        await resolveActiveMode(userData);
+
+        // Push token registration happens in usePushNotifications' own
+        // effect, which re-runs whenever `user` changes — no duplicate call
+        // needed here.
       }
       
       // Return the response so signup screen knows registration succeeded
@@ -142,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await storage.clearAll();
       setUser(null);
+      setActiveMode('client');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -152,6 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await authAPI.getCurrentUser();
       await storage.saveUser(userData);
       setUser(userData);
+      // Re-resolve mode too — matters right after becoming a pro, where role
+      // just flipped client -> tasker and there's no saved mode yet (defaults
+      // to 'tasker' so the user lands in pro-profile setup, per spec).
+      await resolveActiveMode(userData);
     } catch (error) {
       console.error('Refresh user error:', error);
     }
@@ -163,6 +181,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        activeMode,
+        switchMode,
         login,
         register,
         logout,

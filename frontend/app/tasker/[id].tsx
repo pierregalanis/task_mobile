@@ -33,8 +33,13 @@ export default function TaskerProfileScreen() {
     fromCategoryId?: string;
     fromSubcategory?: string;
   }>();
-  const { user } = useAuth();
-  const isClient = user?.role === 'client';
+  const { user, activeMode } = useAuth();
+  // Whether the viewer can book right now — true for client accounts, and for
+  // tasker accounts currently in client mode.
+  const isClient = activeMode === 'client';
+  // Viewing your own public profile — booking yourself is rejected server-side
+  // (400 "You cannot book your own services"), so hide the option entirely.
+  const isOwnProfile = !!user?.id && user.id === id;
   const [tasker, setTasker] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -397,7 +402,7 @@ export default function TaskerProfileScreen() {
               // Clickable if the service has any resolvable category reference.
               // Supports both old format (UUID in service.category) and new format (UUID in service.category_id).
               const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-              const isClickable = isClient && (
+              const isClickable = isClient && !isOwnProfile && (
                 uuidRegex.test(String(service.category || '')) ||
                 uuidRegex.test(String(service.category_id || ''))
               );
@@ -601,6 +606,13 @@ export default function TaskerProfileScreen() {
             </Text>
             <Ionicons name="log-in-outline" size={20} color={Colors.dark.background} />
           </TouchableOpacity>
+        ) : isOwnProfile ? (
+          <View style={[styles.bookButton, { backgroundColor: '#3a3a3a' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={Colors.dark.textSecondary} />
+            <Text style={[styles.bookButtonText, { color: Colors.dark.textSecondary }]}>
+              {i18n.locale === 'fr' ? 'Ceci est votre profil' : 'This is your own profile'}
+            </Text>
+          </View>
         ) : isClient ? (
           <TouchableOpacity
             style={styles.bookButton}
@@ -616,7 +628,7 @@ export default function TaskerProfileScreen() {
           <View style={[styles.bookButton, { backgroundColor: '#3a3a3a' }]}>
             <Ionicons name="information-circle-outline" size={20} color={Colors.dark.textSecondary} />
             <Text style={[styles.bookButtonText, { color: Colors.dark.textSecondary }]}>
-              {i18n.locale === 'fr' ? 'Les pros ne peuvent pas réserver' : 'Taskers cannot book services'}
+              {i18n.locale === 'fr' ? 'Passez en mode client pour réserver' : 'Switch to client mode to book'}
             </Text>
           </View>
         )}

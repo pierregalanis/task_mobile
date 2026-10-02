@@ -83,8 +83,17 @@ export default function TaskDetailsScreen() {
   // AfribaPay Modal State (Client)
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const isClient = user?.role === 'client';
-  const isTasker = user?.role === 'tasker';
+  // Participant-based, mirroring the backend's own authorization model (by
+  // participant ID, not account role) — this is what makes a tasker who
+  // booked another pro correctly see client UI on THAT booking, while still
+  // seeing tasker UI on jobs assigned to them. Falls back to real role only
+  // for the brief instant before `task` has loaded.
+  const isClient = task
+    ? (task.client_id || task.user_id || task.client?.id || task.created_by) === user?.id
+    : user?.role === 'client';
+  const isTasker = task
+    ? (task.tasker_id || task.assigned_tasker_id || task.tasker?.id || task.assigned_to) === user?.id
+    : user?.role === 'tasker';
 
   useEffect(() => {
     fetchTaskDetails();

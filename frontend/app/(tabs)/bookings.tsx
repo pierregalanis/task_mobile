@@ -114,7 +114,7 @@ const AnimatedTaskCard = ({ children, index }: { children: React.ReactNode; inde
 export default function BookingsScreen() {
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const { user } = useAuth();
+  const { user, activeMode } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,8 +126,14 @@ export default function BookingsScreen() {
   const headerFade = useRef(new Animated.Value(0)).current;
   const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
 
-  const isClient = user?.role === 'client';
-  const isTasker = user?.role === 'tasker';
+  // This screen reflects the CURRENT mode: a tasker browsing in client mode
+  // sees their own bookings-as-client here, not their assigned jobs.
+  const isClient = activeMode === 'client';
+  const isTasker = activeMode === 'tasker';
+  // Real role still matters for which endpoint fetches "my client bookings" —
+  // /my-tasks is role-based and would return a tasker's assigned jobs instead,
+  // so a tasker-in-client-mode needs the ?client_id= endpoint specifically.
+  const isTaskerAccount = user?.role === 'tasker';
 
   useEffect(() => {
     Animated.timing(headerFade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -140,6 +146,12 @@ export default function BookingsScreen() {
       fetchTasks();
     }, [isClient])
   );
+
+  // Re-fetch when mode itself changes (switching pro <-> client should
+  // immediately reload the right list, not wait for the next focus event)
+  useEffect(() => {
+    fetchTasks();
+  }, [activeMode]);
 
   // Re-fetch when app returns from background
   useEffect(() => {
@@ -171,12 +183,22 @@ export default function BookingsScreen() {
     }).start();
   }, [activeTab]);
 
+  // Fetch whichever list matches the current mode. True clients keep using
+  // the existing /my-tasks path unchanged; only a tasker-in-client-mode needs
+  // the new ?client_id= endpoint, since /my-tasks is role-based for them.
+  const fetchBookingsForCurrentMode = () => {
+    if (!isClient) return taskAPI.getTaskerTasks();
+    return isTaskerAccount && user?.id
+      ? taskAPI.getBookingsAsClient(user.id)
+      : taskAPI.getClientTasks();
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const [categoriesData, tasksData] = await Promise.all([
         categoryAPI.getCategories().catch(() => []),
-        isClient ? taskAPI.getClientTasks() : taskAPI.getTaskerTasks()
+        fetchBookingsForCurrentMode(),
       ]);
       setCategories(categoriesData || []);
       setTasks(tasksData || []);
@@ -190,7 +212,7 @@ export default function BookingsScreen() {
 
   const fetchTasks = async () => {
     try {
-      const data = isClient ? await taskAPI.getClientTasks() : await taskAPI.getTaskerTasks();
+      const data = await fetchBookingsForCurrentMode();
       setTasks(data || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);

@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Colors } from '../../constants/Colors';
 import { showConfirm, showMessage } from '../../utils/alert';
-import { imageAPI } from '../../services/api';
+import { imageAPI, userAPI } from '../../services/api';
 
 const SUPPORT_EMAIL = 'help@soutrali.net';
 const PRIVACY_POLICY_URL = 'https://soutrali.net/privacy';
@@ -93,11 +93,12 @@ function AnimatedMenuItem({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, refreshUser, logout } = useAuth();
+  const { user, refreshUser, logout, activeMode, switchMode } = useAuth();
   const { locale, setLocale, t } = useLanguage();
   const colors = Colors.dark;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [becomingPro, setBecomingPro] = useState(false);
 
   // Animations
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -143,6 +144,43 @@ export default function ProfileScreen() {
       undefined,
       locale === 'fr' ? 'Déconnexion' : 'Logout',
       locale === 'fr' ? 'Annuler' : 'Cancel'
+    );
+  };
+
+  const confirmBecomePro = async () => {
+    try {
+      setBecomingPro(true);
+      await userAPI.becomePro();
+      await refreshUser();
+      showMessage(
+        locale === 'fr' ? '🎉 Compte prestataire activé !' : '🎉 Pro account activated!',
+        locale === 'fr' ? 'Configurez maintenant vos services.' : 'Now set up your services.',
+        () => router.push('/tasker/manage-services')
+      );
+    } catch (error: any) {
+      console.error('Become a pro error:', error);
+      showMessage(
+        locale === 'fr' ? 'Erreur' : 'Error',
+        error.response?.data?.detail || (locale === 'fr' ? 'Une erreur est survenue' : 'An error occurred')
+      );
+    } finally {
+      setBecomingPro(false);
+    }
+  };
+
+  const handleBecomePro = () => {
+    // Plain Alert.alert here, not showConfirm — that utility hardcodes the
+    // confirm button as "destructive" (red), which is wrong for this
+    // positive, non-destructive action.
+    Alert.alert(
+      locale === 'fr' ? 'Devenir prestataire' : 'Become a Pro',
+      locale === 'fr'
+        ? 'Proposez vos services sur Soutrali et gagnez de l\'argent. Vous conservez votre compte, vos réservations et votre historique. Après l\'activation, vous configurerez vos services, puis passerez la vérification d\'identité pour apparaître dans les résultats de recherche.'
+        : 'Offer your services on Soutrali and earn money. You keep your account, bookings and history. After activation you will set up your services, then complete identity verification to appear in search results.',
+      [
+        { text: locale === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
+        { text: locale === 'fr' ? 'Devenir prestataire' : 'Become a Pro', onPress: confirmBecomePro },
+      ]
     );
   };
 
@@ -411,6 +449,31 @@ export default function ProfileScreen() {
               </View>
             </View>
           )}
+
+          {/* Pro <-> Client mode switch — tasker accounts only */}
+          {user?.role === 'tasker' && (
+            <TouchableOpacity
+              style={[styles.modeSwitchButton, { backgroundColor: colors.primary }]}
+              onPress={async () => {
+                const nextMode = activeMode === 'tasker' ? 'client' : 'tasker';
+                await switchMode(nextMode);
+                router.push(nextMode === 'client' ? '/(tabs)/home' : '/(tabs)/tasker-dashboard');
+              }}
+              activeOpacity={0.85}
+              testID="mode-switch-button"
+            >
+              <Ionicons
+                name={activeMode === 'tasker' ? 'cart' : 'construct'}
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.modeSwitchButtonText}>
+                {activeMode === 'tasker'
+                  ? (locale === 'fr' ? 'Réserver un service' : 'Book a service')
+                  : (locale === 'fr' ? 'Mode Pro' : 'Pro mode')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </Animated.View>
 
         {/* Tasker Management Section - Only for Taskers */}
@@ -485,6 +548,40 @@ export default function ProfileScreen() {
                 iconColor="#ef4444"
                 colors={colors}
               />
+            </View>
+          </View>
+        )}
+
+        {/* Become a Pro - Only for Clients */}
+        {user?.role === 'client' && (
+          <View style={styles.menuSection}>
+            <View style={[styles.becomeProCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+              <View style={[styles.becomeProIcon, { backgroundColor: `${colors.primary}20` }]}>
+                <Ionicons name="construct" size={24} color={colors.primary} />
+              </View>
+              <Text style={[styles.becomeProTitle, { color: colors.text }]}>
+                {locale === 'fr' ? 'Devenir prestataire' : 'Become a Pro'}
+              </Text>
+              <Text style={[styles.becomeProBody, { color: colors.textSecondary }]}>
+                {locale === 'fr'
+                  ? 'Proposez vos services sur Soutrali et gagnez de l\'argent. Vous conservez votre compte, vos réservations et votre historique. Après l\'activation, vous configurerez vos services, puis passerez la vérification d\'identité pour apparaître dans les résultats de recherche.'
+                  : 'Offer your services on Soutrali and earn money. You keep your account, bookings and history. After activation you will set up your services, then complete identity verification to appear in search results.'}
+              </Text>
+              <TouchableOpacity
+                style={[styles.becomeProButton, { backgroundColor: colors.primary }]}
+                onPress={handleBecomePro}
+                disabled={becomingPro}
+                activeOpacity={0.85}
+                testID="become-pro-button"
+              >
+                {becomingPro ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.becomeProButtonText}>
+                    {locale === 'fr' ? 'Devenir prestataire' : 'Become a Pro'}
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -669,6 +766,23 @@ const styles = StyleSheet.create({
   completionPercent: { fontSize: 12, fontWeight: '700' },
   completionBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
   completionBarFill: { height: '100%', borderRadius: 3 },
+  modeSwitchButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, paddingHorizontal: 20, borderRadius: 24, marginTop: 16, alignSelf: 'center',
+  },
+  modeSwitchButtonText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  becomeProCard: {
+    borderRadius: 16, borderWidth: 1.5, padding: 20, alignItems: 'center',
+  },
+  becomeProIcon: {
+    width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  becomeProTitle: { fontSize: 17, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  becomeProBody: { fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 16 },
+  becomeProButton: {
+    width: '100%', paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+  },
+  becomeProButtonText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   menuSection: { marginBottom: 20 },
   menuSectionTitle: {
     fontSize: 13, fontWeight: '600',

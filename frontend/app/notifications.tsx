@@ -198,7 +198,7 @@ const AnimatedNotificationCard = ({
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, activeMode, switchMode } = useAuth();
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -365,6 +365,9 @@ export default function NotificationsScreen() {
         if (taskId) {
           router.push(`/task/${taskId}`);
         } else if (user?.role === 'tasker') {
+          // The tasker-dashboard tab is disabled (href: null) while in client
+          // mode, so switch back to pro mode first or this navigation no-ops.
+          if (activeMode !== 'tasker') switchMode('tasker');
           router.push('/(tabs)/tasker-dashboard');
         } else {
           router.push('/(tabs)/bookings');

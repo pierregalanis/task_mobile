@@ -7,10 +7,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const { activeMode } = useAuth();
   const { locale, t } = useLanguage();
   const insets = useSafeAreaInsets();
-  const isTasker = user?.role === 'tasker';
+  // Tab visibility follows the current mode, not the account's real role —
+  // a tasker browsing in client mode sees the client tabs, and vice versa.
+  const isTasker = activeMode === 'tasker';
 
   return (
     <Tabs

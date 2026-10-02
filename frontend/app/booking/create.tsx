@@ -102,7 +102,7 @@ interface LocationData {
 
 export default function CreateBookingScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, activeMode } = useAuth();
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
 
@@ -110,18 +110,19 @@ export default function CreateBookingScreen() {
     categoryAPI.getCategories().then(setBackendCategories).catch(() => {});
   }, []);
 
-  // Safety net: Taskers cannot book
+  // Safety net: only in pro mode is booking blocked — a tasker in client
+  // mode (or any client account) can book normally.
   useEffect(() => {
-    if (user && user.role === 'tasker') {
+    if (user && activeMode !== 'client') {
       Alert.alert(
         i18n.locale === 'fr' ? 'Accès refusé' : 'Access Denied',
-        i18n.locale === 'fr' 
-          ? 'Les pros ne peuvent pas réserver de services.' 
-          : 'Taskers cannot book services.',
+        i18n.locale === 'fr'
+          ? 'Passez en mode client pour réserver un service.'
+          : 'Switch to client mode to book a service.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     }
-  }, [user]);
+  }, [user, activeMode]);
   
   console.log('Booking form params:', params);
 

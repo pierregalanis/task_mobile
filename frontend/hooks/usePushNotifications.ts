@@ -34,21 +34,36 @@ const NotificationTypes = {
   // Location
   TASKER_ARRIVED: 'tasker_arrived',
   TASKER_ON_WAY: 'tasker_on_way',  // NOT "en_route"
-  
+
   // Payment
   PAYMENT_RECEIVED: 'payment_received',
   PAYMENT_CONFIRMED: 'payment_confirmed',
-  
+
+  // Milestone bonus
+  BONUS_EARNED: 'bonus_earned',
+  BONUS_PAID: 'bonus_paid',
+
   // Communication
   NEW_MESSAGE: 'new_message',
-  
+
   // Reviews
   NEW_REVIEW: 'new_review',
   REVIEW_RECEIVED: 'review_received',
-  
+  REVIEW_REMINDER: 'review_reminder',
+
   // Disputes
   DISPUTE_RAISED: 'dispute_raised',    // NOT "dispute_opened"
   DISPUTE_RESOLVED: 'dispute_resolved',
+
+  // Work assessment (Certify) flow
+  WORK_CERTIFIED: 'work_certified',
+  ADJUSTMENT_REQUESTED: 'adjustment_requested',
+  ADJUSTMENT_APPROVED: 'adjustment_approved',
+  ADJUSTMENT_DECLINED: 'adjustment_declined',
+  COUNTER_OFFER_RECEIVED: 'counter_offer_received',
+  COUNTER_OFFER_ACCEPTED: 'counter_offer_accepted',
+  COUNTER_OFFER_DECLINED: 'counter_offer_declined',
+  ASSESSMENT_EXPIRED: 'assessment_expired',
   
   // Verification
   PROFILE_VERIFIED: 'profile_verified',
@@ -74,7 +89,7 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription>();
   
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, activeMode, switchMode } = useAuth();
 
   // Register for push notifications
   const registerForPushNotifications = useCallback(async () => {
@@ -198,15 +213,45 @@ export function usePushNotifications() {
           router.push('/tasker/my-reviews');
           break;
 
-        // ==================== PAYMENT RECEIVED → EARNINGS ====================
+        // ==================== PAYMENT RECEIVED / BONUS → EARNINGS ====================
         case NotificationTypes.PAYMENT_RECEIVED:
+        case NotificationTypes.BONUS_EARNED:
+        case NotificationTypes.BONUS_PAID:
           console.log('Navigating to earnings');
           router.push('/tasker/my-earnings');
           break;
 
-        // ==================== VERIFICATION → PROFILE ====================
-        case NotificationTypes.PROFILE_VERIFIED:
+        // ==================== REVIEW REMINDER → LEAVE-A-REVIEW SCREEN ====================
+        case NotificationTypes.REVIEW_REMINDER:
+          console.log('Navigating to review screen');
+          if (taskId) {
+            router.push(`/review?taskId=${taskId}`);
+          } else {
+            router.push('/(tabs)/home');
+          }
+          break;
+
+        // ==================== TASKER ON THE WAY → LIVE TRACKING ====================
+        case NotificationTypes.TASKER_ON_WAY:
+          console.log('Navigating to tracking (tasker on way)');
+          if (taskId) {
+            router.push(`/tracking/${taskId}?mode=client`);
+          } else {
+            router.push('/(tabs)/bookings');
+          }
+          break;
+
+        // ==================== VERIFICATION APPROVED → PRO DASHBOARD ====================
         case NotificationTypes.VERIFICATION_APPROVED:
+          console.log('Navigating to pro dashboard (verification approved)');
+          // That tab is disabled (href: null) while in client mode — switch
+          // back to pro mode first or this navigation silently no-ops.
+          if (activeMode !== 'tasker') await switchMode('tasker');
+          router.push('/(tabs)/tasker-dashboard');
+          break;
+
+        // ==================== OTHER VERIFICATION STATES → PROFILE ====================
+        case NotificationTypes.PROFILE_VERIFIED:
         case NotificationTypes.VERIFICATION_REJECTED:
           console.log('Navigating to profile (verification)');
           router.push('/(tabs)/profile');
@@ -233,10 +278,17 @@ export function usePushNotifications() {
         case NotificationTypes.WORK_STARTED:
         case NotificationTypes.TASK_REMINDER:
         case NotificationTypes.TASKER_ARRIVED:
-        case NotificationTypes.TASKER_ON_WAY:
         case NotificationTypes.PAYMENT_CONFIRMED:
         case NotificationTypes.DISPUTE_RAISED:
         case NotificationTypes.DISPUTE_RESOLVED:
+        case NotificationTypes.WORK_CERTIFIED:
+        case NotificationTypes.ADJUSTMENT_REQUESTED:
+        case NotificationTypes.ADJUSTMENT_APPROVED:
+        case NotificationTypes.ADJUSTMENT_DECLINED:
+        case NotificationTypes.COUNTER_OFFER_RECEIVED:
+        case NotificationTypes.COUNTER_OFFER_ACCEPTED:
+        case NotificationTypes.COUNTER_OFFER_DECLINED:
+        case NotificationTypes.ASSESSMENT_EXPIRED:
           if (taskId) {
             console.log('Navigating to task:', taskId);
             router.push(`/task/${taskId}`);
@@ -260,7 +312,7 @@ export function usePushNotifications() {
       console.error('Error handling notification navigation:', err);
       router.push('/notifications');
     }
-  }, [router]);
+  }, [router, activeMode, switchMode]);
 
   // Set up listeners on mount
   useEffect(() => {
