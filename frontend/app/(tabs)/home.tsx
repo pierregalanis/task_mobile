@@ -503,7 +503,7 @@ export default function HomeScreen() {
 
   // Fetch pending review tasks for clients (or a tasker currently in client mode)
   const fetchPendingReviews = useCallback(async () => {
-    if (!isClientMode || hasCheckedReviews.current) return;
+    if (!user || !isClientMode || hasCheckedReviews.current) return;
     
     try {
       const response = await reviewAPI.getPendingReviews();
@@ -517,7 +517,7 @@ export default function HomeScreen() {
       console.log('Error fetching pending reviews:', error);
       // Silently fail - this is a non-critical feature
     }
-  }, [isClientMode]);
+  }, [user, isClientMode]);
 
   useEffect(() => {
     fetchCategories();
@@ -525,7 +525,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Check for pending reviews when component mounts (for clients only)
-    if (isClientMode) {
+    if (user && isClientMode) {
       fetchPendingReviews();
     }
   }, [fetchPendingReviews, isClientMode]);
@@ -687,7 +687,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Client Verification CTA */}
-        {isClientMode && (
+        {isClientMode && user && (
           <ClientVerifyCTA
             status={user.verification?.status ?? null}
             isVerified={user.is_identity_verified === true}

@@ -56,8 +56,10 @@ export default function TaskerProfileScreen() {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
   
-  // Per-service portfolio images state
-  const [servicePortfolios, setServicePortfolios] = useState<Record<string, PortfolioImage[]>>({});
+  // Work portfolio — fetched once (public endpoint) and grouped client-side
+  // by service below, since /by-service is scoped to the authenticated
+  // caller's own photos, not the profile being viewed.
+  const [portfolioImages, setPortfolioImages] = useState<PortfolioImage[]>([]);
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
   
   // Image viewer modal
@@ -86,6 +88,24 @@ export default function TaskerProfileScreen() {
     return !reviewerId || !blockedIds.includes(reviewerId);
   });
 
+  // Group the tasker's work portfolio by service (case-insensitive on both
+  // fields), so each service row shows only its own photos. Anything that
+  // doesn't match a current service falls back to the general portfolio —
+  // each photo appears in exactly one place, never both.
+  const normalizeServiceField = (value?: string) => (value || '').trim().toLowerCase();
+  const servicePortfolios: Record<string, PortfolioImage[]> = {};
+  (tasker?.tasker_profile?.services || []).forEach((service: any) => {
+    const key = `${service.category}-${service.subcategory}`;
+    servicePortfolios[key] = portfolioImages.filter((img) =>
+      normalizeServiceField(img.service_category) === normalizeServiceField(service.category) &&
+      normalizeServiceField(img.service_subcategory) === normalizeServiceField(service.subcategory)
+    );
+  });
+  const matchedImageIds = new Set(
+    Object.values(servicePortfolios).flat().map((img) => img.id)
+  );
+  const generalPortfolioImages = portfolioImages.filter((img) => !matchedImageIds.has(img.id));
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -105,10 +125,9 @@ export default function TaskerProfileScreen() {
         .then(setLiveStats)
         .catch(console.warn);
       
-      // Fetch portfolio images for each service
-      if (taskerData?.tasker_profile?.services) {
-        fetchServicePortfolios(taskerData.tasker_profile.services);
-      }
+      // Fetch the tasker's full work portfolio once (public endpoint); grouped
+      // into per-service strips below.
+      fetchPortfolio();
     } catch (error) {
       console.error('Error fetching tasker:', error);
     } finally {
@@ -116,30 +135,15 @@ export default function TaskerProfileScreen() {
     }
   };
 
-  const fetchServicePortfolios = async (services: any[]) => {
+  const fetchPortfolio = async () => {
     try {
       setLoadingPortfolios(true);
-      const portfolioPromises = services.map(async (service: any) => {
-        try {
-          const images = await imageAPI.getWorkPortfolioByService(service.category, service.subcategory);
-          return { 
-            key: `${service.category}-${service.subcategory}`, 
-            images: images || [] 
-          };
-        } catch (error) {
-          console.log(`No portfolio for ${service.category}-${service.subcategory}`);
-          return { key: `${service.category}-${service.subcategory}`, images: [] };
-        }
-      });
-      
-      const results = await Promise.all(portfolioPromises);
-      const portfolioMap: Record<string, PortfolioImage[]> = {};
-      results.forEach(result => {
-        portfolioMap[result.key] = result.images;
-      });
-      setServicePortfolios(portfolioMap);
+      const response = await imageAPI.getTaskerWorkPortfolio(id as string);
+      const images = response?.work_portfolio || response || [];
+      setPortfolioImages(Array.isArray(images) ? images : []);
     } catch (error) {
-      console.error('Error fetching service portfolios:', error);
+      console.error('Error fetching work portfolio:', error);
+      setPortfolioImages([]);
     } finally {
       setLoadingPortfolios(false);
     }
@@ -526,7 +530,7 @@ export default function TaskerProfileScreen() {
               const categoryName = category ? getCategoryName(category, i18n.locale) : service.category;
               const subcategoryName = subcategory ? getSubcategoryName(subcategory, i18n.locale) : service.subcategory;
               const portfolioKey = `${service.category}-${service.subcategory}`;
-              const portfolioImages = servicePortfolios[portfolioKey] || [];
+              const serviceImages = servicePortfolios[portfolioKey] || [];
 
               // Clickable if the service has any resolvable category reference.
               // Supports both old format (UUID in service.category) and new format (UUID in service.category_id).
@@ -582,7 +586,7 @@ export default function TaskerProfileScreen() {
                   </View>
 
                   {/* Per-Service Portfolio Images */}
-                  {portfolioImages.length > 0 && (
+                  {serviceImages.length > 0 && (
                     <View style={styles.servicePortfolio}>
                       <Text style={styles.servicePortfolioLabel}>
                         <Ionicons name="images-outline" size={14} color={Colors.dark.textSecondary} />
@@ -593,17 +597,17 @@ export default function TaskerProfileScreen() {
                         showsHorizontalScrollIndicator={false}
                         style={styles.servicePortfolioScroll}
                       >
-                        {portfolioImages.map((img, imgIndex) => (
+                        {serviceImages.map((img, imgIndex) => (
                           <TouchableOpacity
                             key={img.id}
                             onPress={() => openImageViewer(
-                              portfolioImages.map(p => p.image_url),
+                              serviceImages.map(p => p.url || p.thumbnail_url || p.image_url || ''),
                               imgIndex
                             )}
                             activeOpacity={0.8}
                           >
                             <Image
-                              source={{ uri: img.image_url }}
+                              source={{ uri: img.thumbnail_url || img.url || img.image_url }}
                               style={styles.servicePortfolioImage}
                             />
                           </TouchableOpacity>
@@ -652,27 +656,28 @@ export default function TaskerProfileScreen() {
           </View>
         )}
 
-        {/* Legacy Portfolio Section - Show only if no per-service images exist */}
-        {tasker.tasker_profile?.portfolio_images &&
-          tasker.tasker_profile.portfolio_images.length > 0 &&
-          Object.keys(servicePortfolios).every(key => servicePortfolios[key].length === 0) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {i18n.locale === 'fr' ? 'Portfolio' : 'Portfolio'}
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
-                {tasker.tasker_profile.portfolio_images.map((image: string, index: number) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => openImageViewer(tasker.tasker_profile.portfolio_images, index)}
-                    activeOpacity={0.8}
-                  >
-                    <Image source={{ uri: image }} style={styles.portfolioImage} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+        {/* General Portfolio - photos not tagged to any current service */}
+        {generalPortfolioImages.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {i18n.locale === 'fr' ? 'Portfolio' : 'Portfolio'}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioScroll}>
+              {generalPortfolioImages.map((img, index) => (
+                <TouchableOpacity
+                  key={img.id}
+                  onPress={() => openImageViewer(
+                    generalPortfolioImages.map(p => p.url || p.thumbnail_url || p.image_url || ''),
+                    index
+                  )}
+                  activeOpacity={0.8}
+                >
+                  <Image source={{ uri: img.thumbnail_url || img.url || img.image_url }} style={styles.portfolioImage} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Reviews Section */}
         {visibleReviews.length > 0 && (
